@@ -7,3 +7,4 @@
 3. push 到 GitHub
 4. 创建 Pull Request
 5. 合并回 main
+6. 选择一个已有分支修改文件并提交合并
