@@ -71,3 +71,8 @@ git commit -m "Update Git cheatsheet"
 
 # 10. 推送到 GitHub
 git push 
+
+## 查看日志
+
+# 1. 查看日志
+git log --oneline --graph --decorate --all
