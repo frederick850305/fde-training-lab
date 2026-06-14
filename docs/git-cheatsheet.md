@@ -78,6 +78,8 @@ git pull
 ```bash
 git push
 ```
-
 把本地提交推送到远程仓库。
+
+## 练习记录
+我正在学习 git diff 和 git log。
 
