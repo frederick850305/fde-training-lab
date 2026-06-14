@@ -80,6 +80,9 @@ git push
 ```
 把本地提交推送到远程仓库。
 
-## 练习记录
-我正在学习 git diff 和 git log。
+## 查看历史与差异
 
+- `git log --oneline`：查看简洁提交历史
+- `git diff`：查看未暂存的修改
+- `git diff --staged`：查看已暂存的修改
+- `git show commitID`：查看某次提交详情
