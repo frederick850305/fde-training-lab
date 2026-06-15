@@ -1,3 +1,12 @@
+from pathlib import Path
+import sys
+
+
+# 支持直接运行该测试文件时也能导入项目源码。
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.python_basics.parse_requirement import extract_section
 
 
