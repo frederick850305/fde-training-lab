@@ -2,7 +2,18 @@ from pathlib import Path
 
 
 def read_text_file(file_path: str) -> str:
-    """读取文本文件内容。"""
+    """
+    读取文本文件内容，以 UTF-8 编码返回文件全文。
+    
+    Args:
+        file_path (str): 文件路径
+    
+    Returns:
+        str: 文件的全部文本内容
+    
+    Raises:
+        FileNotFoundError: 当指定路径的文件不存在时抛出
+    """
     path = Path(file_path)
 
     if not path.exists():
@@ -12,7 +23,20 @@ def read_text_file(file_path: str) -> str:
 
 
 def extract_section(content: str, section_title: str) -> list[str]:
-    """从 Markdown 文本中提取指定二级标题下的列表内容。"""
+    """
+    从 Markdown 文本中提取指定二级标题下的所有列表项内容。
+    
+    扫描文本中所有匹配的二级标题章节，收集其下的列表项（以 "- " 开头的行），
+    遇到下一个二级标题时停止当前章节的提取。若同一标题出现多次，则合并所有匹配章节的列表项。
+    
+    Args:
+        content (str): Markdown 格式的文本内容
+        section_title (str): 要提取的二级标题名称（不包含 "## " 前缀）
+    
+    Returns:
+        list[str]: 提取到的列表项内容列表，每项为去除 "- " 前缀和首尾空格后的纯文本。
+                  若指定标题不存在，则返回空列表。
+    """
     lines = content.splitlines()
     results: list[str] = []
     in_target_section = False
@@ -35,7 +59,15 @@ def extract_section(content: str, section_title: str) -> list[str]:
 
 
 def build_markdown_list(items: list[str]) -> str:
-    """把 Python 列表转换成 Markdown 列表。"""
+    """
+    将字符串列表转换为 Markdown 无序列表格式。
+    
+    Args:
+        items (list[str]): 待转换的字符串列表
+    
+    Returns:
+        str: Markdown 格式的无序列表字符串；当列表为空时返回 "- 未提取到内容"
+    """
     if not items:
         return "- 未提取到内容"
 
@@ -43,6 +75,18 @@ def build_markdown_list(items: list[str]) -> str:
 
 
 def build_module_suggestions(core_requirements: list[str]) -> list[tuple[str, str]]:
+    """
+    根据核心需求列表生成初步功能模块建议。
+    
+    基于关键词匹配规则，将每条核心需求映射为对应的功能模块名称与描述。
+    当前采用简单规则实现，后续可替换为大模型生成。
+    
+    Args:
+        core_requirements (list[str]): 核心需求列表，每项为一条需求描述字符串
+    
+    Returns:
+        list[tuple[str, str]]: 功能模块建议列表，每个元组包含模块名称和模块描述
+    """
     """
     根据核心需求生成初步功能模块建议。
 
