@@ -1,3 +1,4 @@
+import logging
 from src.python_basics.file_utils import read_text_file, save_text
 
 
@@ -38,9 +39,13 @@ def build_module_suggestions(core_requirements: list[str]) -> list[tuple[str, st
 
     for requirement in core_requirements:
         if "导入" in requirement:
-            suggestions.append(("知识导入模块", "支持故障案例、手册、专家经验等资料录入"))
+            suggestions.append(
+                ("知识导入模块", "支持故障案例、手册、专家经验等资料录入")
+            )
         elif "检索" in requirement:
-            suggestions.append(("知识检索模块", "支持按设备类型、故障现象、关键词进行查询"))
+            suggestions.append(
+                ("知识检索模块", "支持按设备类型、故障现象、关键词进行查询")
+            )
         elif "建议" in requirement:
             suggestions.append(("智能建议模块", "根据故障现象生成标准化处置建议"))
         elif "审核" in requirement or "发布" in requirement:
@@ -70,13 +75,20 @@ def build_markdown_table(rows: list[tuple[str, str]]) -> str:
 
 def generate_requirement_summary(input_path: str, output_path: str) -> None:
     """生成客户需求结构化分析报告。"""
+    logging.info("开始生成客户需求结构化分析报告")
+    logging.info("读取客户需求文件：%s", input_path)
     content = read_text_file(input_path)
 
     business_goals = extract_section(content, "业务目标")
     user_roles = extract_section(content, "用户角色")
     core_requirements = extract_section(content, "核心需求")
     module_suggestions = build_module_suggestions(core_requirements)
-
+    logging.info(
+        "需求解析完成：业务目标 %s 条，用户角色 %s 条，核心需求 %s 条",
+        len(business_goals),
+        len(user_roles),
+        len(core_requirements),
+    )
     report = f"""# 客户需求结构化分析报告
 
 ## 一、业务目标
@@ -101,4 +113,5 @@ def generate_requirement_summary(input_path: str, output_path: str) -> None:
 """
 
     save_text(output_path, report)
+    logging.info("客户需求结构化分析报告已保存：%s", output_path)
     print(f"客户需求结构化分析报告已生成：{output_path}")

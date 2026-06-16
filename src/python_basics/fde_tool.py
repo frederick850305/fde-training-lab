@@ -1,5 +1,6 @@
 import argparse
 import sys
+import logging
 from pathlib import Path
 
 # 将项目根目录加入 sys.path，使各模块可以使用 src.python_basics.xxx 导入
@@ -10,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.python_basics.fault_report_service import generate_fault_case_report
 from src.python_basics.requirement_service import generate_requirement_summary
 from src.python_basics.excel_summary_service import print_excel_summary
+from src.python_basics.logging_utils import setup_logging
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -77,17 +79,22 @@ def run_command(args: argparse.Namespace) -> None:
 
 def main() -> int:
     """CLI 主入口。"""
+    setup_logging()
     parser = build_parser()
     args = parser.parse_args()
 
     try:
+        logging.info("开始执行命令：%s", args.command)
         run_command(args)
+        logging.info("命令执行成功：%s", args.command)
         return 0
     except FileNotFoundError as error:
+        logging.error("文件不存在：%s", error)
         print(f"错误：{error}", file=sys.stderr)
         print("请检查输入文件路径是否正确。", file=sys.stderr)
         return 1
     except Exception as error:
+        logging.exception("程序执行失败")
         print(f"程序执行失败：{error}", file=sys.stderr)
         return 1
 
