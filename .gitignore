@@ -16,3 +16,6 @@ venv/
 
 # VS Code
 .vscode/
+
+# Test output
+output/test_*.md
