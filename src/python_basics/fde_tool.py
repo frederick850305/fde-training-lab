@@ -49,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="output/fault_case_report.md",
         help="故障案例分析报告输出路径",
     )
+
     excel_summary_parser = subparsers.add_parser(
         "excel-summary",
         help="查看 Excel 文件基础摘要",
@@ -62,10 +63,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:
-    parser = build_parser()
-    args = parser.parse_args()
-
+def run_command(args: argparse.Namespace) -> None:
+    """根据命令行参数执行具体命令。"""
     if args.command == "requirement":
         generate_requirement_summary(args.input, args.output)
     elif args.command == "fault-report":
@@ -73,8 +72,25 @@ def main() -> None:
     elif args.command == "excel-summary":
         print_excel_summary(args.input)
     else:
-        parser.print_help()
+        raise ValueError(f"不支持的命令：{args.command}")
+
+
+def main() -> int:
+    """CLI 主入口。"""
+    parser = build_parser()
+    args = parser.parse_args()
+
+    try:
+        run_command(args)
+        return 0
+    except FileNotFoundError as error:
+        print(f"错误：{error}", file=sys.stderr)
+        print("请检查输入文件路径是否正确。", file=sys.stderr)
+        return 1
+    except Exception as error:
+        print(f"程序执行失败：{error}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
