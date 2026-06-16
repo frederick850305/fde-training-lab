@@ -1,0 +1,10 @@
+requirement:
+  input: data/customer-requirement.md
+  output: output/customer_requirement_summary.md
+
+fault_report:
+  input: data/fault_cases.xlsx
+  output: output/fault_case_report.md
+
+excel_summary:
+  input: data/fault_cases.xlsx
