@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.python_basics.parse_requirement import extract_section
+from src.python_basics.requirement_service import extract_section
 
 
 def test_extract_business_goals():
