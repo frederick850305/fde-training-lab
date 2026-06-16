@@ -44,3 +44,33 @@ def test_requirement_summary_api_file_not_found():
 
     assert response.status_code == 404
     assert "文件不存在" in response.json()["detail"]
+
+
+def test_fault_report_api_success(tmp_path):
+    output_path = tmp_path / "api_fault_case_report.md"
+
+    response = client.post(
+        "/fault/report",
+        json={
+            "input_path": "data/fault_cases.xlsx",
+            "output_path": str(output_path),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["output_path"] == str(output_path)
+    assert output_path.exists()
+
+
+def test_fault_report_api_file_not_found():
+    response = client.post(
+        "/fault/report",
+        json={
+            "input_path": "data/not-exist.xlsx",
+            "output_path": "output/api_fault_case_report.md",
+        },
+    )
+
+    assert response.status_code == 404
+    assert "文件不存在" in response.json()["detail"]
