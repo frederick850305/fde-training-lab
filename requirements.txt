@@ -4,3 +4,4 @@ pytest
 PyYAML
 fastapi
 uvicorn
+httpx
