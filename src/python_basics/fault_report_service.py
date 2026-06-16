@@ -1,18 +1,21 @@
 from pathlib import Path
 
 import pandas as pd
+import logging
 
 from src.python_basics.file_utils import save_text
 
 
 def read_fault_cases(file_path: str) -> pd.DataFrame:
     """读取故障案例 Excel。"""
+    logging.info("读取故障案例 Excel：%s", file_path)
     path = Path(file_path)
 
     if not path.exists():
         raise FileNotFoundError(f"文件不存在: {file_path}")
-
-    return pd.read_excel(path)
+    df = pd.read_excel(path)
+    logging.info("故障案例读取成功，案例数量：%s", len(df))
+    return df
 
 
 def build_count_table(counts: pd.Series, first_column_name: str) -> str:
@@ -49,6 +52,7 @@ def build_fault_analysis_conclusion(df: pd.DataFrame) -> str:
 
 def generate_fault_case_report(input_path: str, output_path: str) -> None:
     """生成故障案例分析报告。"""
+    logging.info("开始生成故障案例分析报告")
     df = read_fault_cases(input_path)
 
     device_counts = df["device_type"].value_counts()
@@ -74,4 +78,5 @@ def generate_fault_case_report(input_path: str, output_path: str) -> None:
 """
 
     save_text(output_path, report)
+    logging.info("故障案例分析报告已保存：%s", output_path)
     print(f"故障案例分析报告已生成：{output_path}")
