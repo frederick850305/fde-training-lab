@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from src.python_basics.requirement_service import generate_requirement_summary
 from src.python_basics.fault_report_service import generate_fault_case_report
+from src.python_basics.excel_summary_service import generate_excel_summary
 
 
 app = FastAPI(
@@ -40,6 +41,20 @@ class FaultReportResponse(BaseModel):
     status: str
     message: str
     output_path: str
+
+
+class ExcelSummaryRequest(BaseModel):
+    """Excel 摘要请求参数。"""
+
+    input_path: str = "data/fault_cases.xlsx"
+
+
+class ExcelSummaryResponse(BaseModel):
+    """Excel 摘要响应结果。"""
+
+    status: str
+    file_path: str
+    summary: str
 
 
 @app.get("/health")
@@ -104,4 +119,29 @@ def create_fault_report(
         status="success",
         message="故障案例分析报告已生成",
         output_path=request.output_path,
+    )
+
+
+@app.post("/excel/summary", response_model=ExcelSummaryResponse)
+def create_excel_summary(
+    request: ExcelSummaryRequest,
+) -> ExcelSummaryResponse:
+    """生成 Excel 文件基础摘要。"""
+    try:
+        summary = generate_excel_summary(request.input_path)
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=404,
+            detail=str(error),
+        ) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"生成 Excel 摘要失败: {error}",
+        ) from error
+
+    return ExcelSummaryResponse(
+        status="success",
+        file_path=request.input_path,
+        summary=summary,
     )

@@ -74,3 +74,32 @@ def test_fault_report_api_file_not_found():
 
     assert response.status_code == 404
     assert "文件不存在" in response.json()["detail"]
+
+
+def test_excel_summary_api_success():
+    response = client.post(
+        "/excel/summary",
+        json={
+            "input_path": "data/fault_cases.xlsx",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["file_path"] == "data/fault_cases.xlsx"
+    assert "Excel 文件摘要" in data["summary"]
+    assert "字段列表" in data["summary"]
+
+
+def test_excel_summary_api_file_not_found():
+    response = client.post(
+        "/excel/summary",
+        json={
+            "input_path": "data/not-exist.xlsx",
+        },
+    )
+
+    assert response.status_code == 404
+    assert "文件不存在" in response.json()["detail"]
