@@ -9,6 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.python_basics.fault_report_service import generate_fault_case_report
 from src.python_basics.requirement_service import generate_requirement_summary
+from src.python_basics.excel_summary_service import print_excel_summary
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="output/fault_case_report.md",
         help="故障案例分析报告输出路径",
     )
+    excel_summary_parser = subparsers.add_parser(
+        "excel-summary",
+        help="查看 Excel 文件基础摘要",
+    )
+    excel_summary_parser.add_argument(
+        "--input",
+        default="data/fault_cases.xlsx",
+        help="Excel 输入文件路径",
+    )
 
     return parser
 
@@ -60,6 +70,8 @@ def main() -> None:
         generate_requirement_summary(args.input, args.output)
     elif args.command == "fault-report":
         generate_fault_case_report(args.input, args.output)
+    elif args.command == "excel-summary":
+        print_excel_summary(args.input)
     else:
         parser.print_help()
 
