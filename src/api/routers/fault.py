@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -14,18 +16,10 @@ class FaultReportRequest(BaseModel):
     output_path: str = "output/api_fault_case_report.md"
 
 
-class FaultReportResponse(BaseModel):
-    """故障案例分析响应结果。"""
-
-    status: str
-    message: str
-    output_path: str
-
-
-@router.post("/report", response_model=FaultReportResponse)
+@router.post("/report")
 def create_fault_report(
     request: FaultReportRequest,
-) -> FaultReportResponse:
+) -> Dict[str, Any]:
     """生成故障案例分析报告。"""
     try:
         generate_fault_case_report(
@@ -43,8 +37,7 @@ def create_fault_report(
             detail=f"生成故障案例分析报告失败: {error}",
         ) from error
 
-    return FaultReportResponse(
-        status="success",
-        message="故障案例分析报告已生成",
-        output_path=request.output_path,
-    )
+    return {
+        "status": "success",
+        "output_path": request.output_path,
+    }

@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -13,18 +15,10 @@ class ExcelSummaryRequest(BaseModel):
     input_path: str = "data/fault_cases.xlsx"
 
 
-class ExcelSummaryResponse(BaseModel):
-    """Excel 摘要响应结果。"""
-
-    status: str
-    file_path: str
-    summary: str
-
-
-@router.post("/summary", response_model=ExcelSummaryResponse)
+@router.post("/summary")
 def create_excel_summary(
     request: ExcelSummaryRequest,
-) -> ExcelSummaryResponse:
+) -> Dict[str, Any]:
     """生成 Excel 文件基础摘要。"""
     try:
         summary = generate_excel_summary(request.input_path)
@@ -39,8 +33,8 @@ def create_excel_summary(
             detail=f"生成 Excel 摘要失败: {error}",
         ) from error
 
-    return ExcelSummaryResponse(
-        status="success",
-        file_path=request.input_path,
-        summary=summary,
-    )
+    return {
+        "status": "success",
+        "file_path": request.input_path,
+        "summary": summary,
+    }

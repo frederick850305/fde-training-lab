@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -14,18 +16,10 @@ class RequirementSummaryRequest(BaseModel):
     output_path: str = "output/api_requirement_summary.md"
 
 
-class RequirementSummaryResponse(BaseModel):
-    """客户需求分析响应结果。"""
-
-    status: str
-    message: str
-    output_path: str
-
-
-@router.post("/summary", response_model=RequirementSummaryResponse)
+@router.post("/summary")
 def create_requirement_summary(
     request: RequirementSummaryRequest,
-) -> RequirementSummaryResponse:
+) -> Dict[str, Any]:
     """生成客户需求结构化分析报告。"""
     try:
         generate_requirement_summary(
@@ -43,8 +37,7 @@ def create_requirement_summary(
             detail=f"生成客户需求结构化分析报告失败: {error}",
         ) from error
 
-    return RequirementSummaryResponse(
-        status="success",
-        message="客户需求结构化分析报告已生成",
-        output_path=request.output_path,
-    )
+    return {
+        "status": "success",
+        "output_path": request.output_path,
+    }
