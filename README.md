@@ -122,11 +122,11 @@ excel_summary:
 
 也可以通过 --config 指定其他配置文件：
 
-python src/python_basics/fde_tool.py --config config.yaml requirement
+python -m src.python_basics.fde_tool --config config.yaml requirement
 
 命令行参数优先级高于配置文件。例如：
 
-python src/python_basics/fde_tool.py requirement \
+python -m src.python_basics.fde_tool requirement \
   --output output/custom_requirement_summary.md
 
 这会临时覆盖 config.yaml 中的默认输出路径。
@@ -141,7 +141,7 @@ src/python_basics/fde_tool.py
 
 查看帮助：
 
-python src/python_basics/fde_tool.py --help
+python -m src.python_basics.fde_tool --help
 
 当前支持三个子命令：
 
@@ -164,11 +164,11 @@ output/customer_requirement_summary.md
 
 运行：
 
-python src/python_basics/fde_tool.py requirement
+python -m src.python_basics.fde_tool requirement
 
 指定输入和输出：
 
-python src/python_basics/fde_tool.py requirement \
+python -m src.python_basics.fde_tool requirement \
   --input data/customer-requirement.md \
   --output output/customer_requirement_summary.md
 
@@ -194,11 +194,11 @@ output/fault_case_report.md
 
 运行：
 
-python src/python_basics/fde_tool.py fault-report
+python -m src.python_basics.fde_tool fault-report
 
 指定输入和输出：
 
-python src/python_basics/fde_tool.py fault-report \
+python -m src.python_basics.fde_tool fault-report \
   --input data/fault_cases.xlsx \
   --output output/fault_case_report.md
 
@@ -219,11 +219,11 @@ data/fault_cases.xlsx
 
 运行：
 
-python src/python_basics/fde_tool.py excel-summary
+python -m src.python_basics.fde_tool excel-summary
 
 指定输入：
 
-python src/python_basics/fde_tool.py excel-summary \
+python -m src.python_basics.fde_tool excel-summary \
   --input data/fault_cases.xlsx
 
 输出内容包括：
@@ -255,7 +255,7 @@ python src/python_basics/fde_tool.py excel-summary \
 
 如果输入文件不存在，CLI 会输出友好错误提示：
 
-python src/python_basics/fde_tool.py excel-summary --input data/not-exist.xlsx
+python -m src.python_basics.fde_tool excel-summary --input data/not-exist.xlsx
 
 示例输出：
 
@@ -356,10 +356,10 @@ git branch
 git checkout main
 git checkout -b feature/任务名称
 Python
-python src/python_basics/fde_tool.py --help
-python src/python_basics/fde_tool.py requirement
-python src/python_basics/fde_tool.py fault-report
-python src/python_basics/fde_tool.py excel-summary
+python -m src.python_basics.fde_tool --help
+python -m src.python_basics.fde_tool requirement
+python -m src.python_basics.fde_tool fault-report
+python -m src.python_basics.fde_tool excel-summary
 测试
 pytest
 虚拟环境
