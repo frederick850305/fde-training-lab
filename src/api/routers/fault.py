@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.python_basics.fault_report_service import generate_fault_case_report
+from src.api.schemas.common import ApiResponse
 
 
 router = APIRouter(prefix="/fault", tags=["Fault"])
@@ -14,18 +15,10 @@ class FaultReportRequest(BaseModel):
     output_path: str = "output/api_fault_case_report.md"
 
 
-class FaultReportResponse(BaseModel):
-    """故障案例分析响应结果。"""
-
-    status: str
-    message: str
-    output_path: str
-
-
-@router.post("/report", response_model=FaultReportResponse)
+@router.post("/report", response_model=ApiResponse)
 def create_fault_report(
     request: FaultReportRequest,
-) -> FaultReportResponse:
+) -> ApiResponse:
     """生成故障案例分析报告。"""
     try:
         generate_fault_case_report(
@@ -35,16 +28,26 @@ def create_fault_report(
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404,
-            detail=str(error),
+            detail={
+                "success": False,
+                "message": str(error),
+                "error_code": "FILE_NOT_FOUND",
+            },
         ) from error
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"生成故障案例分析报告失败: {error}",
+            detail={
+                "success": False,
+                "message": f"生成故障案例分析报告失败: {error}",
+                "error_code": "INTERNAL_ERROR",
+            },
         ) from error
 
-    return FaultReportResponse(
-        status="success",
+    return ApiResponse(
+        success=True,
         message="故障案例分析报告已生成",
-        output_path=request.output_path,
+        data={
+            "output_path": request.output_path,
+        },
     )

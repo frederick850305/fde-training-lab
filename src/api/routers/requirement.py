@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.python_basics.requirement_service import generate_requirement_summary
+from src.api.schemas.common import ApiResponse
 
 
 router = APIRouter(prefix="/requirement", tags=["Requirement"])
@@ -14,18 +15,10 @@ class RequirementSummaryRequest(BaseModel):
     output_path: str = "output/api_requirement_summary.md"
 
 
-class RequirementSummaryResponse(BaseModel):
-    """客户需求分析响应结果。"""
-
-    status: str
-    message: str
-    output_path: str
-
-
-@router.post("/summary", response_model=RequirementSummaryResponse)
+@router.post("/summary", response_model=ApiResponse)
 def create_requirement_summary(
     request: RequirementSummaryRequest,
-) -> RequirementSummaryResponse:
+) -> ApiResponse:
     """生成客户需求结构化分析报告。"""
     try:
         generate_requirement_summary(
@@ -35,16 +28,26 @@ def create_requirement_summary(
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404,
-            detail=str(error),
+            detail={
+                "success": False,
+                "message": str(error),
+                "error_code": "FILE_NOT_FOUND",
+            },
         ) from error
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"生成客户需求结构化分析报告失败: {error}",
+            detail={
+                "success": False,
+                "message": f"生成客户需求结构化分析报告失败: {error}",
+                "error_code": "INTERNAL_ERROR",
+            },
         ) from error
 
-    return RequirementSummaryResponse(
-        status="success",
+    return ApiResponse(
+        success=True,
         message="客户需求结构化分析报告已生成",
-        output_path=request.output_path,
+        data={
+            "output_path": request.output_path,
+        },
     )
