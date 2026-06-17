@@ -29,12 +29,20 @@ def create_fault_report(
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404,
-            detail=str(error),
+            detail={
+                "success": False,
+                "error_code": "FILE_NOT_FOUND",
+                "message": str(error),
+            },
         ) from error
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"生成故障案例分析报告失败: {error}",
+            detail={
+                "success": False,
+                "error_code": "INTERNAL_ERROR",
+                "message": f"生成故障案例分析报告失败: {error}",
+            },
         ) from error
 
     return {

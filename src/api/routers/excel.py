@@ -25,16 +25,27 @@ def create_excel_summary(
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404,
-            detail=str(error),
+            detail={
+                "success": False,
+                "error_code": "FILE_NOT_FOUND",
+                "message": str(error),
+            },
         ) from error
     except Exception as error:
         raise HTTPException(
             status_code=500,
-            detail=f"生成 Excel 摘要失败: {error}",
+            detail={
+                "success": False,
+                "error_code": "INTERNAL_ERROR",
+                "message": f"生成 Excel 摘要失败: {error}",
+            },
         ) from error
 
     return {
-        "status": "success",
-        "file_path": request.input_path,
-        "summary": summary,
+        "success": True,
+        "message": "Excel 摘要生成成功",
+        "data": {
+            "file_path": request.input_path,
+            "summary": summary,
+        },
     }

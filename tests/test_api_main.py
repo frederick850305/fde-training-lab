@@ -43,7 +43,10 @@ def test_requirement_summary_api_file_not_found():
     )
 
     assert response.status_code == 404
-    assert "文件不存在" in response.json()["detail"]
+    detail = response.json()["detail"]
+    assert detail["success"] is False
+    assert detail["error_code"] == "FILE_NOT_FOUND"
+    assert "文件不存在" in detail["message"]
 
 
 def test_fault_report_api_success(tmp_path):
@@ -73,7 +76,10 @@ def test_fault_report_api_file_not_found():
     )
 
     assert response.status_code == 404
-    assert "文件不存在" in response.json()["detail"]
+    detail = response.json()["detail"]
+    assert detail["success"] is False
+    assert detail["error_code"] == "FILE_NOT_FOUND"
+    assert "文件不存在" in detail["message"]
 
 
 def test_excel_summary_api_success():
@@ -87,10 +93,11 @@ def test_excel_summary_api_success():
     assert response.status_code == 200
 
     data = response.json()
-    assert data["status"] == "success"
-    assert data["file_path"] == "data/fault_cases.xlsx"
-    assert "Excel 文件摘要" in data["summary"]
-    assert "字段列表" in data["summary"]
+    assert data["success"] is True
+    assert data["message"] == "Excel 摘要生成成功"
+    assert data["data"]["file_path"] == "data/fault_cases.xlsx"
+    assert "Excel 文件摘要" in data["data"]["summary"]
+    assert "字段列表" in data["data"]["summary"]
 
 
 def test_excel_summary_api_file_not_found():
@@ -102,4 +109,7 @@ def test_excel_summary_api_file_not_found():
     )
 
     assert response.status_code == 404
-    assert "文件不存在" in response.json()["detail"]
+    detail = response.json()["detail"]
+    assert detail["success"] is False
+    assert detail["error_code"] == "FILE_NOT_FOUND"
+    assert "文件不存在" in detail["message"]
