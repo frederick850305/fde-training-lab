@@ -1,18 +1,15 @@
-from fastapi import APIRouter
+from typing import Any, Dict
 
-from src.api.schemas.common import ApiResponse
+from fastapi import APIRouter
 
 
 router = APIRouter(tags=["Health"])
 
 
-@router.get("/health", response_model=ApiResponse)
-def health_check() -> ApiResponse:
+@router.get("/health")
+def health_check() -> Dict[str, Any]:
     """健康检查接口。"""
-    return ApiResponse(
-        success=True,
-        message="FDE Training API is running",
-        data={
-            "status": "ok",
-        },
-    )
+    return {
+        "status": "ok",
+        "message": "FDE Training API is running",
+    }
