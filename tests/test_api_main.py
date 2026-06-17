@@ -43,7 +43,7 @@ def test_requirement_summary_api_file_not_found():
     )
 
     assert response.status_code == 404
-    detail = response.json()["detail"]
+    detail = response.json()
     assert detail["success"] is False
     assert detail["error_code"] == "FILE_NOT_FOUND"
     assert "文件不存在" in detail["message"]
@@ -76,7 +76,7 @@ def test_fault_report_api_file_not_found():
     )
 
     assert response.status_code == 404
-    detail = response.json()["detail"]
+    detail = response.json()
     assert detail["success"] is False
     assert detail["error_code"] == "FILE_NOT_FOUND"
     assert "文件不存在" in detail["message"]
@@ -109,7 +109,7 @@ def test_excel_summary_api_file_not_found():
     )
 
     assert response.status_code == 404
-    detail = response.json()["detail"]
+    detail = response.json()
     assert detail["success"] is False
     assert detail["error_code"] == "FILE_NOT_FOUND"
     assert "文件不存在" in detail["message"]

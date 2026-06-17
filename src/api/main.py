@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from src.api.exception_handlers import register_exception_handlers
 from src.api.routers import excel, fault, health, requirement
 
 
@@ -10,6 +11,8 @@ def create_app() -> FastAPI:
         description="FDE 自我训练项目 API 服务",
         version="0.1.0",
     )
+
+    register_exception_handlers(app)
 
     app.include_router(health.router)
     app.include_router(requirement.router)
