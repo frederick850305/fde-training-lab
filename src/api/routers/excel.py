@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.python_basics.excel_summary_service import generate_excel_summary
+from src.api.validators import validate_excel_input
 
 
 router = APIRouter(prefix="/excel", tags=["Excel"])
@@ -20,6 +21,7 @@ def create_excel_summary(
     request: ExcelSummaryRequest,
 ) -> Dict[str, Any]:
     """生成 Excel 文件基础摘要。"""
+    validate_excel_input(request.input_path)
     try:
         summary = generate_excel_summary(request.input_path)
     except FileNotFoundError as error:

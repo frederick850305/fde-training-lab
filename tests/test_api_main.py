@@ -114,3 +114,36 @@ def test_excel_summary_api_file_not_found():
     assert detail["success"] is False
     assert detail["error_code"] == "FILE_NOT_FOUND"
     assert "文件不存在" in detail["message"]
+
+
+def test_excel_summary_api_rejects_blank_input_path():
+    response = client.post(
+        "/excel/summary",
+        json={
+            "input_path": "",
+        },
+    )
+
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "VALIDATION_ERROR"
+    assert "不能为空" in data["message"]
+
+
+def test_fault_report_api_rejects_invalid_output_extension():
+    response = client.post(
+        "/fault/report",
+        json={
+            "input_path": "data/fault_cases.xlsx",
+            "output_path": "output/report.txt",
+        },
+    )
+
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "VALIDATION_ERROR"
+    assert "文件类型不正确" in data["message"]
