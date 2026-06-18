@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.python_basics.requirement_service import generate_requirement_summary
+from src.api.validators import validate_markdown_input, validate_markdown_output
 
 
 router = APIRouter(prefix="/requirement", tags=["Requirement"])
@@ -21,6 +22,8 @@ def create_requirement_summary(
     request: RequirementSummaryRequest,
 ) -> Dict[str, Any]:
     """生成客户需求结构化分析报告。"""
+    validate_markdown_input(request.input_path)
+    validate_markdown_output(request.output_path)
     try:
         generate_requirement_summary(
             input_path=request.input_path,

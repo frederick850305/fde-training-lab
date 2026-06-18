@@ -367,3 +367,20 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 deactivate
+
+
+## API 服务使用说明
+
+本项目使用 FastAPI 将核心能力封装为 HTTP API，便于前端页面、业务系统、Agent 或其他服务调用。
+
+当前 API 能力来自底层 service 模块：
+
+```text
+service 层
+  ↓
+  ├── CLI 入口
+  └── API 入口
+```
+
+---
+

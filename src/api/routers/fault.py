@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.python_basics.fault_report_service import generate_fault_case_report
+from src.api.validators import validate_excel_input, validate_markdown_output
 
 
 router = APIRouter(prefix="/fault", tags=["Fault"])
@@ -21,6 +22,8 @@ def create_fault_report(
     request: FaultReportRequest,
 ) -> Dict[str, Any]:
     """生成故障案例分析报告。"""
+    validate_excel_input(request.input_path)
+    validate_markdown_output(request.output_path)
     try:
         generate_fault_case_report(
             input_path=request.input_path,
