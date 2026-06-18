@@ -10,6 +10,7 @@ def test_health_check():
     response = client.get("/health")
 
     assert response.status_code == 200
+    assert "x-request-id" in response.headers
     assert response.json() == {
         "status": "ok",
         "message": "FDE Training API is running",
