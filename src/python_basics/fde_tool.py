@@ -36,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="客户需求分析报告输出路径",
     )
 
+    requirement_parser.add_argument(
+        "--enable-ai-advice",
+        action="store_true",
+        help="启用 DeepSeek 生成 AI 辅助实施建议",
+    )
+
     fault_parser = subparsers.add_parser(
         "fault-report",
         help="生成故障案例分析报告",
@@ -82,7 +88,11 @@ def run_command(args: argparse.Namespace) -> None:
             "output/customer_requirement_summary.md",
         )
 
-        generate_requirement_summary(input_path, output_path)
+        generate_requirement_summary(
+            input_path,
+            output_path,
+            enable_ai_advice=args.enable_ai_advice,
+        )
 
     elif args.command == "fault-report":
         input_path = args.input or get_config_value(
