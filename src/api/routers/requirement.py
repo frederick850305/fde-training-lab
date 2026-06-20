@@ -15,6 +15,7 @@ class RequirementSummaryRequest(BaseModel):
 
     input_path: str = "data/customer-requirement.md"
     output_path: str = "output/api_requirement_summary.md"
+    enable_ai_advice: bool = False
 
 
 @router.post("/summary")
@@ -28,6 +29,7 @@ def create_requirement_summary(
         generate_requirement_summary(
             input_path=request.input_path,
             output_path=request.output_path,
+            enable_ai_advice=request.enable_ai_advice,
         )
     except FileNotFoundError as error:
         raise HTTPException(

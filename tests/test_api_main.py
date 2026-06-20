@@ -1,7 +1,8 @@
 from fastapi.testclient import TestClient
 
-from src.api.main import app
 
+from src.api.main import app
+from src.api.routers import requirement as requirement_router
 
 client = TestClient(app)
 
@@ -147,3 +148,43 @@ def test_fault_report_api_rejects_invalid_output_extension():
     assert data["success"] is False
     assert data["error_code"] == "VALIDATION_ERROR"
     assert "文件类型不正确" in data["message"]
+
+
+def test_requirement_summary_api_passes_ai_advice_flag(
+    monkeypatch,
+    tmp_path,
+):
+    captured_arguments = {}
+
+    def fake_generate_requirement_summary(
+        input_path,
+        output_path,
+        enable_ai_advice=False,
+    ):
+        captured_arguments["input_path"] = input_path
+        captured_arguments["output_path"] = output_path
+        captured_arguments["enable_ai_advice"] = enable_ai_advice
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        fake_generate_requirement_summary,
+    )
+
+    output_path = tmp_path / "ai_requirement_summary.md"
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": str(output_path),
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured_arguments == {
+        "input_path": "data/customer-requirement.md",
+        "output_path": str(output_path),
+        "enable_ai_advice": True,
+    }
