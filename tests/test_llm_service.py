@@ -1,5 +1,6 @@
 import pytest
 import httpx
+import logging
 
 from types import SimpleNamespace
 
@@ -14,6 +15,25 @@ from src.python_basics.llm_config import DEFAULT_BASE_URL
 
 from src.python_basics import llm_service
 from src.python_basics.llm_config import LLMConfig
+
+
+@pytest.fixture
+def configured_llm(monkeypatch):
+    config = LLMConfig(
+        api_key="test-key",
+        model="test-model",
+        base_url="https://example.com",
+        timeout_seconds=25.0,
+        max_retries=1,
+    )
+
+    monkeypatch.setattr(
+        llm_service,
+        "_load_service_config",
+        lambda: config,
+    )
+
+    return config
 
 
 def test_generate_text_raises_when_prompt_is_empty():
@@ -33,7 +53,9 @@ def test_get_deepseek_client_raises_when_api_key_missing(monkeypatch):
         get_deepseek_client()
 
 
-def test_generate_text_returns_model_response(monkeypatch):
+def test_generate_text_returns_model_response(monkeypatch, configured_llm, caplog):
+    captured_request = {}
+
     class _FakeMessage:
         content = "FDE 工程师是负责现场交付和客户技术支持的专业人员。"
 
@@ -45,6 +67,7 @@ def test_generate_text_returns_model_response(monkeypatch):
 
     class _FakeCompletions:
         def create(self, **kwargs):
+            captured_request.update(kwargs)
             return _FakeResponse()
 
     class _FakeClient:
@@ -54,13 +77,22 @@ def test_generate_text_returns_model_response(monkeypatch):
         "src.python_basics.llm_service.get_deepseek_client",
         lambda config=None: _FakeClient(),
     )
-
+    caplog.set_level(
+        logging.INFO,
+        logger="src.python_basics.llm_service",
+    )
     result = generate_text("请用一句话解释什么是 FDE 工程师。")
 
     assert "FDE 工程师" in result
+    assert captured_request["model"] == configured_llm.model
+    assert "DeepSeek 调用成功" in caplog.text
+    assert configured_llm.model in caplog.text
+    assert "duration_ms=" in caplog.text
+    assert configured_llm.api_key not in caplog.text
+    assert "请用一句话解释什么是 FDE 工程师" not in caplog.text
 
 
-def test_generate_text_converts_timeout_error(monkeypatch):
+def test_generate_text_converts_timeout_error(monkeypatch, configured_llm, caplog):
     def raise_timeout(**kwargs):
         request = httpx.Request("POST", DEFAULT_BASE_URL)
         raise APITimeoutError(request=request)
@@ -72,12 +104,19 @@ def test_generate_text_converts_timeout_error(monkeypatch):
         "src.python_basics.llm_service.get_deepseek_client",
         lambda config=None: fake_client,
     )
-
+    caplog.set_level(
+        logging.WARNING,
+        logger="src.python_basics.llm_service",
+    )
     with pytest.raises(LLMServiceError, match="请求超时"):
         generate_text("分析客户需求")
+    assert "DeepSeek 调用失败" in caplog.text
+    assert "error_type=timeout" in caplog.text
+    assert configured_llm.api_key not in caplog.text
+    assert "分析客户需求" not in caplog.text
 
 
-def test_generate_text_raises_when_response_is_empty(monkeypatch):
+def test_generate_text_raises_when_response_is_empty(monkeypatch, configured_llm):
     response = SimpleNamespace(
         choices=[SimpleNamespace(message=SimpleNamespace(content=None))]
     )
