@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from openai import (
@@ -10,31 +9,36 @@ from openai import (
     RateLimitError,
 )
 
-
-DEFAULT_MODEL = "deepseek-v4-flash"
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEFAULT_TIMEOUT_SECONDS = 60.0
-DEFAULT_MAX_RETRIES = 1
+from src.python_basics.llm_config import (
+    LLMConfig,
+    LLMConfigError,
+    load_llm_config,
+)
 
 
 class LLMServiceError(RuntimeError):
     """大模型服务调用异常。"""
 
 
-def get_deepseek_client() -> OpenAI:
-    """创建 DeepSeek 客户端。"""
-    api_key = os.getenv("DEEPSEEK_API_KEY")
+def _load_service_config() -> LLMConfig:
+    """加载配置，并转换为统一的大模型服务异常。"""
+    try:
+        return load_llm_config()
+    except LLMConfigError as error:
+        raise LLMServiceError(str(error)) from error
 
-    if not api_key:
-        raise LLMServiceError(
-            "DeepSeek API Key 未配置，请设置环境变量 DEEPSEEK_API_KEY"
-        )
+
+def get_deepseek_client(
+    config: Optional[LLMConfig] = None,
+) -> OpenAI:
+    """根据配置创建 DeepSeek 客户端。"""
+    selected_config = config or _load_service_config()
 
     return OpenAI(
-        api_key=api_key,
-        base_url=DEEPSEEK_BASE_URL,
-        timeout=DEFAULT_TIMEOUT_SECONDS,
-        max_retries=DEFAULT_MAX_RETRIES,
+        api_key=selected_config.api_key,
+        base_url=selected_config.base_url,
+        timeout=selected_config.timeout_seconds,
+        max_retries=selected_config.max_retries,
     )
 
 
@@ -46,8 +50,9 @@ def generate_text(
     if not prompt or not prompt.strip():
         raise ValueError("prompt 不能为空")
 
-    client = get_deepseek_client()
-    selected_model = model or DEFAULT_MODEL
+    config = _load_service_config()
+    client = get_deepseek_client(config)
+    selected_model = model or config.model
 
     try:
         response = client.chat.completions.create(
