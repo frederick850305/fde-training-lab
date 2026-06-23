@@ -10,6 +10,7 @@ from openai import (
 )
 
 from src.python_basics.llm_config import (
+    DEFAULT_MODEL,
     LLMConfig,
     LLMConfigError,
     load_llm_config,
@@ -50,9 +51,8 @@ def generate_text(
     if not prompt or not prompt.strip():
         raise ValueError("prompt 不能为空")
 
-    config = _load_service_config()
-    client = get_deepseek_client(config)
-    selected_model = model or config.model
+    client = get_deepseek_client()
+    selected_model = model or DEFAULT_MODEL
 
     try:
         response = client.chat.completions.create(
