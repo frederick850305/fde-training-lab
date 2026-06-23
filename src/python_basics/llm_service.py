@@ -1,3 +1,6 @@
+import logging
+import time
+
 from typing import Optional
 
 from openai import (
@@ -10,15 +13,35 @@ from openai import (
 )
 
 from src.python_basics.llm_config import (
-    DEFAULT_MODEL,
     LLMConfig,
     LLMConfigError,
     load_llm_config,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class LLMServiceError(RuntimeError):
     """大模型服务调用异常。"""
+
+
+def _get_duration_ms(start_time: float) -> float:
+    """计算从开始时间到当前时间的毫秒数。"""
+    return (time.perf_counter() - start_time) * 1000
+
+
+def _log_call_failure(
+    model: str,
+    start_time: float,
+    error_type: str,
+) -> None:
+    """记录不包含敏感信息的大模型调用失败日志。"""
+    logger.warning(
+        "DeepSeek 调用失败：model=%s, duration_ms=%.2f, error_type=%s",
+        model,
+        _get_duration_ms(start_time),
+        error_type,
+    )
 
 
 def _load_service_config() -> LLMConfig:
@@ -50,9 +73,10 @@ def generate_text(
     """调用 DeepSeek 生成文本。"""
     if not prompt or not prompt.strip():
         raise ValueError("prompt 不能为空")
-
-    client = get_deepseek_client()
-    selected_model = model or DEFAULT_MODEL
+    config = _load_service_config()
+    client = get_deepseek_client(config)
+    selected_model = model or config.model
+    start_time = time.perf_counter()
 
     try:
         response = client.chat.completions.create(
@@ -69,17 +93,49 @@ def generate_text(
             ],
             stream=False,
         )
+    
     except APITimeoutError as error:
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "timeout",
+        )
         raise LLMServiceError("DeepSeek 请求超时，请稍后重试") from error
+
     except AuthenticationError as error:
-        raise LLMServiceError("DeepSeek API Key 无效或没有访问权限") from error
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "authentication",
+        )
+        raise LLMServiceError(
+            "DeepSeek API Key 无效或没有访问权限"
+        ) from error
+
     except RateLimitError as error:
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "rate_limit",
+        )
         raise LLMServiceError(
             "DeepSeek 请求频率过高或账户额度不足，请稍后重试"
         ) from error
+
     except APIConnectionError as error:
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "connection",
+        )
         raise LLMServiceError("无法连接 DeepSeek 服务，请检查网络连接") from error
+
     except APIStatusError as error:
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "status_error",
+        )
         raise LLMServiceError(
             f"DeepSeek 服务返回错误，状态码：{error.status_code}"
         ) from error
@@ -87,6 +143,15 @@ def generate_text(
     content = response.choices[0].message.content
 
     if not content or not content.strip():
+        _log_call_failure(
+            selected_model,
+            start_time,
+            "empty_response",
+        )
         raise LLMServiceError("DeepSeek 返回了空内容")
-
+    logger.info(
+        "DeepSeek 调用成功：model=%s, duration_ms=%.2f",
+        selected_model,
+        _get_duration_ms(start_time),
+    )
     return content
