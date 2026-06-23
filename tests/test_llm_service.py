@@ -6,11 +6,14 @@ from types import SimpleNamespace
 from openai import APITimeoutError
 
 from src.python_basics.llm_service import (
-    DEEPSEEK_BASE_URL,
     LLMServiceError,
     generate_text,
     get_deepseek_client,
 )
+from src.python_basics.llm_config import DEFAULT_BASE_URL
+
+from src.python_basics import llm_service
+from src.python_basics.llm_config import LLMConfig
 
 
 def test_generate_text_raises_when_prompt_is_empty():
@@ -49,7 +52,7 @@ def test_generate_text_returns_model_response(monkeypatch):
 
     monkeypatch.setattr(
         "src.python_basics.llm_service.get_deepseek_client",
-        lambda: _FakeClient(),
+        lambda config=None: _FakeClient(),
     )
 
     result = generate_text("请用一句话解释什么是 FDE 工程师。")
@@ -59,7 +62,7 @@ def test_generate_text_returns_model_response(monkeypatch):
 
 def test_generate_text_converts_timeout_error(monkeypatch):
     def raise_timeout(**kwargs):
-        request = httpx.Request("POST", DEEPSEEK_BASE_URL)
+        request = httpx.Request("POST", DEFAULT_BASE_URL)
         raise APITimeoutError(request=request)
 
     fake_client = SimpleNamespace(
@@ -67,7 +70,7 @@ def test_generate_text_converts_timeout_error(monkeypatch):
     )
     monkeypatch.setattr(
         "src.python_basics.llm_service.get_deepseek_client",
-        lambda: fake_client,
+        lambda config=None: fake_client,
     )
 
     with pytest.raises(LLMServiceError, match="请求超时"):
@@ -85,8 +88,35 @@ def test_generate_text_raises_when_response_is_empty(monkeypatch):
     )
     monkeypatch.setattr(
         "src.python_basics.llm_service.get_deepseek_client",
-        lambda: fake_client,
+        lambda config=None: fake_client,
     )
 
     with pytest.raises(LLMServiceError, match="返回了空内容"):
         generate_text("分析客户需求")
+
+
+def test_get_deepseek_client_uses_provided_config(monkeypatch):
+    captured_arguments = {}
+
+    def fake_openai(**kwargs):
+        captured_arguments.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(llm_service, "OpenAI", fake_openai)
+
+    config = LLMConfig(
+        api_key="test-key",
+        model="test-model",
+        base_url="https://example.com",
+        timeout_seconds=25.0,
+        max_retries=3,
+    )
+
+    llm_service.get_deepseek_client(config)
+
+    assert captured_arguments == {
+        "api_key": "test-key",
+        "base_url": "https://example.com",
+        "timeout": 25.0,
+        "max_retries": 3,
+    }

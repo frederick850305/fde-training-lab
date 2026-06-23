@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from src.api.exception_handlers import register_exception_handlers
-from src.api.routers import excel, fault, health, requirement
+from src.api.routers import excel, fault, health,  requirement
 from src.api.middlewares.request_logging import RequestLoggingMiddleware
 from src.api.logging_config import setup_api_logging
 
