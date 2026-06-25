@@ -24,6 +24,29 @@ logger = logging.getLogger(__name__)
 class LLMServiceError(RuntimeError):
     """大模型服务调用异常。"""
 
+class LLMConfigurationError(LLMServiceError):
+    """大模型配置错误。"""
+
+
+class LLMAuthenticationError(LLMServiceError):
+    """大模型服务鉴权错误。"""
+
+
+class LLMTimeoutError(LLMServiceError):
+    """大模型请求超时。"""
+
+
+class LLMConnectionError(LLMServiceError):
+    """大模型服务连接失败。"""
+
+
+class LLMRateLimitError(LLMServiceError):
+    """大模型服务限流或额度不足。"""
+
+
+class LLMResponseError(LLMServiceError):
+    """大模型服务返回异常。"""
+
 
 def _get_duration_ms(start_time: float) -> float:
     """计算从开始时间到当前时间的毫秒数。"""
@@ -49,7 +72,7 @@ def _load_service_config() -> LLMConfig:
     try:
         return load_llm_config()
     except LLMConfigError as error:
-        raise LLMServiceError(str(error)) from error
+        raise LLMConfigurationError(str(error)) from error
 
 
 def get_deepseek_client(
@@ -100,7 +123,7 @@ def generate_text(
             start_time,
             "timeout",
         )
-        raise LLMServiceError("DeepSeek 请求超时，请稍后重试") from error
+        raise LLMTimeoutError("DeepSeek 请求超时，请稍后重试") from error
 
     except AuthenticationError as error:
         _log_call_failure(
@@ -108,7 +131,7 @@ def generate_text(
             start_time,
             "authentication",
         )
-        raise LLMServiceError(
+        raise LLMAuthenticationError(
             "DeepSeek API Key 无效或没有访问权限"
         ) from error
 
@@ -118,7 +141,7 @@ def generate_text(
             start_time,
             "rate_limit",
         )
-        raise LLMServiceError(
+        raise LLMRateLimitError(
             "DeepSeek 请求频率过高或账户额度不足，请稍后重试"
         ) from error
 
@@ -128,7 +151,7 @@ def generate_text(
             start_time,
             "connection",
         )
-        raise LLMServiceError("无法连接 DeepSeek 服务，请检查网络连接") from error
+        raise LLMConnectionError("无法连接 DeepSeek 服务，请检查网络连接") from error
 
     except APIStatusError as error:
         _log_call_failure(
@@ -136,7 +159,7 @@ def generate_text(
             start_time,
             "status_error",
         )
-        raise LLMServiceError(
+        raise LLMResponseError(
             f"DeepSeek 服务返回错误，状态码：{error.status_code}"
         ) from error
 
@@ -148,7 +171,7 @@ def generate_text(
             start_time,
             "empty_response",
         )
-        raise LLMServiceError("DeepSeek 返回了空内容")
+        raise LLMResponseError("DeepSeek 返回了空内容")
     logger.info(
         "DeepSeek 调用成功：model=%s, duration_ms=%.2f",
         selected_model,

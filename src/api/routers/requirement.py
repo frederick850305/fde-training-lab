@@ -40,6 +40,8 @@ def create_requirement_summary(
                 "message": str(error),
             },
         ) from error
+    except HTTPException:
+        raise
     except Exception as error:
         raise HTTPException(
             status_code=500,

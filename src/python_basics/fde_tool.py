@@ -7,6 +7,14 @@ from src.python_basics.requirement_service import generate_requirement_summary
 from src.python_basics.excel_summary_service import print_excel_summary
 from src.python_basics.logging_utils import setup_logging
 from src.python_basics.config_utils import get_config_value, load_config
+from src.python_basics.llm_service import (
+    LLMAuthenticationError,
+    LLMConfigurationError,
+    LLMConnectionError,
+    LLMRateLimitError,
+    LLMResponseError,
+    LLMTimeoutError,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -140,6 +148,25 @@ def main() -> int:
         print(f"错误：{error}", file=sys.stderr)
         print("请检查输入文件路径是否正确。", file=sys.stderr)
         return 1
+    except (
+        LLMConfigurationError,
+        LLMAuthenticationError,
+    ) as error:
+        logging.error("大模型配置或鉴权错误：%s", error)
+        print(f"大模型配置错误：{error}", file=sys.stderr)
+        return 2
+    except LLMTimeoutError as error:
+        logging.error("大模型服务请求超时：%s", error)
+        print(f"大模型服务超时：{error}", file=sys.stderr)
+        return 3
+    except (
+        LLMConnectionError,
+        LLMRateLimitError,
+        LLMResponseError,
+    ) as error:
+        logging.error("大模型服务暂不可用：%s", error)
+        print(f"大模型服务暂不可用：{error}", file=sys.stderr)
+        return 3
     except Exception as error:
         logging.exception("程序执行失败")
         print(f"程序执行失败：{error}", file=sys.stderr)

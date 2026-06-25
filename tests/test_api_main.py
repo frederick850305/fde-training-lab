@@ -1,5 +1,5 @@
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
-
 
 from src.api.main import app
 from src.api.routers import requirement as requirement_router
@@ -49,6 +49,40 @@ def test_requirement_summary_api_file_not_found():
     assert detail["success"] is False
     assert detail["error_code"] == "FILE_NOT_FOUND"
     assert "文件不存在" in detail["message"]
+
+
+def test_requirement_summary_api_rejects_blank_input_path():
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "",
+            "output_path": "output/api_requirement_summary.md",
+        },
+    )
+
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "VALIDATION_ERROR"
+    assert "不能为空" in data["message"]
+
+
+def test_requirement_summary_api_rejects_invalid_output_extension():
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/requirement_summary.txt",
+        },
+    )
+
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "VALIDATION_ERROR"
+    assert "文件类型不正确" in data["message"]
 
 
 def test_fault_report_api_success(tmp_path):
@@ -150,6 +184,23 @@ def test_fault_report_api_rejects_invalid_output_extension():
     assert "文件类型不正确" in data["message"]
 
 
+def test_requirement_summary_api_rejects_invalid_input_path_type():
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": 123,
+            "output_path": "output/api_requirement_summary.md",
+        },
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "REQUEST_VALIDATION_ERROR"
+    assert data["message"] == "请求参数校验失败"
+
+
 def test_requirement_summary_api_passes_ai_advice_flag(
     monkeypatch,
     tmp_path,
@@ -188,3 +239,36 @@ def test_requirement_summary_api_passes_ai_advice_flag(
         "output_path": str(output_path),
         "enable_ai_advice": True,
     }
+
+
+def test_requirement_summary_api_keeps_structured_http_exception(monkeypatch):
+    def raise_http_exception(*args, **kwargs):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "error_code": "INVALID_REQUIREMENT_INPUT",
+                "message": "客户需求文件格式不正确",
+            },
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_http_exception,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+        },
+    )
+
+    assert response.status_code == 400
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "INVALID_REQUIREMENT_INPUT"
+    assert data["message"] == "客户需求文件格式不正确"

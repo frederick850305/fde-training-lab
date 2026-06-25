@@ -7,9 +7,11 @@ from types import SimpleNamespace
 from openai import APITimeoutError
 
 from src.python_basics.llm_service import (
-    LLMServiceError,
     generate_text,
     get_deepseek_client,
+    LLMConfigurationError,
+    LLMResponseError,
+    LLMTimeoutError,
 )
 from src.python_basics.llm_config import DEFAULT_BASE_URL
 
@@ -49,7 +51,7 @@ def test_generate_text_raises_when_prompt_is_blank():
 def test_get_deepseek_client_raises_when_api_key_missing(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
-    with pytest.raises(LLMServiceError, match="API Key 未配置"):
+    with pytest.raises(LLMConfigurationError, match="API Key 未配置"):
         get_deepseek_client()
 
 
@@ -108,7 +110,7 @@ def test_generate_text_converts_timeout_error(monkeypatch, configured_llm, caplo
         logging.WARNING,
         logger="src.python_basics.llm_service",
     )
-    with pytest.raises(LLMServiceError, match="请求超时"):
+    with pytest.raises(LLMTimeoutError, match="请求超时"):
         generate_text("分析客户需求")
     assert "DeepSeek 调用失败" in caplog.text
     assert "error_type=timeout" in caplog.text
@@ -130,7 +132,7 @@ def test_generate_text_raises_when_response_is_empty(monkeypatch, configured_llm
         lambda config=None: fake_client,
     )
 
-    with pytest.raises(LLMServiceError, match="返回了空内容"):
+    with pytest.raises(LLMResponseError, match="返回了空内容"):
         generate_text("分析客户需求")
 
 

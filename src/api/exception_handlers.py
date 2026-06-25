@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -39,6 +40,20 @@ async def http_exception_handler(
     )
 
 
+async def request_validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """处理请求参数校验异常，返回统一错误结构。"""
+    return JSONResponse(
+        status_code=422,
+        content=build_error_response(
+            message="请求参数校验失败",
+            error_code="REQUEST_VALIDATION_ERROR",
+        ),
+    )
+
+
 async def general_exception_handler(
     request: Request,
     exc: Exception,
@@ -56,4 +71,5 @@ async def general_exception_handler(
 def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器。"""
     app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
