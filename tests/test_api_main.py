@@ -38,8 +38,11 @@ def test_requirement_summary_api_success(tmp_path):
     )
 
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
-    assert response.json()["output_path"] == str(output_path)
+
+    data = response.json()
+    assert data["success"] is True
+    assert data["message"] == "客户需求结构化分析报告生成成功"
+    assert data["data"]["output_path"] == str(output_path)
     assert output_path.exists()
 
 
@@ -242,6 +245,16 @@ def test_requirement_summary_api_passes_ai_advice_flag(
     )
 
     assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["message"] == "客户需求结构化分析报告生成成功"
+    assert data["data"]["output_path"] == str(output_path)
+
+    assert captured_arguments == {
+        "input_path": "data/customer-requirement.md",
+        "output_path": str(output_path),
+        "enable_ai_advice": True,
+    }
     assert captured_arguments == {
         "input_path": "data/customer-requirement.md",
         "output_path": str(output_path),
