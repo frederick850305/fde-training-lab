@@ -3,6 +3,14 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.routers import requirement as requirement_router
+from src.python_basics.llm_service import (
+    LLMAuthenticationError,
+    LLMConnectionError,
+    LLMConfigurationError,
+    LLMRateLimitError,
+    LLMResponseError,
+    LLMTimeoutError,
+)
 
 client = TestClient(app)
 
@@ -272,3 +280,170 @@ def test_requirement_summary_api_keeps_structured_http_exception(monkeypatch):
     assert data["success"] is False
     assert data["error_code"] == "INVALID_REQUIREMENT_INPUT"
     assert data["message"] == "客户需求文件格式不正确"
+
+
+def test_requirement_summary_api_handles_llm_configuration_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMConfigurationError("DeepSeek API Key 未配置")
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 500
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_CONFIGURATION_ERROR"
+    assert "API Key 未配置" in data["message"]
+
+def test_requirement_summary_api_handles_llm_authentication_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMAuthenticationError(
+            "DeepSeek API Key 无效或没有访问权限"
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 502
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_AUTHENTICATION_ERROR"
+    assert "API Key 无效" in data["message"]
+
+def test_requirement_summary_api_handles_llm_timeout_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMTimeoutError(
+            "DeepSeek 请求超时，请稍后重试"
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 504
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_TIMEOUT_ERROR"
+    assert "请求超时" in data["message"]
+
+def test_requirement_summary_api_handles_llm_connection_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMConnectionError(
+            "无法连接 DeepSeek 服务，请检查网络连接"
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 503
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_SERVICE_UNAVAILABLE"
+    assert "暂不可用" in data["message"]
+
+def test_requirement_summary_api_handles_llm_rate_limit_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMRateLimitError(
+            "DeepSeek 请求频率过高或账户额度不足，请稍后重试"
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 503
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_SERVICE_UNAVAILABLE"
+    assert "暂不可用" in data["message"]
+
+def test_requirement_summary_api_handles_llm_response_error(monkeypatch):
+    def raise_llm_error(*args, **kwargs):
+        raise LLMResponseError(
+            "DeepSeek 返回了空内容"
+        )
+
+    monkeypatch.setattr(
+        requirement_router,
+        "generate_requirement_summary",
+        raise_llm_error,
+    )
+
+    response = client.post(
+        "/requirement/summary",
+        json={
+            "input_path": "data/customer-requirement.md",
+            "output_path": "output/api_requirement_summary.md",
+            "enable_ai_advice": True,
+        },
+    )
+
+    assert response.status_code == 502
+
+    data = response.json()
+    assert data["success"] is False
+    assert data["error_code"] == "LLM_RESPONSE_ERROR"
+    assert "返回异常" in data["message"]
