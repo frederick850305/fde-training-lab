@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -13,6 +11,7 @@ from src.python_basics.llm_service import (
     LLMTimeoutError,
 )
 from src.api.validators import validate_markdown_input, validate_markdown_output
+from src.api.schemas.common import ApiResponse
 
 
 router = APIRouter(prefix="/requirement", tags=["Requirement"])
@@ -26,10 +25,13 @@ class RequirementSummaryRequest(BaseModel):
     enable_ai_advice: bool = False
 
 
-@router.post("/summary")
+@router.post(
+    "/summary",
+    response_model=ApiResponse,
+)
 def create_requirement_summary(
     request: RequirementSummaryRequest,
-) -> Dict[str, Any]:
+) -> ApiResponse:
     """生成客户需求结构化分析报告。"""
     validate_markdown_input(request.input_path)
     validate_markdown_output(request.output_path)
@@ -108,7 +110,9 @@ def create_requirement_summary(
             },
         ) from error
 
-    return {
-        "status": "success",
-        "output_path": request.output_path,
-    }
+    return ApiResponse(
+        message="客户需求结构化分析报告生成成功",
+        data={
+            "output_path": request.output_path,
+        },
+    )
