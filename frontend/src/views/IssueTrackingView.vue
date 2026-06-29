@@ -4,8 +4,31 @@
       eyebrow="P0 Prototype Page"
       title="异常问题闭环原型页"
       title-id="issue-tracking-title"
-      description="面向现场调度员的异常登记与闭环跟踪页面。当前使用本地 mock 数据，后续可替换为 FastAPI 接口。"
+      :description="dynamicDescription"
     />
+
+    <!-- 方法链路上下文：展示工厂设计阶段确定的用户任务或交互信息 -->
+    <section v-if="projectContext.selectedInteractionPage" class="context-banner" aria-label="设计上下文联动">
+      <span class="context-badge">交互联动</span>
+      <p>
+        <strong>交互页面：</strong>{{ projectContext.selectedInteractionPage.name }}
+        <template v-if="projectContext.selectedInteractionPage.fields">
+          ｜<strong>关键字段：</strong>
+          {{ projectContext.selectedInteractionPage.fields.map(f => f.name || f).join('、') }}
+        </template>
+      </p>
+    </section>
+
+    <section v-else-if="projectContext.selectedFeatureModule" class="context-banner" aria-label="功能上下文联动">
+      <span class="context-badge">功能联动</span>
+      <p>
+        <strong>功能模块：</strong>{{ projectContext.selectedFeatureModule.name }}
+        <template v-if="projectContext.selectedFeatureModule.features">
+          ｜<strong>功能点：</strong>
+          {{ projectContext.selectedFeatureModule.features.map(f => f.name || f).join('、') }}
+        </template>
+      </p>
+    </section>
 
     <div class="issue-layout">
       <form class="issue-form" @submit.prevent="submitIssue">
@@ -67,6 +90,9 @@
       <div class="panel-heading">
         <span>异常问题列表</span>
         <strong>优先处理待处理与处理中问题</strong>
+        <small v-if="projectContext.selectedFeatureModule" class="module-context-hint">
+          关联模块：{{ projectContext.selectedFeatureModule.name }}
+        </small>
       </div>
 
       <DataTable
@@ -90,6 +116,13 @@ import StatusTag from '../components/StatusTag.vue'
 import ViewHeading from '../components/ViewHeading.vue'
 import { issueListMock, statusOptions } from '../data/prototypeMockData'
 
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
 const issues = ref([...issueListMock])
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -99,6 +132,18 @@ const form = reactive({
   owner: '',
   deadline: '',
   description: '',
+})
+
+const dynamicDescription = computed(() => {
+  const page = props.projectContext.selectedInteractionPage
+  if (page) {
+    return `面向现场调度员的异常登记与闭环跟踪页面。当前关联交互设计阶段确认的页面「${page.name}」，异常登记可与此页面的用户任务联动。`
+  }
+  const module = props.projectContext.selectedFeatureModule
+  if (module) {
+    return `面向现场调度员的异常登记与闭环跟踪页面。当前关联功能设计阶段确认的模块「${module.name}」，异常问题可对应此模块的功能点。`
+  }
+  return '面向现场调度员的异常登记与闭环跟踪页面。当前使用本地 mock 数据，后续可替换为 FastAPI 接口。'
 })
 
 const issueColumns = [
@@ -118,7 +163,7 @@ const summaryItems = computed(() => {
     {
       label: '全部异常',
       value: issues.value.length,
-      description: '当前项目异常总数',
+      description: `当前项目异常总数${props.projectContext.selectedFeatureModule ? `（关联：${props.projectContext.selectedFeatureModule.name}）` : ''}`,
     },
     {
       label: '待处理',
@@ -174,6 +219,45 @@ function submitIssue() {
 <style scoped>
 .issue-tracking-view {
   margin-top: 16px;
+}
+
+.context-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 14px;
+  background: #eff6ff;
+}
+
+.context-badge {
+  flex: 0 0 auto;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.context-banner p {
+  margin: 0;
+  color: #1e3a5f;
+  line-height: 1.6;
+}
+
+.context-banner strong {
+  color: #0f172a;
+}
+
+.module-context-hint {
+  display: inline-block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .issue-layout {

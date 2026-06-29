@@ -104,16 +104,16 @@
 
     <template v-else>
       <PrototypeNav
-        :items="prototypeNavItems"
+        :items="activePrototypeNavItems"
         :active-key="activeWorkspace"
         @select="selectWorkspace"
       />
 
-      <ProjectOverviewView v-if="activeWorkspace === 'projectOverview'" />
-      <ScheduleTrackingView v-else-if="activeWorkspace === 'scheduleTracking'" />
-      <IssueTrackingView v-else-if="activeWorkspace === 'issueTracking'" />
-      <OnsiteDispatchView v-else-if="activeWorkspace === 'onsiteDispatch'" />
-      <MaterialTrackingView v-else />
+      <ProjectOverviewView v-if="activeWorkspace === 'projectOverview'" :project-context="projectContext" />
+      <ScheduleTrackingView v-else-if="activeWorkspace === 'scheduleTracking'" :project-context="projectContext" />
+      <IssueTrackingView v-else-if="activeWorkspace === 'issueTracking'" :project-context="projectContext" />
+      <OnsiteDispatchView v-else-if="activeWorkspace === 'onsiteDispatch'" :project-context="projectContext" />
+      <MaterialTrackingView v-else :project-context="projectContext" />
     </template>
   </main>
 </template>
@@ -183,6 +183,26 @@ const prototypeNavItems = [
 
 const showPrototypeNav = computed(() => {
   return prototypeNavItems.some((item) => item.key === activeWorkspace.value)
+})
+
+const activePrototypeNavItems = computed(() => {
+  const selectedModuleKey = projectContext.value.selectedFeatureModule?.key
+
+  if (!selectedModuleKey) {
+    return prototypeNavItems
+  }
+
+  // 排序：将选中的模块对应页面排在“项目总览”之后，或者直接作为重点
+  const items = [...prototypeNavItems]
+  const moduleIndex = items.findIndex((item) => item.key === selectedModuleKey)
+
+  if (moduleIndex > -1) {
+    const [target] = items.splice(moduleIndex, 1)
+    // 始终让项目总览在第一位，选中的在第二位
+    items.splice(1, 0, { ...target, label: `✨ ${target.label}` })
+  }
+
+  return items
 })
 
 const methodCapabilities = computed(() => {
@@ -490,6 +510,8 @@ const progressItems = [
   { name: '2-32：需求结果写回并传递到场景识别', status: '完成', statusClass: 'done' },
   { name: '2-33：场景结果写回并传递到功能设计', status: '完成', statusClass: 'done' },
   { name: '2-34：步骤连续 Next 导航与上下文贯通', status: '完成', statusClass: 'done' },
-  { name: '2-35：方法链路闭环到原型流程总览', status: '当前', statusClass: 'active' },
+  { name: '2-35：方法链路闭环到原型流程总览', status: '完成', statusClass: 'done' },
+  { name: '2-36：业务原型系统动态集成', status: '完成', statusClass: 'done' },
+  { name: '2-37：功能模块设计动态集成', status: '当前', statusClass: 'active' },
 ]
 </script>

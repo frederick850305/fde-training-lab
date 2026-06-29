@@ -10,10 +10,10 @@
     <section class="overview-hero">
       <div>
         <span>当前项目</span>
-        <h3>{{ projectOverviewMock.projectName }}</h3>
-        <p>展示项目进度、关键节点、异常问题和资源占用，用于快速判断项目运行风险。</p>
+        <h3>{{ projectContext.projectName || projectOverviewMock.projectName }}</h3>
+        <p>{{ projectContext.summary || '展示项目进度、关键节点、异常问题和资源占用，用于快速判断项目运行风险。' }}</p>
       </div>
-      <strong>Mock 数据模式</strong>
+      <strong>{{ projectContext.contextStatus || 'Mock 数据模式' }}</strong>
     </section>
 
     <section class="metric-grid" aria-label="项目指标">
@@ -72,6 +72,13 @@ import MetricCard from '../components/MetricCard.vue'
 import StatusTag from '../components/StatusTag.vue'
 import ViewHeading from '../components/ViewHeading.vue'
 import { issueListMock, projectOverviewMock, statusOptions } from '../data/prototypeMockData'
+
+defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
 
 const issueColumns = [
   { key: 'id', label: '编号' },
