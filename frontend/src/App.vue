@@ -42,26 +42,30 @@
     </section>
 
     <template v-if="activeMainTab === 'method'">
-      <section class="section-block" aria-labelledby="capability-title">
-        <div class="section-heading">
-          <p class="eyebrow">Core Capabilities</p>
-          <h2 id="capability-title">原型工作台能力入口</h2>
-        </div>
-        <div class="capability-grid">
-          <FeatureCard
-            v-for="item in methodCapabilities"
-            :key="item.key"
-            :stage="item.stage"
-            :title="item.title"
-            :description="item.description"
-            :action="item.action"
-            :active="item.key === activeWorkspace"
-            @select="selectWorkspace(item.key)"
-          />
-        </div>
-      </section>
+      <template v-if="activeWorkspace === 'factoryWorkbench'">
+        <FactoryWorkbenchView @open-workspace="selectWorkspace" />
 
-      <RequirementInputView v-if="activeWorkspace === 'requirementInput'" />
+        <section class="section-block" aria-labelledby="capability-title">
+          <div class="section-heading">
+            <p class="eyebrow">Core Capabilities</p>
+            <h2 id="capability-title">原型工作台能力入口</h2>
+          </div>
+          <div class="capability-grid">
+            <FeatureCard
+              v-for="item in methodCapabilities"
+              :key="item.key"
+              :stage="item.stage"
+              :title="item.title"
+              :description="item.description"
+              :action="item.action"
+              :active="item.key === activeWorkspace"
+              @select="selectWorkspace(item.key)"
+            />
+          </div>
+        </section>
+      </template>
+
+      <RequirementInputView v-else-if="activeWorkspace === 'requirementInput'" />
       <ScenarioIdentificationView v-else-if="activeWorkspace === 'scenarioIdentification'" />
       <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" />
       <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" />
@@ -107,6 +111,7 @@ import AppHeader from './components/AppHeader.vue'
 import ApiContractView from './views/ApiContractView.vue'
 import FeatureCard from './components/FeatureCard.vue'
 import FeatureDesignView from './views/FeatureDesignView.vue'
+import FactoryWorkbenchView from './views/FactoryWorkbenchView.vue'
 import FrontendPrototypeSuggestionView from './views/FrontendPrototypeSuggestionView.vue'
 import IssueTrackingView from './views/IssueTrackingView.vue'
 import MaterialTrackingView from './views/MaterialTrackingView.vue'
@@ -121,7 +126,7 @@ import RequirementSummaryView from './views/RequirementSummaryView.vue'
 import ScheduleTrackingView from './views/ScheduleTrackingView.vue'
 import ScenarioIdentificationView from './views/ScenarioIdentificationView.vue'
 
-const activeWorkspace = ref('requirementInput')
+const activeWorkspace = ref('factoryWorkbench')
 const activeMainTab = ref('method')
 
 const mainTabs = [
@@ -168,6 +173,11 @@ const selectMainTab = (key) => {
 
   if (key === 'prototypeSystem' && !showPrototypeNav.value) {
     activeWorkspace.value = 'projectOverview'
+    return
+  }
+
+  if (key === 'method') {
+    activeWorkspace.value = 'factoryWorkbench'
   }
 }
 
@@ -316,6 +326,7 @@ const progressItems = [
   { name: '2-26：现场调度看板原型页', status: '完成', statusClass: 'done' },
   { name: '2-27：物料到货跟踪原型页', status: '完成', statusClass: 'done' },
   { name: '2-28：原型页面统一导航优化', status: '完成', statusClass: 'done' },
-  { name: '2-29：工作台一级 Tab 结构重组', status: '当前', statusClass: 'active' },
+  { name: '2-29：工作台一级 Tab 结构重组', status: '完成', statusClass: 'done' },
+  { name: '2-30：原型工厂操作台总览', status: '当前', statusClass: 'active' },
 ]
 </script>
