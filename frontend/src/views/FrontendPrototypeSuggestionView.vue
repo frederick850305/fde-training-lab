@@ -7,6 +7,14 @@
       description="汇总页面、组件、mock 数据、生成顺序和代码生成 Prompt，为后续 Codex/Copilot 生成 Vue3 原型做准备。"
     />
 
+    <StepHandoffCard
+      v-if="hasApiContext"
+      eyebrow="上一步结果"
+      title="来自 API 契约阶段的接口摘要"
+      :summary="apiContextSummary"
+      :items="apiItems"
+    />
+
     <div class="suggestion-tabs" aria-label="建议类型切换">
       <button
         v-for="item in suggestionTabs"
@@ -26,7 +34,7 @@
           <strong>先生成 P0 核心页面</strong>
         </div>
         <div class="suggestion-list">
-          <article v-for="item in suggestionData.viewFiles" :key="item.file" class="suggestion-card">
+          <article v-for="item in recommendedViewFiles" :key="item.file" class="suggestion-card">
             <h3>{{ item.file }}</h3>
             <p>{{ item.responsibility }}</p>
             <small>{{ item.source }}</small>
@@ -40,7 +48,7 @@
           <strong>先抽通用组件，再生成页面</strong>
         </div>
         <div class="suggestion-list">
-          <article v-for="item in suggestionData.componentFiles" :key="item.file" class="suggestion-card">
+          <article v-for="item in recommendedComponentFiles" :key="item.file" class="suggestion-card">
             <h3>{{ item.file }}</h3>
             <p>{{ item.responsibility }}</p>
             <small>复用页面：{{ item.reusedBy.join('、') }}</small>
@@ -54,7 +62,7 @@
           <strong>先让前端原型独立跑起来</strong>
         </div>
         <div class="suggestion-list">
-          <article v-for="item in suggestionData.mockDataFiles" :key="item.file" class="suggestion-card">
+          <article v-for="item in recommendedMockDataFiles" :key="item.file" class="suggestion-card">
             <h3>{{ item.file }}</h3>
             <p>{{ item.content }}</p>
             <small>服务对象：{{ item.usedBy.join('、') }}</small>
@@ -68,7 +76,7 @@
           <strong>降低一次性生成失败概率</strong>
         </div>
         <ol class="generation-list">
-          <li v-for="item in suggestionData.generationSteps" :key="item.step">
+          <li v-for="item in recommendedSteps" :key="item.step">
             <span>{{ item.step }}</span>
             <div>
               <strong>{{ item.title }}</strong>
@@ -86,16 +94,55 @@
       </div>
       <pre>{{ suggestionData.prompt }}</pre>
     </section>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="confirmAndNext">
+        下一步：进入原型流程总览
+      </button>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { frontendPrototypeSuggestionMock } from '../data/frontendPrototypeSuggestionMock'
 import ViewHeading from '../components/ViewHeading.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['suggestion-confirm'])
 
 const suggestionData = frontendPrototypeSuggestionMock
 const activeTab = ref('views')
+
+const apiContractKey = computed(() => props.projectContext.selectedApiContract?.key || '')
+
+const recommendedViewFiles = computed(() => {
+  const matched = suggestionData.viewFiles.filter((item) => item.source.includes(apiContractKey.value))
+  return matched.length ? matched : suggestionData.viewFiles.slice(0, 1)
+})
+
+const recommendedComponentFiles = computed(() => {
+  const matched = suggestionData.componentFiles.filter((item) =>
+    item.reusedBy.some((name) => recommendedViewFiles.value.some((view) => view.file === name)),
+  )
+  return matched.length ? matched : suggestionData.componentFiles.slice(0, 2)
+})
+
+const recommendedMockDataFiles = computed(() => {
+  const matched = suggestionData.mockDataFiles.filter((item) =>
+    item.usedBy.some((name) => recommendedViewFiles.value.some((view) => view.file === name)),
+  )
+  return matched.length ? matched : suggestionData.mockDataFiles.slice(0, 1)
+})
+
+const recommendedSteps = computed(() => suggestionData.generationSteps.slice(0, 3))
 
 const suggestionTabs = [
   { key: 'views', label: '页面文件' },
@@ -103,6 +150,49 @@ const suggestionTabs = [
   { key: 'mockData', label: 'Mock 数据' },
   { key: 'steps', label: '生成顺序' },
 ]
+
+const hasApiContext = computed(() => Boolean(props.projectContext?.selectedApiContract))
+
+const apiContextSummary = computed(() => {
+  if (!hasApiContext.value) {
+    return '暂无 API 契约上下文'
+  }
+
+  const contract = props.projectContext.selectedApiContract
+  return `已确认接口 ${contract.name}，可据此生成页面、组件与 mock 数据建议。`
+})
+
+const apiContractPreview = computed(() => {
+  if (!hasApiContext.value) {
+    return '暂无接口信息'
+  }
+
+  const contract = props.projectContext.selectedApiContract
+  return `${contract.name} / ${contract.path}`
+})
+
+const apiMethodPreview = computed(() => {
+  if (!hasApiContext.value) {
+    return '暂无请求方法'
+  }
+
+  return props.projectContext.selectedApiContract.method
+})
+
+const apiItems = computed(() => [
+  {
+    label: '接口名称',
+    value: apiContractPreview.value,
+  },
+  {
+    label: '请求方法',
+    value: apiMethodPreview.value,
+  },
+])
+
+function confirmAndNext() {
+  emit('suggestion-confirm')
+}
 </script>
 
 <style scoped>
@@ -237,6 +327,10 @@ const suggestionTabs = [
 }
 
 .prompt-panel {
+  margin-top: 16px;
+}
+
+.next-action {
   margin-top: 16px;
 }
 

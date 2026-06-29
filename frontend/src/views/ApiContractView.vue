@@ -7,6 +7,14 @@
       description="基于页面字段与交互设计结果，明确接口路径、请求参数、响应结构和错误码。当前仍为前端模拟数据。"
     />
 
+    <StepHandoffCard
+      v-if="hasInteractionContext"
+      eyebrow="上一步结果"
+      title="来自交互设计阶段的页面摘要"
+      :summary="interactionContextSummary"
+      :items="interactionItems"
+    />
+
     <div class="api-layout">
       <article class="api-list-panel">
         <div class="panel-heading">
@@ -16,7 +24,7 @@
 
         <div class="api-list">
           <button
-            v-for="item in apiData.contracts"
+            v-for="item in recommendedContracts"
             :key="item.key"
             type="button"
             class="api-button"
@@ -107,23 +115,107 @@
         </div>
       </dl>
     </section>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="confirmAndNext">
+        下一步：进入原型建议
+      </button>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { apiContractMock } from '../data/apiContractMock'
 import ViewHeading from '../components/ViewHeading.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['api-contract-confirm'])
 
 const apiData = apiContractMock
-const selectedKey = ref(apiData.contracts[0].key)
+
+const recommendedContracts = computed(() => {
+  const pageKey = props.projectContext.selectedInteractionPage?.key
+  const matched = apiData.contracts.filter((item) => item.key === pageKey)
+
+  return matched.length ? matched : apiData.contracts.slice(0, 1)
+})
+
+const selectedKey = ref(recommendedContracts.value[0].key)
 
 const selectedContract = computed(() => {
-  return apiData.contracts.find((item) => item.key === selectedKey.value) || apiData.contracts[0]
+  return (
+    recommendedContracts.value.find((item) => item.key === selectedKey.value) ||
+    recommendedContracts.value[0] ||
+    apiData.contracts[0]
+  )
 })
+
+const hasInteractionContext = computed(() => Boolean(props.projectContext?.selectedInteractionPage))
+
+const interactionContextSummary = computed(() => {
+  if (!hasInteractionContext.value) {
+    return '暂无交互设计上下文'
+  }
+
+  const page = props.projectContext.selectedInteractionPage
+  return `已完成页面 ${page.name} 的字段与动作设计，接下来需要沉淀为接口契约。`
+})
+
+const interactionPagePreview = computed(() => {
+  if (!hasInteractionContext.value) {
+    return '暂无页面信息'
+  }
+
+  const page = props.projectContext.selectedInteractionPage
+  return `${page.name} / ${page.vueFile}`
+})
+
+const interactionStatePreview = computed(() => {
+  if (!hasInteractionContext.value) {
+    return '暂无状态摘要'
+  }
+
+  const states = props.projectContext.selectedInteractionPage.states || {}
+  return Object.values(states).filter(Boolean).join('；') || '暂无状态摘要'
+})
+
+const interactionItems = computed(() => [
+  {
+    label: '页面名称',
+    value: interactionPagePreview.value,
+  },
+  {
+    label: '交互状态',
+    value: interactionStatePreview.value,
+  },
+])
+
+watch(
+  recommendedContracts,
+  (items) => {
+    if (!items.some((item) => item.key === selectedKey.value)) {
+      selectedKey.value = items[0]?.key || apiData.contracts[0].key
+    }
+  },
+  { immediate: true },
+)
 
 function formatJson(value) {
   return JSON.stringify(value, null, 2)
+}
+
+function confirmAndNext() {
+  emit('api-contract-confirm', {
+    contract: selectedContract.value,
+  })
 }
 </script>
 
@@ -318,6 +410,10 @@ pre {
 }
 
 .response-standard {
+  margin-top: 16px;
+}
+
+.next-action {
   margin-top: 16px;
 }
 

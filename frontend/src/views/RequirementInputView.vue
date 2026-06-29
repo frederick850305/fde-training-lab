@@ -7,6 +7,8 @@
       description="先把客户原始需求收进来，形成后续需求拆解、场景识别、功能设计和 API 契约设计的统一入口。"
     />
 
+    <ProjectContextCard :context="projectContext" />
+
     <div class="input-workspace">
       <form class="input-panel" @submit.prevent="handleAnalyze">
         <div class="field-head">
@@ -109,15 +111,31 @@
           </ul>
         </article>
       </div>
+
+      <div class="next-action">
+        <button class="primary-button" type="button" @click="goNext">
+          下一步：进入场景识别
+        </button>
+      </div>
     </section>
   </section>
 </template>
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import ProjectContextCard from '../components/ProjectContextCard.vue'
 import ResultPanel from '../components/ResultPanel.vue'
 import { requirementAnalysisMock } from '../data/requirementAnalysisMock'
 import ViewHeading from '../components/ViewHeading.vue'
+
+defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['analysis-complete', 'go-next'])
 
 const exampleRequirement = `客户希望建设一个海工生产运营原型系统，用于支撑项目经理、计划员和现场调度员协同管理生产任务。系统需要展示项目总体进度、关键工序状态、物料到货情况、异常问题闭环和现场资源占用情况。当前客户主要依赖 Excel、微信群和人工会议同步信息，希望通过一个可演示的前端原型，先验证业务流程、页面结构和 API 契约。`
 
@@ -132,6 +150,115 @@ const result = reactive({
 })
 
 const requirementLength = computed(() => requirementText.value.length)
+
+function splitSentences(text) {
+  return text
+    .split(/[。！？!?.\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function buildDynamicAnalysis(text) {
+  const fallback = requirementAnalysisMock
+  const lowerText = text.toLowerCase()
+  const sentences = splitSentences(text)
+  const topSentences = sentences.slice(0, 4)
+  const firstSentence = topSentences[0] || ''
+
+  const businessBackground = firstSentence
+    ? `基于当前输入，项目背景可归纳为：${firstSentence}。`
+    : fallback.businessBackground
+
+  const dynamicPainPoints = topSentences.length
+    ? topSentences.map((item) => `需求中提到：${item}`)
+    : fallback.painPoints
+
+  const dynamicGoals = [
+    `形成可落地的原型方案（当前输入 ${text.length} 字）。`,
+    '沉淀可复用的业务流程、页面和接口契约。',
+    '为后续 FastAPI + DeepSeek 联调提供结构化输入。',
+  ]
+
+  const roleRules = [
+    {
+      hit: ['司机', '车队', '车辆'],
+      role: {
+        name: '司机 / 车队执行人员',
+        responsibility: '查看任务、确认到达、回传现场状态并反馈执行异常。',
+      },
+    },
+    {
+      hit: ['仓储', '仓库', '库存'],
+      role: {
+        name: '仓储管理人员',
+        responsibility: '维护出入库状态、核对物资位置并跟踪库存波动。',
+      },
+    },
+    {
+      hit: ['调度', '派单', '任务'],
+      role: {
+        name: '调度员',
+        responsibility: '编排任务、调整作业顺序并处理执行冲突。',
+      },
+    },
+    {
+      hit: ['安全', '告警', '风险'],
+      role: {
+        name: '安全管理人员',
+        responsibility: '监控风险告警、跟踪异常事件并推动闭环处理。',
+      },
+    },
+    {
+      hit: ['费用', '成本', '结算'],
+      role: {
+        name: '经营 / 财务人员',
+        responsibility: '跟踪运输成本、核对费用项并支持结算分析。',
+      },
+    },
+  ]
+
+  const dynamicRoles = roleRules
+    .filter((rule) => rule.hit.some((keyword) => lowerText.includes(keyword)))
+    .map((rule) => rule.role)
+
+  if (!dynamicRoles.length) {
+    dynamicRoles.push(...fallback.userRoles)
+  }
+
+  const dynamicQuestions = []
+
+  if (text.length < 80) {
+    dynamicQuestions.push('当前需求描述较短，是否可以补充核心业务流程、角色边界和成功标准？')
+  }
+
+  if (lowerText.includes('移动') || lowerText.includes('手机')) {
+    dynamicQuestions.push('移动端是否需要离线能力，以及弱网场景下的数据同步策略是什么？')
+  }
+
+  if (lowerText.includes('告警') || lowerText.includes('异常') || lowerText.includes('安全')) {
+    dynamicQuestions.push('异常告警的分级规则、触发阈值和责任人分派机制是否已明确？')
+  }
+
+  if (lowerText.includes('仓') || lowerText.includes('库存') || lowerText.includes('物资')) {
+    dynamicQuestions.push('仓储与运输数据口径是否统一，是否需要与现有 WMS/ERP 对齐？')
+  }
+
+  if (lowerText.includes('费用') || lowerText.includes('成本') || lowerText.includes('结算')) {
+    dynamicQuestions.push('成本核算口径与结算周期如何定义，是否需要按任务维度归集？')
+  }
+
+  if (!dynamicQuestions.length) {
+    dynamicQuestions.push(...fallback.questions)
+  }
+
+  return {
+    businessBackground,
+    painPoints: dynamicPainPoints,
+    businessGoals: dynamicGoals,
+    userRoles: dynamicRoles,
+    questions: dynamicQuestions,
+  }
+}
 
 const resultDetails = computed(() => [
   {
@@ -186,11 +313,26 @@ async function handleAnalyze() {
     window.setTimeout(resolve, 700)
   })
 
+  const dynamicAnalysis = buildDynamicAnalysis(requirementText.value)
+
   result.message = '客户需求已接收，可以进入需求拆解步骤'
   result.errorCode = ''
-  analysisResult.value = requirementAnalysisMock
+  analysisResult.value = dynamicAnalysis
   resultStatus.value = 'success'
   isLoading.value = false
+
+  emit('analysis-complete', {
+    sourceRequirement: requirementText.value,
+    analysis: dynamicAnalysis,
+  })
+}
+
+function goNext() {
+  if (!analysisResult.value) {
+    return
+  }
+
+  emit('go-next', 'scenarioIdentification')
 }
 </script>
 
@@ -369,6 +511,10 @@ textarea[aria-invalid='true'] {
 .analysis-card dl {
   margin: 0;
   color: #263244;
+
+.next-action {
+  margin-top: 16px;
+}
   line-height: 1.7;
 }
 

@@ -2,6 +2,16 @@
 import { computed, ref } from 'vue'
 import ViewHeading from '../components/ViewHeading.vue'
 import { prototypeWorkflowSteps } from '../data/prototypeWorkflow'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['workflow-finish'])
 
 const selectedKey = ref(prototypeWorkflowSteps[0].key)
 
@@ -11,6 +21,41 @@ const selectedStep = computed(() => {
     prototypeWorkflowSteps[0]
   )
 })
+
+const hasSuggestionContext = computed(() => Boolean(props.projectContext?.selectedApiContract))
+
+const workflowContextSummary = computed(() => {
+  if (!hasSuggestionContext.value) {
+    return '暂无原型建议上下文'
+  }
+
+  const contract = props.projectContext.selectedApiContract
+  return `已完成 ${contract.name} 的契约设计，当前流程页用于核对整个方法链路的输入与输出，并回看需求、场景、功能、页面、交互和接口的衔接。`
+})
+
+const workflowSourcePreview = computed(() => {
+  if (!hasSuggestionContext.value) {
+    return '暂无来源接口'
+  }
+
+  const contract = props.projectContext.selectedApiContract
+  return `${contract.name} / ${contract.path}`
+})
+
+const workflowItems = computed(() => [
+  {
+    label: '来源接口',
+    value: workflowSourcePreview.value,
+  },
+  {
+    label: '当前阶段',
+    value: props.projectContext.currentStepLabel,
+  },
+])
+
+function finishAndBackToWorkbench() {
+  emit('workflow-finish')
+}
 </script>
 
 <template>
@@ -20,6 +65,14 @@ const selectedStep = computed(() => {
       title="原型生成流程工作台"
       title-id="workflow-title"
       description="后续用户输入客户需求后，系统会按这条流程逐步完成需求、场景、功能、页面、交互和 API 契约拆解。"
+    />
+
+    <StepHandoffCard
+      v-if="hasSuggestionContext"
+      eyebrow="上一步结果"
+      title="来自前端原型建议阶段的流程摘要"
+      :summary="workflowContextSummary"
+      :items="workflowItems"
     />
 
     <div class="workflow-layout">
@@ -69,6 +122,12 @@ const selectedStep = computed(() => {
         </dl>
       </article>
     </div>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="finishAndBackToWorkbench">
+        完成本轮并回到操作台总览
+      </button>
+    </div>
   </section>
 </template>
 
@@ -81,6 +140,10 @@ const selectedStep = computed(() => {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
   gap: 24px;
+}
+
+.next-action {
+  margin-top: 16px;
 }
 
 .workflow-steps,

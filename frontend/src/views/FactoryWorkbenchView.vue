@@ -18,6 +18,31 @@
       />
     </section>
 
+    <section class="workbench-panel context-panel" aria-label="当前项目上下文">
+      <div class="panel-heading">
+        <span>当前项目上下文</span>
+        <strong>先建立统一上下文，再驱动后续各步骤工作台</strong>
+      </div>
+
+      <div class="context-copy">
+        <p>
+          当前项目：<strong>{{ projectContext.projectName }}</strong>
+        </p>
+        <p>
+          当前步骤：<strong>{{ projectContext.currentStepLabel }}</strong>
+        </p>
+      </div>
+
+      <div class="context-actions">
+        <button class="secondary-button" type="button" @click="$emit('hydrate-context')">
+          重置为演示上下文
+        </button>
+        <button class="primary-button" type="button" @click="$emit('open-workspace', 'requirementInput')">
+          进入需求输入并带入上下文
+        </button>
+      </div>
+    </section>
+
     <div class="workbench-layout">
       <article class="workbench-panel stage-panel">
         <div class="panel-heading">
@@ -97,7 +122,14 @@ import {
   factoryWorkbenchSummary,
 } from '../data/factoryWorkbenchMock'
 
-defineEmits(['open-workspace'])
+defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+defineEmits(['open-workspace', 'hydrate-context'])
 </script>
 
 <style scoped>
@@ -129,6 +161,28 @@ defineEmits(['open-workspace'])
 
 .workbench-panel {
   padding: 22px;
+}
+
+.context-panel {
+  margin-top: 16px;
+}
+
+.context-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.context-copy p {
+  margin: 0;
+  color: #526174;
+  line-height: 1.7;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .panel-heading {
