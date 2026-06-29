@@ -1,7 +1,16 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import ProjectContextCard from '../components/ProjectContextCard.vue'
 import ResultPanel from '../components/ResultPanel.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
 import ViewHeading from '../components/ViewHeading.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
 
 const form = reactive({
   inputPath: 'data/customer-requirement.md',
@@ -35,6 +44,55 @@ const resultDetails = computed(() => {
       label: 'AI 辅助建议',
       value: form.enableAiAdvice ? '已启用' : '未启用'
     }
+  ]
+})
+
+const hasRequirementContext = computed(() => {
+  return Boolean(props.projectContext.sourceRequirement || props.projectContext.requirementAnalysis)
+})
+
+const sourceRequirementPreview = computed(() => {
+  if (!props.projectContext.sourceRequirement) {
+    return '当前还没有从“需求输入工作台”传入原始需求内容。'
+  }
+
+  return props.projectContext.sourceRequirement
+})
+
+const requirementAnalysisSummary = computed(() => {
+  return props.projectContext.requirementAnalysis || null
+})
+
+const requirementHandoffItems = computed(() => {
+  if (!requirementAnalysisSummary.value) {
+    return []
+  }
+
+  return [
+    {
+      label: '原始需求内容',
+      value: sourceRequirementPreview.value,
+    },
+    {
+      label: '业务背景',
+      value: requirementAnalysisSummary.value.businessBackground || '暂无业务背景',
+    },
+    {
+      label: '客户痛点',
+      value:
+        requirementAnalysisSummary.value.painPoints
+          ?.map((item) => item.description)
+          .filter(Boolean)
+          .join('；') || '暂无客户痛点',
+    },
+    {
+      label: '业务目标',
+      value:
+        requirementAnalysisSummary.value.goals
+          ?.map((item) => item.description)
+          .filter(Boolean)
+          .join('；') || '暂无业务目标',
+    },
   ]
 })
 
@@ -115,6 +173,10 @@ function resetForm() {
       description="输入客户需求文件路径，生成结构化需求分析报告。本节先完成前端交互骨架，后续再接入 FastAPI。"
     />
 
+    <ProjectContextCard :context="projectContext" />
+
+    <StepHandoffCard :items="requirementHandoffItems" />
+
     <div class="requirement-layout">
       <form class="form-card" @submit.prevent="handleSubmit">
         <label class="form-field">
@@ -167,6 +229,55 @@ function resetForm() {
 <style scoped>
 .requirement-section {
   margin-top: 24px;
+}
+
+.context-bridge {
+  margin: 16px 0;
+}
+
+.bridge-heading {
+  margin-bottom: 14px;
+}
+
+.bridge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bridge-card {
+  border: 1px solid #d8e1ef;
+  border-radius: 12px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
+}
+
+.bridge-card.wide {
+  grid-column: span 3;
+}
+
+.bridge-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: #2454e6;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.bridge-card p,
+.bridge-card li {
+  color: #526174;
+  line-height: 1.7;
+}
+
+.bridge-card ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.empty-bridge {
+  margin-bottom: 0;
 }
 
 .requirement-layout {
@@ -280,6 +391,14 @@ function resetForm() {
 }
 
 @media (max-width: 960px) {
+  .bridge-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bridge-card.wide {
+    grid-column: span 1;
+  }
+
   .requirement-layout {
     grid-template-columns: 1fr;
   }

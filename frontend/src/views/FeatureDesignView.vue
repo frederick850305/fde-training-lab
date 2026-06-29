@@ -7,6 +7,30 @@
       description="基于场景识别结果，整理功能模块、功能点、优先级、页面建议和 API 方向。当前仍为前端模拟数据。"
     />
 
+    <StepHandoffCard
+      v-if="projectContext.selectedScenario"
+      eyebrow="来源场景确认"
+      :title="projectContext.selectedScenario.name"
+      :summary="projectContext.selectedScenario.description"
+      :items="scenarioItems"
+    />
+
+    <StepHandoffCard
+      v-if="hasRequirementContext"
+      eyebrow="上一步结果"
+      title="来自需求输入阶段的拆解摘要"
+      :summary="requirementContextSummary"
+      :items="requirementItems"
+    />
+
+    <StepHandoffCard
+      v-if="hasRequirementContext"
+      eyebrow="需求分析详情"
+      title="客户输入的结构化拆解结果"
+      :summary="requirementAnalysisSummary"
+      :items="requirementAnalysisItems"
+    />
+
     <div class="feature-toolbar" aria-label="功能优先级筛选">
       <button
         v-for="filter in featureData.filters"
@@ -93,6 +117,12 @@
         <p>AI 辅助建议等能力等后续接入 DeepSeek 后再深化。</p>
       </div>
     </section>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="confirmAndNext">
+        下一步：进入页面设计
+      </button>
+    </div>
   </section>
 </template>
 
@@ -100,17 +130,51 @@
 import { computed, ref, watch } from 'vue'
 import { featureDesignMock } from '../data/featureDesignMock'
 import ViewHeading from '../components/ViewHeading.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['feature-confirm'])
 
 const featureData = featureDesignMock
 const activeFilter = ref('全部')
 const selectedKey = ref(featureData.modules[0].key)
 
-const filteredModules = computed(() => {
-  if (activeFilter.value === '全部') {
+const allowedScenarioNames = computed(() => {
+  const roles = props.projectContext.requirementAnalysis?.userRoles || []
+  return roles.map((item) => item.name)
+})
+
+const filteredByScenario = computed(() => {
+  if (!props.projectContext.selectedScenario) {
     return featureData.modules
   }
 
-  return featureData.modules.filter((item) => item.priority === activeFilter.value)
+  const scenarioName = props.projectContext.selectedScenario.name || ''
+  const scenarioRole = props.projectContext.selectedScenario.pageMapping?.role || ''
+
+  return featureData.modules.filter((item) => {
+    return (
+      item.sourceScenario === scenarioName ||
+      item.sourceScenario.includes(scenarioRole) ||
+      allowedScenarioNames.value.some((role) => item.sourceScenario.includes(role))
+    )
+  })
+})
+
+const filteredModules = computed(() => {
+  const source = filteredByScenario.value
+
+  if (activeFilter.value === '全部') {
+    return source
+  }
+
+  return source.filter((item) => item.priority === activeFilter.value)
 })
 
 const selectedModule = computed(() => {
@@ -121,6 +185,141 @@ const selectedModule = computed(() => {
   )
 })
 
+const hasRequirementContext = computed(() => {
+  return Boolean(props.projectContext?.requirementAnalysis)
+})
+
+const requirementContextSummary = computed(() => {
+  if (!hasRequirementContext.value) {
+    return ''
+  }
+
+  const analysis = props.projectContext.requirementAnalysis
+  const background = analysis.businessBackground || '暂无背景摘要'
+  return `基于当前输入，项目背景可归纳为：${background}。功能设计会继续承接痛点、目标、角色和待确认问题。`
+})
+
+const requirementAnalysisSummary = computed(() => {
+  if (!hasRequirementContext.value) {
+    return '暂无需求分析结果'
+  }
+
+  const analysis = props.projectContext.requirementAnalysis
+  const background = analysis.businessBackground || '暂无背景摘要'
+  const painPoints = (analysis.painPoints || []).map((item) => item.description || item).filter(Boolean)
+  const goals = (analysis.businessGoals || analysis.goals || []).map((item) => item.description || item).filter(Boolean)
+  const roles = (analysis.userRoles || []).map((item) => `${item.name}：${item.responsibility}`).filter(Boolean)
+  const questions = (analysis.questions || []).filter(Boolean)
+
+  const summaryParts = [
+    `业务背景：${background}`,
+    `客户痛点：${painPoints.length ? painPoints.join('；') : '暂无客户痛点信息'}`,
+    `业务目标：${goals.length ? goals.join('；') : '暂无业务目标信息'}`,
+    `用户角色：${roles.length ? roles.join('；') : '暂无用户角色信息'}`,
+    `待确认问题：${questions.length ? questions.join('；') : '暂无待确认问题'}`,
+  ]
+
+  return `需求分析已从客户原始输入中提炼出完整结构，供后续功能设计持续承接。\n${summaryParts.join('\n')}`
+})
+
+const painPointsPreview = computed(() => {
+  if (!hasRequirementContext.value) {
+    return '暂无客户痛点信息'
+  }
+
+  const painPoints = props.projectContext.requirementAnalysis.painPoints || []
+  if (!painPoints.length) {
+    return '暂无客户痛点信息'
+  }
+
+  return painPoints.map((item) => item.description || '').filter(Boolean).join('；')
+})
+
+const goalsPreview = computed(() => {
+  if (!hasRequirementContext.value) {
+    return '暂无业务目标信息'
+  }
+
+  const goals = props.projectContext.requirementAnalysis.goals || []
+  if (!goals.length) {
+    return '暂无业务目标信息'
+  }
+
+  return goals.map((item) => item.description || '').filter(Boolean).join('；')
+})
+
+const scenarioItems = computed(() => [
+  {
+    label: '角色',
+    value: props.projectContext.selectedScenario?.pageMapping?.role || '暂无角色',
+  },
+  {
+    label: '建议页面',
+    value: props.projectContext.selectedScenario?.pageMapping?.page || '暂无建议页面',
+  },
+  {
+    label: '场景说明',
+    value: props.projectContext.selectedScenario?.description || '暂无场景说明',
+  },
+])
+
+const requirementItems = computed(() => [
+  {
+    label: '客户痛点',
+    value: painPointsPreview.value,
+  },
+  {
+    label: '业务目标',
+    value: goalsPreview.value,
+  },
+  {
+    label: '用户角色',
+    value: (props.projectContext.requirementAnalysis?.userRoles || [])
+      .map((item) => `${item.name}：${item.responsibility}`)
+      .filter(Boolean)
+      .join('；') || '暂无用户角色信息',
+  },
+  {
+    label: '待确认问题',
+    value: props.projectContext.requirementAnalysis?.questions?.join('；') || '暂无待确认问题',
+  },
+])
+
+const requirementAnalysisItems = computed(() => {
+  if (!hasRequirementContext.value) {
+    return []
+  }
+
+  const analysis = props.projectContext.requirementAnalysis
+  const painPoints = (analysis.painPoints || []).map((item) => item.description || item).filter(Boolean)
+  const goals = (analysis.businessGoals || analysis.goals || []).map((item) => item.description || item).filter(Boolean)
+  const roles = (analysis.userRoles || []).map((item) => `${item.name}：${item.responsibility}`).filter(Boolean)
+  const questions = (analysis.questions || []).filter(Boolean)
+
+  return [
+    {
+      label: '业务背景',
+      value: analysis.businessBackground || '暂无背景摘要',
+    },
+    {
+      label: '客户痛点',
+      value: painPoints.length ? painPoints.join('；') : '暂无客户痛点信息',
+    },
+    {
+      label: '业务目标',
+      value: goals.length ? goals.join('；') : '暂无业务目标信息',
+    },
+    {
+      label: '用户角色',
+      value: roles.length ? roles.join('；') : '暂无用户角色信息',
+    },
+    {
+      label: '待确认问题',
+      value: questions.length ? questions.join('；') : '暂无待确认问题',
+    },
+  ]
+})
+
 function setFilter(filter) {
   activeFilter.value = filter
 }
@@ -129,7 +328,24 @@ watch(filteredModules, (modules) => {
   if (!modules.some((item) => item.key === selectedKey.value)) {
     selectedKey.value = modules[0]?.key || featureData.modules[0].key
   }
-})
+}, { immediate: true })
+
+watch(
+  () => props.projectContext.selectedScenario,
+  () => {
+    const matchedModule = filteredModules.value[0] || featureData.modules[0]
+    if (matchedModule && selectedKey.value === featureData.modules[0].key) {
+      selectedKey.value = matchedModule.key
+    }
+  },
+  { immediate: true },
+)
+
+function confirmAndNext() {
+  emit('feature-confirm', {
+    module: selectedModule.value,
+  })
+}
 </script>
 
 <style scoped>
@@ -335,6 +551,10 @@ watch(filteredModules, (modules) => {
 
 .scope-summary p {
   margin: 0;
+}
+
+.next-action {
+  margin-top: 16px;
 }
 
 @media (max-width: 920px) {

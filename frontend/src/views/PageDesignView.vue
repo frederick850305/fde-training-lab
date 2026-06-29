@@ -7,6 +7,14 @@
       description="基于功能模块设计结果，整理页面清单、页面区域、导航结构和 Vue 文件建议。当前仍为前端模拟数据。"
     />
 
+    <StepHandoffCard
+      v-if="hasFeatureContext"
+      eyebrow="上一步结果"
+      title="来自功能设计阶段的模块摘要"
+      :summary="featureContextSummary"
+      :items="featureItems"
+    />
+
     <div class="page-layout">
       <article class="page-list-panel">
         <div class="panel-heading">
@@ -16,7 +24,7 @@
 
         <div class="page-list">
           <button
-            v-for="page in pageData.pages"
+            v-for="page in recommendedPages"
             :key="page.key"
             type="button"
             class="page-button"
@@ -63,7 +71,7 @@
       <article class="summary-card">
         <span>导航结构</span>
         <ul>
-          <li v-for="item in pageData.navigation" :key="item.target">
+          <li v-for="item in pageData.navigation.filter((nav) => nav.target === selectedPage.vueFile)" :key="item.target">
             <strong>{{ item.label }}</strong>
             <small>{{ item.target }}{{ item.default ? ' / 默认入口' : '' }}</small>
           </li>
@@ -75,33 +83,119 @@
         <dl>
           <div>
             <dt>views</dt>
-            <dd>{{ pageData.fileStructure.views.join('、') }}</dd>
+            <dd>{{ selectedPage.vueFile }}</dd>
           </div>
           <div>
             <dt>components</dt>
-            <dd>{{ pageData.fileStructure.components.join('、') }}</dd>
+            <dd>{{ selectedPage.features.join('、') }}</dd>
           </div>
           <div>
             <dt>data</dt>
-            <dd>{{ pageData.fileStructure.data.join('、') }}</dd>
+            <dd>pageDesignMock.js</dd>
           </div>
         </dl>
       </article>
+    </div>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="confirmAndNext">
+        下一步：进入交互设计
+      </button>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { pageDesignMock } from '../data/pageDesignMock'
 import ViewHeading from '../components/ViewHeading.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['page-design-confirm'])
 
 const pageData = pageDesignMock
-const selectedKey = ref(pageData.pages[0].key)
+
+const recommendedPages = computed(() => {
+  const scenarioKey = props.projectContext.selectedScenario?.key
+  const featureKey = props.projectContext.selectedFeatureModule?.key
+  const matched = pageData.pages.filter((item) => item.key === scenarioKey || item.key === featureKey)
+
+  return matched.length ? matched : pageData.pages.slice(0, 1)
+})
+
+const selectedKey = ref(recommendedPages.value[0].key)
 
 const selectedPage = computed(() => {
-  return pageData.pages.find((item) => item.key === selectedKey.value) || pageData.pages[0]
+  return (
+    recommendedPages.value.find((item) => item.key === selectedKey.value) ||
+    recommendedPages.value[0] ||
+    pageData.pages[0]
+  )
 })
+
+const hasFeatureContext = computed(() => {
+  return Boolean(props.projectContext?.selectedFeatureModule)
+})
+
+const featureContextSummary = computed(() => {
+  if (!hasFeatureContext.value) {
+    return '暂无功能设计上下文'
+  }
+
+  const module = props.projectContext.selectedFeatureModule
+  return `已确认功能模块：${module.name}，页面设计将围绕其页面建议 ${module.pageSuggestion} 展开。`
+})
+
+const featureScenarioPreview = computed(() => {
+  if (!hasFeatureContext.value) {
+    return '暂无来源场景'
+  }
+
+  const scenario = props.projectContext.selectedScenario
+  return scenario ? scenario.name : '未找到来源场景'
+})
+
+const featureModulePreview = computed(() => {
+  if (!hasFeatureContext.value) {
+    return '暂无功能模块'
+  }
+
+  return props.projectContext.selectedFeatureModule.name
+})
+
+const featureItems = computed(() => [
+  {
+    label: '来源场景',
+    value: featureScenarioPreview.value,
+  },
+  {
+    label: '功能模块',
+    value: featureModulePreview.value,
+  },
+])
+
+watch(
+  recommendedPages,
+  (items) => {
+    if (!items.some((item) => item.key === selectedKey.value)) {
+      selectedKey.value = items[0]?.key || pageData.pages[0].key
+    }
+  },
+  { immediate: true },
+)
+
+function confirmAndNext() {
+  emit('page-design-confirm', {
+    page: selectedPage.value,
+  })
+}
 </script>
 
 <style scoped>
@@ -281,6 +375,10 @@ const selectedPage = computed(() => {
   display: grid;
   gap: 10px;
   margin: 14px 0 0;
+}
+
+.next-action {
+  margin-top: 16px;
 }
 
 @media (max-width: 920px) {

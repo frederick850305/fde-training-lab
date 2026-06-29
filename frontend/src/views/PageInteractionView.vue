@@ -7,6 +7,14 @@
       description="基于页面清单设计结果，继续细化字段、按钮、校验规则和页面状态。当前仍为前端模拟数据。"
     />
 
+    <StepHandoffCard
+      v-if="hasPageDesignContext"
+      eyebrow="上一步结果"
+      title="来自页面设计阶段的页面摘要"
+      :summary="pageDesignContextSummary"
+      :items="pageDesignItems"
+    />
+
     <div class="interaction-layout">
       <article class="page-selector">
         <div class="panel-heading">
@@ -16,7 +24,7 @@
 
         <div class="page-options">
           <button
-            v-for="page in interactionData.pages"
+            v-for="page in recommendedPages"
             :key="page.key"
             type="button"
             class="page-option"
@@ -91,16 +99,40 @@
         <li v-for="rule in interactionData.commonRules" :key="rule">{{ rule }}</li>
       </ul>
     </section>
+
+    <div class="next-action">
+      <button class="primary-button" type="button" @click="confirmAndNext">
+        下一步：进入 API 契约
+      </button>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { pageInteractionMock } from '../data/pageInteractionMock'
 import ViewHeading from '../components/ViewHeading.vue'
+import StepHandoffCard from '../components/StepHandoffCard.vue'
+
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['interaction-confirm'])
 
 const interactionData = pageInteractionMock
-const selectedKey = ref(interactionData.pages[0].key)
+
+const recommendedPages = computed(() => {
+  const pageKey = props.projectContext.selectedPageDesign?.key
+  const matched = interactionData.pages.filter((item) => item.key === pageKey)
+
+  return matched.length ? matched : interactionData.pages.slice(0, 1)
+})
+
+const selectedKey = ref(recommendedPages.value[0].key)
 
 const stateLabels = {
   empty: '空状态',
@@ -111,10 +143,68 @@ const stateLabels = {
 
 const selectedPage = computed(() => {
   return (
-    interactionData.pages.find((item) => item.key === selectedKey.value) ||
+    recommendedPages.value.find((item) => item.key === selectedKey.value) ||
+    recommendedPages.value[0] ||
     interactionData.pages[0]
   )
 })
+
+const hasPageDesignContext = computed(() => {
+  return Boolean(props.projectContext?.selectedPageDesign)
+})
+
+const pageDesignContextSummary = computed(() => {
+  if (!hasPageDesignContext.value) {
+    return '暂无页面设计上下文'
+  }
+
+  const page = props.projectContext.selectedPageDesign
+  return `已确认页面：${page.name}，接下来需要把字段、按钮与状态细化到交互层。`
+})
+
+const pageDesignPreview = computed(() => {
+  if (!hasPageDesignContext.value) {
+    return '暂无页面清单信息'
+  }
+
+  const page = props.projectContext.selectedPageDesign
+  return `${page.name} / ${page.vueFile}`
+})
+
+const pageDesignActivePreview = computed(() => {
+  if (!hasPageDesignContext.value) {
+    return '暂无当前页面'
+  }
+
+  return props.projectContext.selectedPageDesign.name
+})
+
+const pageDesignItems = computed(() => [
+  {
+    label: '页面清单',
+    value: pageDesignPreview.value,
+  },
+  {
+    label: '当前页面',
+    value: pageDesignActivePreview.value,
+  },
+])
+
+watch(
+  recommendedPages,
+  (items) => {
+    if (!items.some((item) => item.key === selectedKey.value)) {
+      selectedKey.value = items[0]?.key || interactionData.pages[0].key
+    }
+  },
+  { immediate: true },
+)
+
+function confirmAndNext() {
+  emit('interaction-confirm', {
+    page: selectedPage.value,
+  })
+}
 </script>
 
 <style scoped>
@@ -298,6 +388,10 @@ const selectedPage = computed(() => {
 }
 
 .common-rules {
+  margin-top: 16px;
+}
+
+.next-action {
   margin-top: 16px;
 }
 

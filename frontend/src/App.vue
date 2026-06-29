@@ -43,7 +43,11 @@
 
     <template v-if="activeMainTab === 'method'">
       <template v-if="activeWorkspace === 'factoryWorkbench'">
-        <FactoryWorkbenchView @open-workspace="selectWorkspace" />
+        <FactoryWorkbenchView
+          :project-context="projectContext"
+          @open-workspace="selectWorkspace"
+          @hydrate-context="hydrateProjectContext"
+        />
 
         <section class="section-block" aria-labelledby="capability-title">
           <div class="section-heading">
@@ -65,15 +69,24 @@
         </section>
       </template>
 
-      <RequirementInputView v-else-if="activeWorkspace === 'requirementInput'" />
-      <ScenarioIdentificationView v-else-if="activeWorkspace === 'scenarioIdentification'" />
-      <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" />
-      <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" />
-      <PageInteractionView v-else-if="activeWorkspace === 'pageInteraction'" />
-      <ApiContractView v-else-if="activeWorkspace === 'apiContract'" />
-      <FrontendPrototypeSuggestionView v-else-if="activeWorkspace === 'frontendSuggestion'" />
-      <PrototypeWorkflowView v-else-if="activeWorkspace === 'prototypeWorkflow'" />
-      <RequirementSummaryView v-else />
+      <RequirementInputView
+        v-else-if="activeWorkspace === 'requirementInput'"
+        :project-context="projectContext"
+        @analysis-complete="handleRequirementAnalysisComplete"
+        @go-next="selectWorkspace"
+      />
+      <ScenarioIdentificationView
+        v-else-if="activeWorkspace === 'scenarioIdentification'"
+        :project-context="projectContext"
+        @scenario-confirm="handleScenarioConfirm"
+      />
+      <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" :project-context="projectContext" @feature-confirm="handleFeatureConfirm" />
+      <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" :project-context="projectContext" @page-design-confirm="handlePageDesignConfirm" />
+      <PageInteractionView v-else-if="activeWorkspace === 'pageInteraction'" :project-context="projectContext" @interaction-confirm="handleInteractionConfirm" />
+      <ApiContractView v-else-if="activeWorkspace === 'apiContract'" :project-context="projectContext" @api-contract-confirm="handleApiContractConfirm" />
+      <FrontendPrototypeSuggestionView v-else-if="activeWorkspace === 'frontendSuggestion'" :project-context="projectContext" @suggestion-confirm="handleSuggestionConfirm" />
+      <PrototypeWorkflowView v-else-if="activeWorkspace === 'prototypeWorkflow'" :project-context="projectContext" @workflow-finish="handleWorkflowFinish" />
+      <RequirementSummaryView v-else :project-context="projectContext" />
     </template>
 
     <section v-else-if="activeMainTab === 'progress'" class="section-block progress-panel" aria-labelledby="progress-title">
@@ -128,6 +141,14 @@ import ScenarioIdentificationView from './views/ScenarioIdentificationView.vue'
 
 const activeWorkspace = ref('factoryWorkbench')
 const activeMainTab = ref('method')
+const projectContext = ref({
+  projectName: '海工生产运营示范项目',
+  customerName: '示范客户',
+  projectStage: '需求分析准备',
+  currentStepLabel: '原型工厂操作台总览',
+  contextStatus: '已初始化',
+  summary: '当前为前端演示上下文。后续将替换为真实项目上下文与执行状态。',
+})
 
 const mainTabs = [
   { key: 'method', label: '原型工厂方法', eyebrow: 'Method' },
@@ -171,7 +192,7 @@ const methodCapabilities = computed(() => {
 const selectMainTab = (key) => {
   activeMainTab.value = key
 
-  if (key === 'prototypeSystem' && !showPrototypeNav.value) {
+  if (key === 'prototypeSystem') {
     activeWorkspace.value = 'projectOverview'
     return
   }
@@ -184,12 +205,149 @@ const selectMainTab = (key) => {
 const selectWorkspace = (key) => {
   activeWorkspace.value = key
 
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: workspaceStepLabelMap[key] || '原型工厂操作台总览',
+  }
+
   if (prototypeNavItems.some((item) => item.key === key)) {
     activeMainTab.value = 'prototypeSystem'
     return
   }
 
   activeMainTab.value = 'method'
+}
+
+const hydrateProjectContext = () => {
+  projectContext.value = {
+    projectName: '海工生产运营示范项目',
+    customerName: '华东海工制造客户',
+    projectStage: '客户需求调研阶段',
+    currentStepLabel: '原型工厂操作台总览',
+    contextStatus: '已建立演示上下文',
+    summary: '客户希望通过前台原型先验证项目进度、现场调度、物料到货和异常闭环，再逐步接入 FastAPI 与 DeepSeek。',
+    sourceRequirement: '',
+    requirementAnalysis: null,
+  }
+}
+
+const handleRequirementAnalysisComplete = ({ sourceRequirement, analysis }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '需求拆解已完成',
+    currentStepLabel: '客户需求输入',
+    contextStatus: '已写入需求拆解结果',
+    sourceRequirement,
+    requirementAnalysis: analysis,
+    summary: '需求拆解结果已进入统一项目上下文，下一步可以继续传给场景识别。',
+  }
+}
+
+const handleScenarioConfirm = ({ scenario }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '场景识别已确认',
+    currentStepLabel: '场景识别',
+    contextStatus: '已写入场景识别结果',
+    selectedScenario: scenario,
+    summary: `已确认场景：${scenario.name}，下一步进入功能设计。`,
+  }
+
+  selectWorkspace('featureDesign')
+}
+
+const handleFeatureConfirm = ({ module }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '功能设计已确认',
+    currentStepLabel: '功能设计',
+    contextStatus: '已写入功能模块结果',
+    selectedFeatureModule: module,
+    summary: `已确认功能模块：${module.name}，下一步进入页面设计。`,
+  }
+
+  selectWorkspace('pageDesign')
+}
+
+const handlePageDesignConfirm = ({ page }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '页面设计已确认',
+    currentStepLabel: '页面设计',
+    contextStatus: '已写入页面设计结果',
+    selectedPageDesign: page,
+    summary: `已确认页面：${page.name}，下一步进入交互设计。`,
+  }
+
+  selectWorkspace('pageInteraction')
+}
+
+const handleInteractionConfirm = ({ page }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '交互设计已确认',
+    currentStepLabel: '交互设计',
+    contextStatus: '已写入交互设计结果',
+    selectedInteractionPage: page,
+    summary: `已确认交互页面：${page.name}，下一步进入 API 契约设计。`,
+  }
+
+  selectWorkspace('apiContract')
+}
+
+const handleApiContractConfirm = ({ contract }) => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: 'API 契约已确认',
+    currentStepLabel: 'API 契约设计',
+    contextStatus: '已写入 API 契约结果',
+    selectedApiContract: contract,
+    summary: `已确认接口：${contract.name}，下一步进入前端原型建议。`,
+  }
+
+  selectWorkspace('frontendSuggestion')
+}
+
+const handleSuggestionConfirm = () => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '原型建议已确认',
+    currentStepLabel: '前端原型建议',
+    contextStatus: '已写入前端原型建议结果',
+    summary: '已完成前端原型建议，下一步进入原型流程总览核对全链路。',
+  }
+
+  selectWorkspace('prototypeWorkflow')
+}
+
+const handleWorkflowFinish = () => {
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '原型流程核对已完成',
+    currentStepLabel: '原型生成流程总览',
+    contextStatus: '本轮方法工作台链路已闭环',
+    summary: '已完成需求输入到原型流程核对的全链路，可回操作台发起下一轮。',
+  }
+
+  selectWorkspace('factoryWorkbench')
+}
+
+const workspaceStepLabelMap = {
+  factoryWorkbench: '原型工厂操作台总览',
+  requirementInput: '客户需求输入',
+  scenarioIdentification: '场景识别',
+  featureDesign: '功能设计',
+  pageDesign: '页面设计',
+  pageInteraction: '交互设计',
+  apiContract: 'API 契约设计',
+  frontendSuggestion: '前端原型建议',
+  prototypeWorkflow: '原型生成流程总览',
+  requirementSummary: '客户需求分析',
+  projectOverview: '业务原型系统',
+  scheduleTracking: '业务原型系统',
+  issueTracking: '业务原型系统',
+  onsiteDispatch: '业务原型系统',
+  materialTracking: '业务原型系统',
 }
 
 const capabilities = [
@@ -327,6 +485,11 @@ const progressItems = [
   { name: '2-27：物料到货跟踪原型页', status: '完成', statusClass: 'done' },
   { name: '2-28：原型页面统一导航优化', status: '完成', statusClass: 'done' },
   { name: '2-29：工作台一级 Tab 结构重组', status: '完成', statusClass: 'done' },
-  { name: '2-30：原型工厂操作台总览', status: '当前', statusClass: 'active' },
+  { name: '2-30：原型工厂操作台总览', status: '完成', statusClass: 'done' },
+  { name: '2-31：项目上下文流转打通', status: '完成', statusClass: 'done' },
+  { name: '2-32：需求结果写回并传递到场景识别', status: '完成', statusClass: 'done' },
+  { name: '2-33：场景结果写回并传递到功能设计', status: '完成', statusClass: 'done' },
+  { name: '2-34：步骤连续 Next 导航与上下文贯通', status: '完成', statusClass: 'done' },
+  { name: '2-35：方法链路闭环到原型流程总览', status: '当前', statusClass: 'active' },
 ]
 </script>
