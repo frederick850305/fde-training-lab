@@ -94,6 +94,13 @@
       </button>
     </section>
 
+    <PrototypeNav
+      v-if="showPrototypeNav"
+      :items="prototypeNavItems"
+      :active-key="activeWorkspace"
+      @select="activeWorkspace = $event"
+    />
+
     <RequirementInputView v-if="activeWorkspace === 'requirementInput'" />
     <ScenarioIdentificationView v-else-if="activeWorkspace === 'scenarioIdentification'" />
     <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" />
@@ -112,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import ApiContractView from './views/ApiContractView.vue'
 import FeatureCard from './components/FeatureCard.vue'
@@ -124,6 +131,7 @@ import OnsiteDispatchView from './views/OnsiteDispatchView.vue'
 import PageDesignView from './views/PageDesignView.vue'
 import PageInteractionView from './views/PageInteractionView.vue'
 import ProjectOverviewView from './views/ProjectOverviewView.vue'
+import PrototypeNav from './components/PrototypeNav.vue'
 import PrototypeWorkflowView from './views/PrototypeWorkflowView.vue'
 import RequirementInputView from './views/RequirementInputView.vue'
 import RequirementSummaryView from './views/RequirementSummaryView.vue'
@@ -148,6 +156,18 @@ const workspaceTabs = [
   { key: 'prototypeWorkflow', label: '原型流程' },
   { key: 'requirementSummary', label: '需求分析' },
 ]
+
+const prototypeNavItems = [
+  { key: 'projectOverview', label: '项目总览', stage: 'P0' },
+  { key: 'scheduleTracking', label: '计划任务', stage: 'P0' },
+  { key: 'issueTracking', label: '异常闭环', stage: 'P0' },
+  { key: 'onsiteDispatch', label: '现场调度', stage: 'P0' },
+  { key: 'materialTracking', label: '物料到货', stage: 'P0' },
+]
+
+const showPrototypeNav = computed(() => {
+  return prototypeNavItems.some((item) => item.key === activeWorkspace.value)
+})
 
 const capabilities = [
   {
@@ -281,6 +301,7 @@ const progressItems = [
   { name: '2-24：计划任务跟踪原型页', status: '完成', statusClass: 'done' },
   { name: '2-25：异常问题闭环原型页', status: '完成', statusClass: 'done' },
   { name: '2-26：现场调度看板原型页', status: '完成', statusClass: 'done' },
-  { name: '2-27：物料到货跟踪原型页', status: '当前', statusClass: 'active' },
+  { name: '2-27：物料到货跟踪原型页', status: '完成', statusClass: 'done' },
+  { name: '2-28：原型页面统一导航优化', status: '当前', statusClass: 'active' },
 ]
 </script>
