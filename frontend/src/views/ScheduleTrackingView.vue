@@ -4,14 +4,26 @@
       eyebrow="P0 Prototype Page"
       title="计划任务跟踪原型页"
       title-id="schedule-tracking-title"
-      description="面向计划员的任务跟踪页面。当前使用本地 mock 数据，后续可替换为 FastAPI 接口。"
+      :description="dynamicDescription"
     />
+
+    <!-- 方法链路上下文：展示功能模块设计阶段确认的信息 -->
+    <section v-if="projectContext.selectedFeatureModule" class="context-banner" aria-label="方法联动上下文">
+      <span class="context-badge">方法联动</span>
+      <p>
+        <strong>功能模块：</strong>{{ projectContext.selectedFeatureModule.name }}
+        <template v-if="projectContext.selectedFeatureModule.features">
+          | <strong>功能点：</strong>
+          {{ projectContext.selectedFeatureModule.features.map(f => f.name || f).join('、') }}
+        </template>
+      </p>
+    </section>
 
     <section class="filter-panel" aria-label="任务筛选">
       <label>
         <span>项目</span>
         <select v-model="filters.project">
-          <option>海工生产运营示范项目</option>
+          <option>{{ projectContext.projectName || '海工生产运营示范项目' }}</option>
         </select>
       </label>
 
@@ -97,8 +109,23 @@ import StatusTag from '../components/StatusTag.vue'
 import ViewHeading from '../components/ViewHeading.vue'
 import { scheduleTasksMock, statusOptions } from '../data/prototypeMockData'
 
+const props = defineProps({
+  projectContext: {
+    type: Object,
+    required: true,
+  },
+})
+
+const dynamicDescription = computed(() => {
+  const module = props.projectContext.selectedFeatureModule
+  if (module) {
+    return '面向计划员的任务跟踪页面。当前关联工厂设计阶段确认的模块"' + module.name + '"，展示该模块对应的计划任务。'
+  }
+  return '面向计划员的任务跟踪页面。当前使用本地 mock 数据，后续可替换为 FastAPI 接口。'
+})
+
 const filters = reactive({
-  project: '海工生产运营示范项目',
+  project: props.projectContext.projectName || '海工生产运营示范项目',
   area: '全部区域',
   status: '全部状态',
 })
@@ -116,12 +143,15 @@ const summaryItems = computed(() => {
   const runningCount = scheduleTasksMock.filter((item) => item.status === 'running').length
   const delayedCount = scheduleTasksMock.filter((item) => item.status === 'delayed').length
   const blockedCount = scheduleTasksMock.filter((item) => item.status === 'blocked').length
+  const moduleSuffix = props.projectContext.selectedFeatureModule
+    ? '（关联模块：' + props.projectContext.selectedFeatureModule.name + '）'
+    : ''
 
   return [
     {
       label: '全部任务',
       value: scheduleTasksMock.length,
-      description: '当前 mock 数据中的计划任务数',
+      description: '当前 mock 数据中的计划任务数' + moduleSuffix,
     },
     {
       label: '进行中',
@@ -145,6 +175,37 @@ const summaryItems = computed(() => {
 <style scoped>
 .schedule-tracking-view {
   margin-top: 16px;
+}
+
+.context-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 14px;
+  background: #eff6ff;
+}
+
+.context-badge {
+  flex: 0 0 auto;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.context-banner p {
+  margin: 0;
+  color: #1e3a5f;
+  line-height: 1.6;
+}
+
+.context-banner strong {
+  color: #0f172a;
 }
 
 .filter-panel,

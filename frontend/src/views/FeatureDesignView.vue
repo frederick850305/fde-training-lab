@@ -143,7 +143,141 @@ const emit = defineEmits(['feature-confirm'])
 
 const featureData = featureDesignMock
 const activeFilter = ref('全部')
-const selectedKey = ref(featureData.modules[0].key)
+
+const requirementText = computed(() => {
+  const analysis = props.projectContext.requirementAnalysis || {}
+  const painPoints = (analysis.painPoints || [])
+    .map((item) => item.description || item)
+    .filter(Boolean)
+  const userRoles = (analysis.userRoles || [])
+    .map((item) => `${item.name} ${item.responsibility || ''}`.trim())
+    .filter(Boolean)
+
+  return [
+    props.projectContext.sourceRequirement || '',
+    analysis.businessBackground || '',
+    ...painPoints,
+    ...userRoles,
+    ...(analysis.questions || []),
+  ].join(' ')
+})
+
+function detectDomainLabel(text) {
+  const source = text.toLowerCase()
+
+  if (source.includes('车辆') || source.includes('车队') || source.includes('司机')) {
+    return {
+      item: '车辆',
+      process: '车辆运营',
+    }
+  }
+
+  if (source.includes('物料') || source.includes('库存') || source.includes('仓储')) {
+    return {
+      item: '物料',
+      process: '物料流转',
+    }
+  }
+
+  if (source.includes('计划') || source.includes('工序') || source.includes('任务') || source.includes('进度')) {
+    return {
+      item: '项目',
+      process: '计划执行',
+    }
+  }
+
+  return {
+    item: '业务',
+    process: '业务协同',
+  }
+}
+
+const dynamicModules = computed(() => {
+  const domain = detectDomainLabel(requirementText.value)
+
+  return featureData.modules.map((item) => {
+    if (item.key === 'projectOverview') {
+      return {
+        ...item,
+        name: `${domain.item}总览`,
+        description: `为管理者提供${domain.item}进度、关键节点、风险异常和资源占用的一屏式总览。`,
+        features: [
+          `展示${domain.item}总体进度与完成率`,
+          '展示关键节点状态',
+          '展示延期任务和异常问题数量',
+          `支持按${domain.item}和状态筛选风险事项`,
+        ],
+      }
+    }
+
+    if (item.key === 'scheduleTracking') {
+      return {
+        ...item,
+        name: `${domain.item}任务跟踪`,
+        description: `为执行人员提供${domain.item}计划任务、工序状态、延期标记和调整建议的操作入口。`,
+        features: [
+          `展示${domain.item}计划任务列表`,
+          `支持按${domain.item}、区域、工序状态筛选`,
+          '标记延期、阻塞和已完成任务',
+          `展示${domain.item}计划调整建议`,
+        ],
+      }
+    }
+
+    if (item.key === 'issueTracking') {
+      return {
+        ...item,
+        name: `${domain.item}异常反馈`,
+        description: `支撑${domain.item}日常作业中的异常登记、责任分派、处理进展跟踪和状态更新。`,
+        features: [
+          `新增${domain.item}异常问题记录`,
+          '设置责任人和处理时限',
+          '更新异常处理状态',
+          '查看异常问题处理历史',
+        ],
+      }
+    }
+
+    if (item.key === 'siteResourceBoard') {
+      const resourceName = domain.item === '车辆' ? '车辆和司机' : '人员和设备'
+      return {
+        ...item,
+        name: `${domain.item}现场资源看板`,
+        description: `展示${resourceName}、作业面和关键资源占用情况，辅助现场调度。`,
+        features: [
+          '展示当日作业面',
+          `展示${resourceName}占用`,
+          '提示资源冲突',
+          '查看资源使用明细',
+        ],
+      }
+    }
+
+    if (item.key === 'materialArrival') {
+      return {
+        ...item,
+        name: `${domain.item}到货/就绪跟踪`,
+        description: `跟踪关键${domain.item}状态，帮助执行人员判断任务是否具备开工条件。`,
+        features: [
+          `展示关键${domain.item}清单`,
+          '展示到货、缺料和延期状态',
+          '关联受影响任务',
+          `提示${domain.item}风险`,
+        ],
+      }
+    }
+
+    return item
+  })
+})
+
+const selectedKey = ref(dynamicModules.value[0].key)
+
+watch(dynamicModules, (modules) => {
+  if (!modules.some((m) => m.key === selectedKey.value)) {
+    selectedKey.value = modules[0]?.key
+  }
+}, { immediate: true })
 
 const allowedScenarioNames = computed(() => {
   const roles = props.projectContext.requirementAnalysis?.userRoles || []
@@ -152,17 +286,19 @@ const allowedScenarioNames = computed(() => {
 
 const filteredByScenario = computed(() => {
   if (!props.projectContext.selectedScenario) {
-    return featureData.modules
+    return dynamicModules.value
   }
 
-  const scenarioName = props.projectContext.selectedScenario.name || ''
-  const scenarioRole = props.projectContext.selectedScenario.pageMapping?.role || ''
+  const scenarioName = (props.projectContext.selectedScenario.name || '').toLowerCase()
+  const scenarioRole = (props.projectContext.selectedScenario.pageMapping?.role || '').toLowerCase()
 
-  return featureData.modules.filter((item) => {
+  return dynamicModules.value.filter((item) => {
+    const itemScenario = (item.sourceScenario || '').toLowerCase()
     return (
-      item.sourceScenario === scenarioName ||
-      item.sourceScenario.includes(scenarioRole) ||
-      allowedScenarioNames.value.some((role) => item.sourceScenario.includes(role))
+      itemScenario === scenarioName ||
+      itemScenario.includes(scenarioRole) ||
+      scenarioName.includes(itemScenario) ||
+      allowedScenarioNames.value.some((role) => itemScenario.includes(role.toLowerCase()))
     )
   })
 })
@@ -181,7 +317,7 @@ const selectedModule = computed(() => {
   return (
     filteredModules.value.find((item) => item.key === selectedKey.value) ||
     filteredModules.value[0] ||
-    featureData.modules[0]
+    dynamicModules.value[0]
   )
 })
 
