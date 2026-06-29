@@ -33,47 +33,10 @@ select {
   padding: 28px 0 56px;
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0 30px;
-}
-
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  margin-right: 12px;
-  border-radius: 8px;
-  background: #1d4ed8;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.brand-name {
-  color: #0f172a;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.stage-badge,
-.card-tag,
 .progress-status {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
-}
-
-.stage-badge {
-  border: 1px solid #bfdbfe;
-  padding: 8px 12px;
-  background: #eff6ff;
-  color: #1d4ed8;
 }
 
 .hero {
@@ -137,8 +100,7 @@ button {
 }
 
 .primary-button,
-.secondary-button,
-.capability-card button {
+.secondary-button {
   border-radius: 8px;
   padding: 12px 16px;
   font-weight: 800;
@@ -150,16 +112,14 @@ button {
   color: #ffffff;
 }
 
-.secondary-button,
-.capability-card button {
+.secondary-button {
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #1e293b;
 }
 
 .service-panel,
-.section-block,
-.capability-card {
+.section-block {
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   background: #ffffff;
@@ -232,36 +192,38 @@ button {
   gap: 16px;
 }
 
-.capability-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 230px;
-  padding: 20px;
-}
-
-.card-tag {
-  align-self: flex-start;
-  margin-bottom: 16px;
-  padding: 5px 9px;
-  background: #e0ecff;
-  color: #1d4ed8;
-}
-
-.capability-card p {
-  flex: 1;
-  color: #526174;
-  line-height: 1.65;
-}
-
-.capability-card button {
-  width: 100%;
-}
-
 .two-column {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
+}
+
+.workspace-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
+}
+
+.workspace-switcher button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 800;
+}
+
+.workspace-switcher button.active {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #ffffff;
 }
 
 .process-list,
@@ -350,11 +312,6 @@ button {
 
   h1 {
     font-size: 32px;
-  }
-
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   .hero,
