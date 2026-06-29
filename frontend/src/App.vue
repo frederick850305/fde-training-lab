@@ -9,14 +9,6 @@
         <p class="subtitle">
           这个工作台用于沉淀一套 AI 原型工厂方法：先梳理需求，再设计功能、页面和 API 契约，最后生成 Vue3 前端样例并联调 FastAPI。
         </p>
-        <div class="hero-actions" aria-label="主要操作">
-          <button class="primary-button" type="button" @click="activeWorkspace = 'requirementInput'">
-            进入需求输入
-          </button>
-          <button class="secondary-button" type="button" @click="activeWorkspace = 'prototypeWorkflow'">
-            查看原型流程
-          </button>
-        </div>
       </div>
 
       <article class="service-panel">
@@ -36,85 +28,76 @@
       </article>
     </section>
 
-    <section class="section-block" aria-labelledby="capability-title">
-      <div class="section-heading">
-        <p class="eyebrow">Core Capabilities</p>
-        <h2 id="capability-title">原型工作台能力入口</h2>
-      </div>
-      <div class="capability-grid">
-        <FeatureCard
-          v-for="item in capabilities"
-          :key="item.key"
-          :stage="item.stage"
-          :title="item.title"
-          :description="item.description"
-          :action="item.action"
-          :active="item.key === activeWorkspace"
-          @select="activeWorkspace = item.key"
-        />
-      </div>
-    </section>
-
-    <section class="two-column">
-      <article class="section-block">
-        <div class="section-heading">
-          <p class="eyebrow">Prototype Flow</p>
-          <h2>从需求到原型的标准路径</h2>
-        </div>
-        <ol class="process-list">
-          <li v-for="step in processSteps" :key="step">
-            <span>{{ step }}</span>
-          </li>
-        </ol>
-      </article>
-
-      <article class="section-block">
-        <div class="section-heading">
-          <p class="eyebrow">Training Progress</p>
-          <h2>第二阶段练习进展</h2>
-        </div>
-        <ul class="progress-list">
-          <li v-for="item in progressItems" :key="item.name">
-            <span class="progress-status" :class="item.statusClass">{{ item.status }}</span>
-            <span>{{ item.name }}</span>
-          </li>
-        </ul>
-      </article>
-    </section>
-
-    <section class="workspace-switcher" aria-label="工作区切换">
+    <section class="main-tabs" aria-label="工作台一级导航">
       <button
-        v-for="item in workspaceTabs"
-        :key="item.key"
+        v-for="tab in mainTabs"
+        :key="tab.key"
         type="button"
-        :class="{ active: item.key === activeWorkspace }"
-        @click="activeWorkspace = item.key"
+        :class="{ active: tab.key === activeMainTab }"
+        @click="selectMainTab(tab.key)"
       >
-        {{ item.label }}
+        <span>{{ tab.eyebrow }}</span>
+        {{ tab.label }}
       </button>
     </section>
 
-    <PrototypeNav
-      v-if="showPrototypeNav"
-      :items="prototypeNavItems"
-      :active-key="activeWorkspace"
-      @select="activeWorkspace = $event"
-    />
+    <template v-if="activeMainTab === 'method'">
+      <section class="section-block" aria-labelledby="capability-title">
+        <div class="section-heading">
+          <p class="eyebrow">Core Capabilities</p>
+          <h2 id="capability-title">原型工作台能力入口</h2>
+        </div>
+        <div class="capability-grid">
+          <FeatureCard
+            v-for="item in methodCapabilities"
+            :key="item.key"
+            :stage="item.stage"
+            :title="item.title"
+            :description="item.description"
+            :action="item.action"
+            :active="item.key === activeWorkspace"
+            @select="selectWorkspace(item.key)"
+          />
+        </div>
+      </section>
 
-    <RequirementInputView v-if="activeWorkspace === 'requirementInput'" />
-    <ScenarioIdentificationView v-else-if="activeWorkspace === 'scenarioIdentification'" />
-    <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" />
-    <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" />
-    <PageInteractionView v-else-if="activeWorkspace === 'pageInteraction'" />
-    <ApiContractView v-else-if="activeWorkspace === 'apiContract'" />
-    <FrontendPrototypeSuggestionView v-else-if="activeWorkspace === 'frontendSuggestion'" />
-    <ProjectOverviewView v-else-if="activeWorkspace === 'projectOverview'" />
-    <ScheduleTrackingView v-else-if="activeWorkspace === 'scheduleTracking'" />
-    <IssueTrackingView v-else-if="activeWorkspace === 'issueTracking'" />
-    <OnsiteDispatchView v-else-if="activeWorkspace === 'onsiteDispatch'" />
-    <MaterialTrackingView v-else-if="activeWorkspace === 'materialTracking'" />
-    <PrototypeWorkflowView v-else-if="activeWorkspace === 'prototypeWorkflow'" />
-    <RequirementSummaryView v-else />
+      <RequirementInputView v-if="activeWorkspace === 'requirementInput'" />
+      <ScenarioIdentificationView v-else-if="activeWorkspace === 'scenarioIdentification'" />
+      <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" />
+      <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" />
+      <PageInteractionView v-else-if="activeWorkspace === 'pageInteraction'" />
+      <ApiContractView v-else-if="activeWorkspace === 'apiContract'" />
+      <FrontendPrototypeSuggestionView v-else-if="activeWorkspace === 'frontendSuggestion'" />
+      <PrototypeWorkflowView v-else-if="activeWorkspace === 'prototypeWorkflow'" />
+      <RequirementSummaryView v-else />
+    </template>
+
+    <section v-else-if="activeMainTab === 'progress'" class="section-block progress-panel" aria-labelledby="progress-title">
+      <div class="section-heading">
+        <p class="eyebrow">Training Progress</p>
+        <h2 id="progress-title">第二阶段练习进展</h2>
+      </div>
+      <ul class="progress-list">
+        <li v-for="item in progressItems" :key="item.name">
+          <span class="progress-status" :class="item.statusClass">{{ item.status }}</span>
+          <span>{{ item.name }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <template v-else>
+      <PrototypeNav
+        :items="prototypeNavItems"
+        :active-key="activeWorkspace"
+        @select="selectWorkspace"
+      />
+
+      <ProjectOverviewView v-if="activeWorkspace === 'projectOverview'" />
+      <ScheduleTrackingView v-else-if="activeWorkspace === 'scheduleTracking'" />
+      <IssueTrackingView v-else-if="activeWorkspace === 'issueTracking'" />
+      <OnsiteDispatchView v-else-if="activeWorkspace === 'onsiteDispatch'" />
+      <MaterialTrackingView v-else />
+    </template>
   </main>
 </template>
 
@@ -139,6 +122,13 @@ import ScheduleTrackingView from './views/ScheduleTrackingView.vue'
 import ScenarioIdentificationView from './views/ScenarioIdentificationView.vue'
 
 const activeWorkspace = ref('requirementInput')
+const activeMainTab = ref('method')
+
+const mainTabs = [
+  { key: 'method', label: '原型工厂方法', eyebrow: 'Method' },
+  { key: 'progress', label: '练习进展', eyebrow: 'Progress' },
+  { key: 'prototypeSystem', label: '业务原型系统', eyebrow: 'Prototype' },
+]
 
 const workspaceTabs = [
   { key: 'requirementInput', label: '需求输入' },
@@ -168,6 +158,29 @@ const prototypeNavItems = [
 const showPrototypeNav = computed(() => {
   return prototypeNavItems.some((item) => item.key === activeWorkspace.value)
 })
+
+const methodCapabilities = computed(() => {
+  return capabilities.filter((item) => !prototypeNavItems.some((prototypeItem) => prototypeItem.key === item.key))
+})
+
+const selectMainTab = (key) => {
+  activeMainTab.value = key
+
+  if (key === 'prototypeSystem' && !showPrototypeNav.value) {
+    activeWorkspace.value = 'projectOverview'
+  }
+}
+
+const selectWorkspace = (key) => {
+  activeWorkspace.value = key
+
+  if (prototypeNavItems.some((item) => item.key === key)) {
+    activeMainTab.value = 'prototypeSystem'
+    return
+  }
+
+  activeMainTab.value = 'method'
+}
 
 const capabilities = [
   {
@@ -302,6 +315,7 @@ const progressItems = [
   { name: '2-25：异常问题闭环原型页', status: '完成', statusClass: 'done' },
   { name: '2-26：现场调度看板原型页', status: '完成', statusClass: 'done' },
   { name: '2-27：物料到货跟踪原型页', status: '完成', statusClass: 'done' },
-  { name: '2-28：原型页面统一导航优化', status: '当前', statusClass: 'active' },
+  { name: '2-28：原型页面统一导航优化', status: '完成', statusClass: 'done' },
+  { name: '2-29：工作台一级 Tab 结构重组', status: '当前', statusClass: 'active' },
 ]
 </script>

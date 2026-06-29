@@ -88,13 +88,6 @@ h3 {
   line-height: 1.7;
 }
 
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 26px;
-}
-
 button {
   cursor: pointer;
 }
@@ -196,6 +189,48 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+  margin-top: 16px;
+}
+
+.main-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.main-tabs button {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: #ffffff;
+  color: #1e293b;
+  text-align: left;
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
+}
+
+.main-tabs button span {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.main-tabs button.active {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.main-tabs button.active span {
+  color: #dbeafe;
+}
+
+.progress-panel {
   margin-top: 16px;
 }
 
@@ -315,6 +350,7 @@ button {
   }
 
   .hero,
+  .main-tabs,
   .capability-grid,
   .two-column {
     grid-template-columns: 1fr;
