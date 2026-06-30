@@ -19,7 +19,7 @@
       <article class="api-list-panel">
         <div class="panel-heading">
           <span>API 列表</span>
-          <strong>共 {{ apiData.contracts.length }} 个接口</strong>
+          <strong>共 {{ recommendedContracts.length }} 个接口</strong>
         </div>
 
         <div class="api-list">
@@ -118,7 +118,7 @@
 
     <div class="next-action">
       <button class="primary-button" type="button" @click="confirmAndNext">
-        下一步：进入原型建议
+        确认并进入下一步
       </button>
     </div>
   </section>
@@ -141,11 +141,82 @@ const emit = defineEmits(['api-contract-confirm'])
 
 const apiData = apiContractMock
 
-const recommendedContracts = computed(() => {
-  const pageKey = props.projectContext.selectedInteractionPage?.key
-  const matched = apiData.contracts.filter((item) => item.key === pageKey)
+const pageContractKeyMap = {
+  projectOverview: 'projectOverview',
+  scheduleTracking: 'scheduleTasks',
+  issueTracking: 'createIssue',
+}
 
-  return matched.length ? matched : apiData.contracts.slice(0, 1)
+const featureResourceRules = [
+  { matches: ['车辆', '车队', '司机'], resource: 'vehicles', label: '车辆' },
+  { matches: ['物料', '库存', '仓储', '到货'], resource: 'materials', label: '物料' },
+  { matches: ['异常', '问题', '闭环'], resource: 'issues', label: '异常' },
+  { matches: ['任务', '计划', '工序', '进度'], resource: 'tasks', label: '任务' },
+  { matches: ['资源', '现场', '调度'], resource: 'resources', label: '资源' },
+  { matches: ['项目', '总览'], resource: 'projects', label: '项目' },
+]
+
+const selectedFeatureModule = computed(() => props.projectContext.selectedFeatureModule || {})
+
+const featureResource = computed(() => {
+  const moduleName = selectedFeatureModule.value.name || ''
+  const moduleText = [
+    moduleName,
+    selectedFeatureModule.value.description || '',
+    selectedFeatureModule.value.apiSuggestion || '',
+    ...(selectedFeatureModule.value.features || []),
+  ].join(' ')
+
+  return featureResourceRules.find((rule) => rule.matches.some((item) => moduleText.includes(item))) || {
+    resource: 'business-modules',
+    label: moduleName.replace(/(总览|任务跟踪|异常反馈|现场资源看板|到货\/就绪跟踪|管理|模块)$/g, '') || '业务',
+  }
+})
+
+const selectedContractBase = computed(() => {
+  const pageKey = props.projectContext.selectedInteractionPage?.key
+  const mappedKey = pageContractKeyMap[pageKey] || pageKey
+
+  return (
+    apiData.contracts.find((item) => item.key === mappedKey) ||
+    apiData.contracts.find((item) => item.key === selectedFeatureModule.value.key) ||
+    apiData.contracts[0]
+  )
+})
+
+function buildRestfulPath(resource, suffix) {
+  if (!suffix || resource === suffix) {
+    return `/api/${resource}`
+  }
+
+  return `/api/${resource}/${suffix}`
+}
+
+const recommendedContracts = computed(() => {
+  const base = selectedContractBase.value
+  const resource = featureResource.value
+  const pathSuffixMap = {
+    projectOverview: 'overview',
+    scheduleTasks: 'tasks',
+    createIssue: 'issues',
+  }
+  const suffix = pathSuffixMap[base.key] ?? base.key
+  const dynamicPath = buildRestfulPath(resource.resource, suffix)
+  const moduleName = selectedFeatureModule.value.name || resource.label
+
+  return [
+    {
+      ...base,
+      name: base.name.replace(/项目|计划|异常/g, resource.label),
+      path: dynamicPath,
+      goal: `${base.goal} 当前根据已确认功能模块「${moduleName}」推荐 RESTful 资源路径。`,
+      sourceFeatureModule: moduleName,
+      errorCodes: base.errorCodes.map((item) => ({
+        ...item,
+        code: item.code.replace(/PROJECT|SCHEDULE|ISSUE/g, resource.resource.replace(/-/g, '_').toUpperCase()),
+      })),
+    },
+  ]
 })
 
 const selectedKey = ref(recommendedContracts.value[0].key)

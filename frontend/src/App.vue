@@ -2,91 +2,60 @@
   <main class="app-shell">
     <AppHeader />
 
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">VSCode + Codex/Copilot + Vue3 + FastAPI</p>
-        <h1>把客户需求快速变成可演示的业务原型</h1>
-        <p class="subtitle">
-          这个工作台用于沉淀一套 AI 原型工厂方法：先梳理需求，再设计功能、页面和 API 契约，最后生成 Vue3 前端样例并联调 FastAPI。
-        </p>
-      </div>
-
-      <article class="service-panel">
-        <span class="panel-label">后端联调状态</span>
-        <strong>FastAPI 待联调</strong>
-        <p>下一阶段会接入 `/health` 和 `/requirement/summary`。</p>
-        <dl>
-          <div>
-            <dt>前端端口</dt>
-            <dd>5173</dd>
-          </div>
-          <div>
-            <dt>后端地址</dt>
-            <dd>127.0.0.1:8000</dd>
-          </div>
-        </dl>
-      </article>
-    </section>
-
-    <section class="main-tabs" aria-label="工作台一级导航">
-      <button
-        v-for="tab in mainTabs"
-        :key="tab.key"
-        type="button"
-        :class="{ active: tab.key === activeMainTab }"
-        @click="selectMainTab(tab.key)"
-      >
-        <span>{{ tab.eyebrow }}</span>
-        {{ tab.label }}
-      </button>
-    </section>
 
     <template v-if="activeMainTab === 'method'">
-      <template v-if="activeWorkspace === 'factoryWorkbench'">
-        <FactoryWorkbenchView
+      <FactoryWorkbenchView
+        :project-context="projectContext"
+        :steps="methodWizardSteps"
+        :active-step-key="activeMethodStepKey"
+        :step-output="activeStepResult"
+        @select-step="selectMethodStep"
+        :saved-session="savedSessionSummary"
+        @hydrate-context="resetMethodWorkflow"
+        @restore-local-session="restoreLocalSession"
+        @revision-applied="handleStepRevisionApplied"
+        @runtime-update="handleRuntimeUpdate"
+        @restart-workflow="startNewMethodWorkflow"
+      >
+        <RequirementInputView
+          v-if="activeMethodStepKey === 'requirementInput'"
           :project-context="projectContext"
-          @open-workspace="selectWorkspace"
-          @hydrate-context="hydrateProjectContext"
+          @analysis-complete="handleRequirementAnalysisComplete"
+          @context-update="handleProjectContextUpdate"
         />
-
-        <section class="section-block" aria-labelledby="capability-title">
-          <div class="section-heading">
-            <p class="eyebrow">Core Capabilities</p>
-            <h2 id="capability-title">原型工作台能力入口</h2>
-          </div>
-          <div class="capability-grid">
-            <FeatureCard
-              v-for="item in methodCapabilities"
-              :key="item.key"
-              :stage="item.stage"
-              :title="item.title"
-              :description="item.description"
-              :action="item.action"
-              :active="item.key === activeWorkspace"
-              @select="selectWorkspace(item.key)"
-            />
-          </div>
-        </section>
-      </template>
-
-      <RequirementInputView
-        v-else-if="activeWorkspace === 'requirementInput'"
-        :project-context="projectContext"
-        @analysis-complete="handleRequirementAnalysisComplete"
-        @go-next="selectWorkspace"
-      />
-      <ScenarioIdentificationView
-        v-else-if="activeWorkspace === 'scenarioIdentification'"
-        :project-context="projectContext"
-        @scenario-confirm="handleScenarioConfirm"
-      />
-      <FeatureDesignView v-else-if="activeWorkspace === 'featureDesign'" :project-context="projectContext" @feature-confirm="handleFeatureConfirm" />
-      <PageDesignView v-else-if="activeWorkspace === 'pageDesign'" :project-context="projectContext" @page-design-confirm="handlePageDesignConfirm" />
-      <PageInteractionView v-else-if="activeWorkspace === 'pageInteraction'" :project-context="projectContext" @interaction-confirm="handleInteractionConfirm" />
-      <ApiContractView v-else-if="activeWorkspace === 'apiContract'" :project-context="projectContext" @api-contract-confirm="handleApiContractConfirm" />
-      <FrontendPrototypeSuggestionView v-else-if="activeWorkspace === 'frontendSuggestion'" :project-context="projectContext" @suggestion-confirm="handleSuggestionConfirm" />
-      <PrototypeWorkflowView v-else-if="activeWorkspace === 'prototypeWorkflow'" :project-context="projectContext" @workflow-finish="handleWorkflowFinish" />
-      <RequirementSummaryView v-else :project-context="projectContext" />
+        <ScenarioIdentificationView
+          v-else-if="activeMethodStepKey === 'scenarioIdentification'"
+          :project-context="projectContext"
+          @scenario-confirm="handleScenarioConfirm"
+        />
+        <FeatureDesignView
+          v-else-if="activeMethodStepKey === 'featureDesign'"
+          :project-context="projectContext"
+          @feature-draft-update="handleFeatureDraftUpdate"
+          @feature-confirm="handleFeatureConfirm"
+        />
+        <PageDesignView
+          v-else-if="activeMethodStepKey === 'pageDesign'"
+          :project-context="projectContext"
+          @page-design-draft-update="handlePageDesignDraftUpdate"
+          @page-design-confirm="handlePageDesignConfirm"
+        />
+        <PageInteractionView
+          v-else-if="activeMethodStepKey === 'pageInteraction'"
+          :project-context="projectContext"
+          @interaction-confirm="handleInteractionConfirm"
+        />
+        <ApiContractView
+          v-else-if="activeMethodStepKey === 'apiContract'"
+          :project-context="projectContext"
+          @api-contract-confirm="handleApiContractConfirm"
+        />
+        <FrontendPrototypeSuggestionView
+          v-else
+          :project-context="projectContext"
+          @suggestion-confirm="handleSuggestionConfirm"
+        />
+      </FactoryWorkbenchView>
     </template>
 
     <section v-else-if="activeMainTab === 'progress'" class="section-block progress-panel" aria-labelledby="progress-title">
@@ -119,10 +88,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import ApiContractView from './views/ApiContractView.vue'
-import FeatureCard from './components/FeatureCard.vue'
 import FeatureDesignView from './views/FeatureDesignView.vue'
 import FactoryWorkbenchView from './views/FactoryWorkbenchView.vue'
 import FrontendPrototypeSuggestionView from './views/FrontendPrototypeSuggestionView.vue'
@@ -133,45 +101,151 @@ import PageDesignView from './views/PageDesignView.vue'
 import PageInteractionView from './views/PageInteractionView.vue'
 import ProjectOverviewView from './views/ProjectOverviewView.vue'
 import PrototypeNav from './components/PrototypeNav.vue'
-import PrototypeWorkflowView from './views/PrototypeWorkflowView.vue'
 import RequirementInputView from './views/RequirementInputView.vue'
-import RequirementSummaryView from './views/RequirementSummaryView.vue'
 import ScheduleTrackingView from './views/ScheduleTrackingView.vue'
 import ScenarioIdentificationView from './views/ScenarioIdentificationView.vue'
 
-const activeWorkspace = ref('factoryWorkbench')
+const LOCAL_SESSION_KEY = 'fde-prototype-factory-session:v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
+
+const activeWorkspace = ref('requirementInput')
 const activeMainTab = ref('method')
-const projectContext = ref({
+const isRestoringLocalSession = ref(false)
+const savedSessionSummary = ref(null)
+
+const createEmptyStepResults = () => ({
+  requirement: null,
+  scenario: null,
+  feature: null,
+  page: null,
+  interaction: null,
+  api: null,
+  prototype: null,
+})
+
+const createDefaultProjectContext = () => ({
   projectName: '海工生产运营示范项目',
   customerName: '示范客户',
   projectStage: '需求分析准备',
-  currentStepLabel: '原型工厂操作台总览',
-  contextStatus: '已初始化',
-  summary: '当前为前端演示上下文。后续将替换为真实项目上下文与执行状态。',
+  currentStepLabel: '客户需求输入',
+  contextStatus: '本地规则生成',
+  summary: '当前为 FDE 自助式原型工厂上下文。可先用本地规则生成草案，后续切换为 DeepSeek 或其他大模型。',
+  executionMode: 'local',
+  llmProvider: 'none',
+  llmConfigured: false,
+  llmModel: 'deepseek-v4-flash',
+  llmBaseUrl: 'https://api.deepseek.com',
+  currentMethodStep: 'requirement',
+  stepResults: createEmptyStepResults(),
 })
 
-const mainTabs = [
-  { key: 'method', label: '原型工厂方法', eyebrow: 'Method' },
-  { key: 'progress', label: '练习进展', eyebrow: 'Progress' },
-  { key: 'prototypeSystem', label: '业务原型系统', eyebrow: 'Prototype' },
-]
+const projectContext = ref(createDefaultProjectContext())
 
-const workspaceTabs = [
-  { key: 'requirementInput', label: '需求输入' },
-  { key: 'scenarioIdentification', label: '场景识别' },
-  { key: 'featureDesign', label: '功能设计' },
-  { key: 'pageDesign', label: '页面设计' },
-  { key: 'pageInteraction', label: '交互设计' },
-  { key: 'apiContract', label: 'API 契约' },
-  { key: 'frontendSuggestion', label: '原型建议' },
-  { key: 'projectOverview', label: '项目总览' },
-  { key: 'scheduleTracking', label: '计划任务' },
-  { key: 'issueTracking', label: '异常闭环' },
-  { key: 'onsiteDispatch', label: '现场调度' },
-  { key: 'materialTracking', label: '物料到货' },
-  { key: 'prototypeWorkflow', label: '原型流程' },
-  { key: 'requirementSummary', label: '需求分析' },
-]
+const hasConfirmedStepResult = (context) => {
+  return Object.values(context.stepResults || {}).some(Boolean)
+}
+
+const buildSavedSessionSummary = (snapshot) => {
+  const context = snapshot?.projectContext
+
+  if (!context || !hasConfirmedStepResult(context)) {
+    return null
+  }
+
+  const savedAt = snapshot.savedAt ? new Date(snapshot.savedAt) : null
+  const completedCount = Object.values(context.stepResults || {}).filter(Boolean).length
+
+  return {
+    savedAt: snapshot.savedAt || '',
+    savedAtLabel: savedAt ? savedAt.toLocaleString('zh-CN') : '未知时间',
+    projectName: context.projectName || '未命名项目',
+    currentStepLabel: context.currentStepLabel || '客户需求输入',
+    completedCount,
+    summary: context.summary || '已保存本地方法链上下文。',
+    projectContext: context,
+    activeWorkspace: snapshot.activeWorkspace || 'requirementInput',
+    activeMainTab: snapshot.activeMainTab || 'method',
+  }
+}
+
+const readLocalSessionSnapshot = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_SESSION_KEY)
+
+    if (!raw) {
+      return null
+    }
+
+    return JSON.parse(raw)
+  } catch (error) {
+    localStorage.removeItem(LOCAL_SESSION_KEY)
+    return null
+  }
+}
+
+const buildMarkdownSessionSummary = (payload) => {
+  const completedCount = payload?.completed_count || 0
+  if (!completedCount) {
+    return null
+  }
+
+  const savedAt = payload.latest_saved_at ? new Date(payload.latest_saved_at) : null
+  const latestFile = payload.files?.[payload.files.length - 1]
+
+  return {
+    source: 'markdown',
+    savedAt: payload.latest_saved_at || '',
+    savedAtLabel: savedAt && !Number.isNaN(savedAt.getTime()) ? savedAt.toLocaleString('zh-CN') : '本地 Markdown',
+    projectName: projectContext.value.projectName || '本地 FDE 项目',
+    currentStepLabel: latestFile?.title || '本地版本',
+    completedCount,
+    summary: '已发现项目目录中的 Markdown 本地版本。',
+    outputDir: payload.output_dir || '',
+    files: payload.files || [],
+    activeWorkspace: 'requirementInput',
+    activeMainTab: 'method',
+  }
+}
+
+const readMarkdownSessionSummary = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/method-files`)
+    if (!response.ok) {
+      return null
+    }
+
+    return buildMarkdownSessionSummary(await response.json())
+  } catch (error) {
+    console.warn('Failed to read Markdown session summary', error)
+    return null
+  }
+}
+
+const refreshSavedSessionSummary = async () => {
+  savedSessionSummary.value = await readMarkdownSessionSummary() || buildSavedSessionSummary(readLocalSessionSnapshot())
+}
+
+const persistLocalSession = () => {
+  if (isRestoringLocalSession.value || !hasConfirmedStepResult(projectContext.value)) {
+    return
+  }
+
+  const snapshot = {
+    savedAt: new Date().toISOString(),
+    projectContext: projectContext.value,
+    activeWorkspace: activeWorkspace.value,
+    activeMainTab: activeMainTab.value,
+  }
+
+  localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(snapshot))
+  savedSessionSummary.value = buildSavedSessionSummary(snapshot)
+}
+
+watch(projectContext, persistLocalSession, { deep: true })
+
+watch([activeWorkspace, activeMainTab], persistLocalSession)
+
+onMounted(refreshSavedSessionSummary)
 
 const prototypeNavItems = [
   { key: 'projectOverview', label: '项目总览', stage: 'P0' },
@@ -181,9 +255,68 @@ const prototypeNavItems = [
   { key: 'materialTracking', label: '物料到货', stage: 'P0' },
 ]
 
-const showPrototypeNav = computed(() => {
-  return prototypeNavItems.some((item) => item.key === activeWorkspace.value)
-})
+const methodStepDefinitions = [
+  {
+    key: 'requirementInput',
+    resultKey: 'requirement',
+    step: '01',
+    title: '需求拆解',
+    input: '客户原始需求',
+    output: '业务背景、痛点、目标、角色和待确认问题',
+  },
+  {
+    key: 'scenarioIdentification',
+    resultKey: 'scenario',
+    step: '02',
+    title: '场景识别',
+    input: '需求拆解结果',
+    output: '业务场景、任务流程和页面映射',
+  },
+  {
+    key: 'featureDesign',
+    resultKey: 'feature',
+    step: '03',
+    title: '功能设计',
+    input: '场景与角色任务',
+    output: '功能模块、功能点、优先级和 API 方向',
+  },
+  {
+    key: 'pageDesign',
+    resultKey: 'page',
+    step: '04',
+    title: '页面设计',
+    input: '功能模块',
+    output: '页面清单、导航结构和文件建议',
+  },
+  {
+    key: 'pageInteraction',
+    resultKey: 'interaction',
+    step: '05',
+    title: '交互设计',
+    input: '页面清单',
+    output: '字段、按钮、校验和状态',
+  },
+  {
+    key: 'apiContract',
+    resultKey: 'api',
+    step: '06',
+    title: 'API 契约',
+    input: '页面交互',
+    output: '接口路径、参数、响应和错误码',
+  },
+  {
+    key: 'frontendSuggestion',
+    resultKey: 'prototype',
+    step: '07',
+    title: '前端原型方案',
+    input: '页面、交互和 API 契约',
+    output: '页面、组件、测试数据、API 和 Prompt 建议',
+  },
+]
+
+const methodStepKeyMap = Object.fromEntries(methodStepDefinitions.map((item) => [item.key, item.resultKey]))
+const methodStepResultDefinitions = Object.fromEntries(methodStepDefinitions.map((item) => [item.resultKey, item]))
+
 
 const activePrototypeNavItems = computed(() => {
   const selectedModuleKey = projectContext.value.selectedFeatureModule?.key
@@ -205,32 +338,49 @@ const activePrototypeNavItems = computed(() => {
   return items
 })
 
-const methodCapabilities = computed(() => {
-  return capabilities.filter((item) => !prototypeNavItems.some((prototypeItem) => prototypeItem.key === item.key))
+const activeMethodStepKey = computed(() => {
+  return methodStepDefinitions.some((item) => item.key === activeWorkspace.value)
+    ? activeWorkspace.value
+    : 'requirementInput'
 })
 
-const selectMainTab = (key) => {
-  activeMainTab.value = key
+const methodWizardSteps = computed(() => {
+  const results = projectContext.value.stepResults || createEmptyStepResults()
 
-  if (key === 'prototypeSystem') {
-    activeWorkspace.value = 'projectOverview'
-    return
-  }
+  return methodStepDefinitions.map((item, index) => {
+    const isActive = item.key === activeMethodStepKey.value
+    const isDone = Boolean(results[item.resultKey])
+    const previousDone = index === 0 || Boolean(results[methodStepDefinitions[index - 1].resultKey])
 
-  if (key === 'method') {
-    activeWorkspace.value = 'factoryWorkbench'
-  }
-}
+    return {
+      ...item,
+      isActive,
+      isDone,
+      canOpen: isActive || isDone || previousDone,
+      statusLabel: isActive ? '当前' : isDone ? '已确认' : previousDone ? '可生成' : '未开始',
+      statusType: isActive ? 'running' : isDone ? 'done' : previousDone ? 'warning' : 'normal',
+    }
+  })
+})
 
-const selectWorkspace = (key) => {
-  activeWorkspace.value = key
+const activeStepResult = computed(() => {
+  const resultKey = methodStepKeyMap[activeMethodStepKey.value]
+  return resultKey ? projectContext.value.stepResults?.[resultKey] || null : null
+})
 
+const selectWorkspace = async (key) => {
+  const targetKey = key === 'factoryWorkbench' ? 'requirementInput' : key
+  await hydrateRequiredMethodInputs(targetKey, { preferSaved: true })
+  activeWorkspace.value = targetKey
+
+  const resultKey = methodStepKeyMap[targetKey]
   projectContext.value = {
     ...projectContext.value,
-    currentStepLabel: workspaceStepLabelMap[key] || '原型工厂操作台总览',
+    currentStepLabel: workspaceStepLabelMap[targetKey] || '原型工厂操作台总览',
+    currentMethodStep: resultKey || projectContext.value.currentMethodStep,
   }
 
-  if (prototypeNavItems.some((item) => item.key === key)) {
+  if (prototypeNavItems.some((item) => item.key === targetKey)) {
     activeMainTab.value = 'prototypeSystem'
     return
   }
@@ -238,32 +388,354 @@ const selectWorkspace = (key) => {
   activeMainTab.value = 'method'
 }
 
+const selectMethodStep = async (key) => {
+  const step = methodWizardSteps.value.find((item) => item.key === key)
+  if (!step?.canOpen) {
+    return
+  }
+
+  await selectWorkspace(key)
+}
+
+const writeStepResult = (stepKey, result, options = {}) => {
+  projectContext.value = {
+    ...projectContext.value,
+    stepResults: {
+      ...(projectContext.value.stepResults || createEmptyStepResults()),
+      [stepKey]: result,
+    },
+  }
+
+  if (options.persistMarkdown !== false) {
+    return saveStepResultToMarkdown(stepKey, result)
+  }
+
+  return Promise.resolve(null)
+}
+
+const saveStepResultToMarkdown = async (stepKey, result) => {
+  if (!stepKey || !result) {
+    return null
+  }
+
+  const definition = methodStepResultDefinitions[stepKey]
+  try {
+    const response = await fetch(`${API_BASE_URL}/method-files/${stepKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step_key: stepKey,
+        title: definition ? `${definition.step} ${definition.title}` : stepKey,
+        result,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`保存 Markdown 失败：${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.warn('Failed to save method step Markdown', error)
+    return null
+  }
+}
+
+const readStepResultFromMarkdown = async (stepKey) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/method-files/${stepKey}`)
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(`读取 Markdown 失败：${response.status}`)
+    }
+
+    const payload = await response.json()
+    return payload.result || null
+  } catch (error) {
+    console.warn('Failed to read method step Markdown', error)
+    return null
+  }
+}
+
+const hydrateRequiredMethodInputs = async (targetWorkspaceKey, options = {}) => {
+  const targetIndex = methodStepDefinitions.findIndex((item) => item.key === targetWorkspaceKey)
+
+  if (targetIndex <= 0) {
+    return
+  }
+
+  const existingResults = projectContext.value.stepResults || createEmptyStepResults()
+  for (const definition of methodStepDefinitions.slice(0, targetIndex)) {
+    if (existingResults[definition.resultKey] && !options.preferSaved) {
+      continue
+    }
+
+    const savedResult = await readStepResultFromMarkdown(definition.resultKey)
+    if (savedResult) {
+      applyStoredStepResult(definition.resultKey, savedResult)
+    }
+  }
+}
+
+const applyStoredStepResult = (stepKey, result) => {
+  writeStepResult(stepKey, result, { persistMarkdown: false })
+
+  const nextContext = {
+    ...projectContext.value,
+    contextStatus: '已从本地 Markdown 读取步骤结果',
+  }
+
+  if (stepKey === 'requirement') {
+    nextContext.sourceRequirement = result.sourceRequirement || nextContext.sourceRequirement
+    nextContext.manualRequirement = result.manualRequirement || nextContext.manualRequirement
+    nextContext.attachmentText = result.attachmentText || nextContext.attachmentText
+    nextContext.requirementAttachments = result.attachments || nextContext.requirementAttachments
+    nextContext.requirementAnalysis = result.analysis || result
+  }
+
+  if (stepKey === 'scenario') {
+    nextContext.selectedScenario = result.scenario || result
+  }
+
+  if (stepKey === 'feature') {
+    nextContext.selectedFeatureModule = result.module || result.selectedFeatureModule || result.allMappings?.[0]?.modules?.[0]
+    nextContext.allFeatureMappings = result.allMappings || nextContext.allFeatureMappings
+    nextContext.revisedModulesByScenarioKey = result.revisedModulesByScenarioKey || nextContext.revisedModulesByScenarioKey
+  }
+
+  if (stepKey === 'page') {
+    nextContext.selectedPageDesign = result.page || result.currentPage || result
+    nextContext.selectedPageSections = result.currentPageSections || result.page?.sections || result.currentPage?.sections || []
+    nextContext.selectedPageScenario = result.scenario || nextContext.selectedPageScenario
+    nextContext.allPageDesigns = result.scenarioDesigns || nextContext.allPageDesigns
+    nextContext.pageDesignResult = result
+  }
+
+  if (stepKey === 'interaction') {
+    nextContext.selectedInteractionPage = result.page || result
+  }
+
+  if (stepKey === 'api') {
+    nextContext.selectedApiContract = result.contract || result
+  }
+
+  if (stepKey === 'prototype') {
+    nextContext.selectedPrototypeSuggestion = result.suggestion || result
+  }
+
+  projectContext.value = nextContext
+}
+
+const applyStepResultToContext = (stepKey, result) => {
+  const nextContext = {
+    ...projectContext.value,
+    contextStatus: '已保存大模型修改结果',
+    stepResults: {
+      ...(projectContext.value.stepResults || createEmptyStepResults()),
+      [stepKey]: result,
+    },
+  }
+
+  if (stepKey === 'requirement') {
+    nextContext.sourceRequirement = result.sourceRequirement || nextContext.sourceRequirement
+    nextContext.manualRequirement = result.manualRequirement || nextContext.manualRequirement
+    nextContext.attachmentText = result.attachmentText || nextContext.attachmentText
+    nextContext.requirementAttachments = result.attachments || nextContext.requirementAttachments
+    nextContext.requirementAnalysis = result.analysis || result
+    nextContext.summary = '需求拆解结果已由大模型修改并保存到本地版本。'
+  }
+
+  if (stepKey === 'scenario') {
+    nextContext.selectedScenario = result.scenario || result
+    nextContext.summary = `场景识别结果已由大模型修改并保存：${nextContext.selectedScenario?.name || '未命名场景'}。`
+  }
+
+  if (stepKey === 'feature') {
+    nextContext.selectedFeatureModule = result.module || result.selectedFeatureModule || result.allMappings?.[0]?.modules?.[0]
+    nextContext.allFeatureMappings = result.allMappings || nextContext.allFeatureMappings
+    nextContext.revisedModulesByScenarioKey = result.revisedModulesByScenarioKey || nextContext.revisedModulesByScenarioKey
+    nextContext.summary = `功能设计结果已由大模型修改并保存：${nextContext.selectedFeatureModule?.name || '未命名模块'}。`
+  }
+
+  if (stepKey === 'page') {
+    nextContext.selectedPageDesign = result.page || result
+    nextContext.summary = `页面设计结果已由大模型修改并保存：${nextContext.selectedPageDesign?.name || '未命名页面'}。`
+  }
+
+  if (stepKey === 'interaction') {
+    nextContext.selectedInteractionPage = result.page || result
+    nextContext.summary = `交互设计结果已由大模型修改并保存：${nextContext.selectedInteractionPage?.name || '未命名页面'}。`
+  }
+
+  if (stepKey === 'api') {
+    nextContext.selectedApiContract = result.contract || result
+    nextContext.summary = `API 契约结果已由大模型修改并保存：${nextContext.selectedApiContract?.name || '未命名接口'}。`
+  }
+
+  if (stepKey === 'prototype') {
+    nextContext.selectedPrototypeSuggestion = result.suggestion || result
+    nextContext.summary = '前端原型方案已由大模型修改并保存到本地版本。'
+  }
+
+  projectContext.value = nextContext
+  saveStepResultToMarkdown(stepKey, result)
+}
+
+const handleStepRevisionApplied = ({ stepKey, revisedOutput, revisionInstruction }) => {
+  const result = {
+    ...revisedOutput,
+    llmRevision: {
+      instruction: revisionInstruction,
+      revisedAt: new Date().toISOString(),
+    },
+  }
+
+  applyStepResultToContext(stepKey, result)
+}
+
+const handleRuntimeUpdate = ({ executionMode, llmProvider, llmConfigured, llmModel, llmBaseUrl }) => {
+  const isLocalRule = executionMode === 'local'
+  const nextProvider = isLocalRule ? 'none' : llmProvider
+  projectContext.value = {
+    ...projectContext.value,
+    executionMode,
+    llmProvider: nextProvider,
+    llmConfigured: typeof llmConfigured === 'boolean' ? llmConfigured : projectContext.value.llmConfigured,
+    llmModel: llmModel || projectContext.value.llmModel,
+    llmBaseUrl: llmBaseUrl || projectContext.value.llmBaseUrl,
+    contextStatus: isLocalRule ? '本地规则生成' : nextProvider === 'deepseek' ? 'DeepSeek 服务已选择' : '大模型生成配置已选择',
+    summary: isLocalRule
+      ? '当前使用本地规则生成需求拆解草案，确认后进入下一步。'
+      : '当前已切换为大模型生成；DeepSeek 配置保存后，第 01 步会通过后端调用真实服务。',
+  }
+}
+
+const getWorkspaceForLastSavedStep = (stepResults) => {
+  const savedDefinitions = methodStepDefinitions.filter((item) => Boolean(stepResults[item.resultKey]))
+  if (!savedDefinitions.length) {
+    return 'requirementInput'
+  }
+
+  const lastDefinition = savedDefinitions[savedDefinitions.length - 1]
+  const lastIndex = methodStepDefinitions.findIndex((item) => item.resultKey === lastDefinition.resultKey)
+  return methodStepDefinitions[Math.min(lastIndex + 1, methodStepDefinitions.length - 1)]?.key || lastDefinition.key
+}
+
+const restoreMarkdownSession = async () => {
+  isRestoringLocalSession.value = true
+  projectContext.value = {
+    ...createDefaultProjectContext(),
+    contextStatus: '正在读取本地 Markdown 版本',
+  }
+
+  const loadedResults = createEmptyStepResults()
+  for (const definition of methodStepDefinitions) {
+    const result = await readStepResultFromMarkdown(definition.resultKey)
+    if (result) {
+      loadedResults[definition.resultKey] = result
+      applyStoredStepResult(definition.resultKey, result)
+    }
+  }
+
+  activeWorkspace.value = getWorkspaceForLastSavedStep(loadedResults)
+  activeMainTab.value = 'method'
+  projectContext.value = {
+    ...projectContext.value,
+    contextStatus: '已接续本地 Markdown 版本',
+    summary: '已从项目本地 Markdown 文件读取此前保存的步骤结果。',
+  }
+  isRestoringLocalSession.value = false
+  await refreshSavedSessionSummary()
+}
+
+const restoreLocalSession = async () => {
+  const markdownSummary = await readMarkdownSessionSummary()
+  if (markdownSummary) {
+    await restoreMarkdownSession()
+    return
+  }
+
+  const snapshot = readLocalSessionSnapshot()
+  const summary = buildSavedSessionSummary(snapshot)
+
+  if (!summary) {
+    await refreshSavedSessionSummary()
+    return
+  }
+
+  isRestoringLocalSession.value = true
+  projectContext.value = {
+    ...createDefaultProjectContext(),
+    ...summary.projectContext,
+    stepResults: {
+      ...createEmptyStepResults(),
+      ...(summary.projectContext.stepResults || {}),
+    },
+    contextStatus: '已恢复浏览器本地版本',
+  }
+  activeWorkspace.value = summary.activeWorkspace
+  activeMainTab.value = summary.activeMainTab
+  isRestoringLocalSession.value = false
+}
+
+const resetMethodWorkflow = () => {
+  hydrateProjectContext()
+  selectWorkspace('requirementInput')
+}
+
+const startNewMethodWorkflow = () => {
+  localStorage.removeItem(LOCAL_SESSION_KEY)
+  savedSessionSummary.value = null
+  hydrateProjectContext()
+  selectWorkspace('requirementInput')
+}
+
 const hydrateProjectContext = () => {
   projectContext.value = {
-    projectName: '海工生产运营示范项目',
+    ...createDefaultProjectContext(),
     customerName: '华东海工制造客户',
     projectStage: '客户需求调研阶段',
-    currentStepLabel: '原型工厂操作台总览',
-    contextStatus: '已建立演示上下文',
     summary: '客户希望通过前台原型先验证项目进度、现场调度、物料到货和异常闭环，再逐步接入 FastAPI 与 DeepSeek。',
     sourceRequirement: '',
     requirementAnalysis: null,
   }
 }
 
-const handleRequirementAnalysisComplete = ({ sourceRequirement, analysis }) => {
+
+const handleProjectContextUpdate = (nextContext) => {
   projectContext.value = {
     ...projectContext.value,
-    projectStage: '需求拆解已完成',
-    currentStepLabel: '客户需求输入',
-    contextStatus: '已写入需求拆解结果',
-    sourceRequirement,
-    requirementAnalysis: analysis,
-    summary: '需求拆解结果已进入统一项目上下文，下一步可以继续传给场景识别。',
+    projectName: nextContext.projectName,
+    customerName: nextContext.customerName,
+    projectStage: nextContext.projectStage,
   }
 }
 
-const handleScenarioConfirm = ({ scenario }) => {
+const handleRequirementAnalysisComplete = async ({ sourceRequirement, manualRequirement = '', attachmentText = '', attachments = [], analysis }) => {
+  const savePromise = writeStepResult('requirement', { sourceRequirement, manualRequirement, attachmentText, attachments, analysis })
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '需求拆解已确认',
+    currentStepLabel: '客户需求输入',
+    contextStatus: '已写入需求拆解结果',
+    sourceRequirement,
+    manualRequirement,
+    attachmentText,
+    requirementAttachments: attachments,
+    requirementAnalysis: analysis,
+    summary: '需求拆解结果已确认并进入统一项目上下文，下一步可以继续传给场景识别。',
+  }
+
+  await savePromise
+  await selectWorkspace('scenarioIdentification')
+}
+
+const handleScenarioConfirm = async ({ scenario }) => {
+  const savePromise = writeStepResult('scenario', scenario)
   projectContext.value = {
     ...projectContext.value,
     projectStage: '场景识别已确认',
@@ -273,36 +745,74 @@ const handleScenarioConfirm = ({ scenario }) => {
     summary: `已确认场景：${scenario.name}，下一步进入功能设计。`,
   }
 
-  selectWorkspace('featureDesign')
+  await savePromise
+  await selectWorkspace('featureDesign')
 }
 
-const handleFeatureConfirm = ({ module }) => {
+const handleFeatureConfirm = async (result) => {
+  const savePromise = writeStepResult('feature', result)
   projectContext.value = {
     ...projectContext.value,
     projectStage: '功能设计已确认',
     currentStepLabel: '功能设计',
     contextStatus: '已写入功能模块结果',
-    selectedFeatureModule: module,
-    summary: `已确认功能模块：${module.name}，下一步进入页面设计。`,
+    selectedFeatureModule: result.module,
+    allFeatureMappings: result.allMappings,
+    revisedModulesByScenarioKey: result.revisedModulesByScenarioKey,
+    summary: `已确认功能模块：${result.module.name}，同步保存全部场景映射结果，下一步进入页面设计。`,
   }
 
-  selectWorkspace('pageDesign')
+  await savePromise
+  await selectWorkspace('pageDesign')
 }
 
-const handlePageDesignConfirm = ({ page }) => {
+const handleFeatureDraftUpdate = (result) => {
+  writeStepResult('feature', result)
+  projectContext.value = {
+    ...projectContext.value,
+    contextStatus: '已保存功能模块修改草稿',
+    selectedFeatureModule: result.module,
+    allFeatureMappings: result.allMappings,
+    revisedModulesByScenarioKey: result.revisedModulesByScenarioKey,
+    summary: `已保存当前场景的功能模块修改：${result.module?.name || '未命名模块'}。`,
+  }
+}
+
+const applyPageDesignResult = (result, statusText = '已保存页面设计草稿') => {
+  const savePromise = writeStepResult('page', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: '页面设计',
+    contextStatus: statusText,
+    selectedPageDesign: result.page,
+    selectedPageSections: result.currentPageSections || result.page?.sections || [],
+    selectedPageScenario: result.scenario,
+    allPageDesigns: result.scenarioDesigns,
+    pageDesignResult: result,
+    summary: `页面设计成果已保存，包含 ${Object.keys(result.scenarioDesigns || {}).length} 个场景的页面清单、导航结构、文件建议和页面区域。`,
+  }
+
+  return savePromise
+}
+
+const handlePageDesignDraftUpdate = (result) => {
+  applyPageDesignResult(result)
+}
+
+const handlePageDesignConfirm = async (result) => {
+  const savePromise = applyPageDesignResult(result, '已写入页面设计结果')
   projectContext.value = {
     ...projectContext.value,
     projectStage: '页面设计已确认',
-    currentStepLabel: '页面设计',
-    contextStatus: '已写入页面设计结果',
-    selectedPageDesign: page,
-    summary: `已确认页面：${page.name}，下一步进入交互设计。`,
+    summary: `已确认页面：${result.page?.name || '未命名页面'}，下一步进入交互设计。`,
   }
 
-  selectWorkspace('pageInteraction')
+  await savePromise
+  await selectWorkspace('pageInteraction')
 }
 
-const handleInteractionConfirm = ({ page }) => {
+const handleInteractionConfirm = async ({ page }) => {
+  const savePromise = writeStepResult('interaction', page)
   projectContext.value = {
     ...projectContext.value,
     projectStage: '交互设计已确认',
@@ -312,10 +822,12 @@ const handleInteractionConfirm = ({ page }) => {
     summary: `已确认交互页面：${page.name}，下一步进入 API 契约设计。`,
   }
 
-  selectWorkspace('apiContract')
+  await savePromise
+  await selectWorkspace('apiContract')
 }
 
-const handleApiContractConfirm = ({ contract }) => {
+const handleApiContractConfirm = async ({ contract }) => {
+  const savePromise = writeStepResult('api', contract)
   projectContext.value = {
     ...projectContext.value,
     projectStage: 'API 契约已确认',
@@ -325,35 +837,26 @@ const handleApiContractConfirm = ({ contract }) => {
     summary: `已确认接口：${contract.name}，下一步进入前端原型建议。`,
   }
 
-  selectWorkspace('frontendSuggestion')
+  await savePromise
+  await selectWorkspace('frontendSuggestion')
 }
 
-const handleSuggestionConfirm = () => {
+const handleSuggestionConfirm = async ({ suggestion } = {}) => {
+  const savePromise = writeStepResult('prototype', suggestion || { confirmed: true })
   projectContext.value = {
     ...projectContext.value,
-    projectStage: '原型建议已确认',
+    projectStage: '前端原型方案已确认',
     currentStepLabel: '前端原型建议',
-    contextStatus: '已写入前端原型建议结果',
-    summary: '已完成前端原型建议，下一步进入原型流程总览核对全链路。',
+    contextStatus: 'FDE 自助式方法链路已闭环',
+    summary: '已完成需求输入、场景识别、功能设计、页面设计、交互设计、API 契约和前端原型方案输出。',
+    selectedPrototypeSuggestion: suggestion || { confirmed: true },
   }
 
-  selectWorkspace('prototypeWorkflow')
-}
-
-const handleWorkflowFinish = () => {
-  projectContext.value = {
-    ...projectContext.value,
-    projectStage: '原型流程核对已完成',
-    currentStepLabel: '原型生成流程总览',
-    contextStatus: '本轮方法工作台链路已闭环',
-    summary: '已完成需求输入到原型流程核对的全链路，可回操作台发起下一轮。',
-  }
-
-  selectWorkspace('factoryWorkbench')
+  await savePromise
 }
 
 const workspaceStepLabelMap = {
-  factoryWorkbench: '原型工厂操作台总览',
+  factoryWorkbench: '客户需求输入',
   requirementInput: '客户需求输入',
   scenarioIdentification: '场景识别',
   featureDesign: '功能设计',
@@ -370,117 +873,6 @@ const workspaceStepLabelMap = {
   materialTracking: '业务原型系统',
 }
 
-const capabilities = [
-  {
-    key: 'requirementInput',
-    stage: 'P0',
-    title: '需求输入工作台',
-    description: '输入客户原始需求，模拟生成结构化需求拆解结果。',
-    action: '进入工作区',
-  },
-  {
-    key: 'scenarioIdentification',
-    stage: 'P1',
-    title: '场景识别工作台',
-    description: '基于需求拆解结果，模拟识别用户角色、业务场景和任务流程。',
-    action: '识别场景',
-  },
-  {
-    key: 'featureDesign',
-    stage: 'P1',
-    title: '功能模块设计',
-    description: '从业务场景反推功能模块、功能点、优先级和页面/API 映射。',
-    action: '设计功能',
-  },
-  {
-    key: 'pageDesign',
-    stage: 'P2',
-    title: '页面清单设计',
-    description: '把功能模块转成页面清单、导航结构、页面区域和 Vue 文件建议。',
-    action: '设计页面',
-  },
-  {
-    key: 'pageInteraction',
-    stage: 'P2',
-    title: '页面交互设计',
-    description: '细化页面字段、按钮动作、校验规则和 loading/成功/失败状态。',
-    action: '设计交互',
-  },
-  {
-    key: 'apiContract',
-    stage: 'P2',
-    title: 'API 契约设计',
-    description: '明确接口路径、请求参数、响应结构、错误码和前端触发来源。',
-    action: '设计接口',
-  },
-  {
-    key: 'frontendSuggestion',
-    stage: 'P2',
-    title: '前端原型建议',
-    description: '汇总页面、组件、mock 数据、生成顺序和 Codex/Copilot Prompt。',
-    action: '查看建议',
-  },
-  {
-    key: 'projectOverview',
-    stage: 'P0',
-    title: '项目总览原型',
-    description: '使用 mock 数据和通用组件，展示项目进度、关键节点和异常摘要。',
-    action: '查看原型',
-  },
-  {
-    key: 'scheduleTracking',
-    stage: 'P0',
-    title: '计划任务原型',
-    description: '使用 mock 数据和通用组件，展示任务筛选、任务列表和调整建议。',
-    action: '查看原型',
-  },
-  {
-    key: 'issueTracking',
-    stage: 'P0',
-    title: '异常闭环原型',
-    description: '使用 mock 数据和通用组件，模拟异常登记、状态摘要和问题列表。',
-    action: '查看原型',
-  },
-  {
-    key: 'onsiteDispatch',
-    stage: 'P0',
-    title: '现场调度原型',
-    description: '展示多作业面状态、关键资源占用、物料预警和现场调度建议。',
-    action: '查看原型',
-  },
-  {
-    key: 'materialTracking',
-    stage: 'P0',
-    title: '物料到货跟踪原型',
-    description: '跟踪关键物料到货状态、延期风险和物资协调动作。',
-    action: '查看原型',
-  },
-  {
-    key: 'prototypeWorkflow',
-    stage: 'P2',
-    title: '原型生成流程',
-    description: '查看需求拆解、场景识别、功能设计、页面设计和 API 契约步骤。',
-    action: '查看流程',
-  },
-  {
-    key: 'requirementSummary',
-    stage: 'P2',
-    title: '客户需求分析',
-    description: '输入需求文件路径，模拟生成结构化需求分析报告。',
-    action: '查看页面',
-  },
-]
-
-const processSteps = [
-  '客户需求输入',
-  '需求与场景拆解',
-  '功能模块设计',
-  '页面与交互设计',
-  'API 契约设计',
-  'Vue3 页面生成',
-  'FastAPI 联调验收',
-]
-
 const progressItems = [
   { name: '2-1 到 2-7：原型设计方法资产', status: '完成', statusClass: 'done' },
   { name: '2-8：Vue3 项目初始化', status: '完成', statusClass: 'done' },
@@ -489,15 +881,15 @@ const progressItems = [
   { name: '2-11：Vue3 组件拆分', status: '完成', statusClass: 'done' },
   { name: '2-12：原型生成流程设计', status: '完成', statusClass: 'done' },
   { name: '2-13：需求输入工作台', status: '完成', statusClass: 'done' },
-  { name: '2-14：需求拆解模拟结果', status: '完成', statusClass: 'done' },
+  { name: '2-14：需求拆解结果生成', status: '完成', statusClass: 'done' },
   { name: '2-15：工作台页面切换与状态修正', status: '完成', statusClass: 'done' },
-  { name: '2-16：场景识别模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-17：功能模块设计模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-18：页面清单设计模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-19：页面字段与交互设计模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-20：API 契约设计模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-21：前端原型建议模拟工作台', status: '完成', statusClass: 'done' },
-  { name: '2-22：原型 Mock 数据与通用组件准备', status: '完成', statusClass: 'done' },
+  { name: '2-16：场景识别工作台', status: '完成', statusClass: 'done' },
+  { name: '2-17：功能模块设计工作台', status: '完成', statusClass: 'done' },
+  { name: '2-18：页面清单设计工作台', status: '完成', statusClass: 'done' },
+  { name: '2-19：页面字段与交互设计工作台', status: '完成', statusClass: 'done' },
+  { name: '2-20：API 契约设计工作台', status: '完成', statusClass: 'done' },
+  { name: '2-21：前端原型建议工作台', status: '完成', statusClass: 'done' },
+  { name: '2-22：原型测试数据与通用组件准备', status: '完成', statusClass: 'done' },
   { name: '2-23：项目总览原型页', status: '完成', statusClass: 'done' },
   { name: '2-24：计划任务跟踪原型页', status: '完成', statusClass: 'done' },
   { name: '2-25：异常问题闭环原型页', status: '完成', statusClass: 'done' },
@@ -512,6 +904,10 @@ const progressItems = [
   { name: '2-34：步骤连续 Next 导航与上下文贯通', status: '完成', statusClass: 'done' },
   { name: '2-35：方法链路闭环到原型流程总览', status: '完成', statusClass: 'done' },
   { name: '2-36：业务原型系统动态集成', status: '完成', statusClass: 'done' },
-  { name: '2-37：功能模块设计动态集成', status: '当前', statusClass: 'active' },
+  { name: '2-37：功能模块设计动态集成', status: '完成', statusClass: 'done' },
+  { name: '2-38：API 契约动态路径推荐', status: '完成', statusClass: 'done' },
+  { name: '2-39：FDE 自助式单页向导方法', status: '完成', statusClass: 'done' },
+  { name: '2-40：需求输入正式化与问题回复流转', status: '完成', statusClass: 'done' },
+  { name: '2-42：本地版本保存与接续', status: '当前', statusClass: 'active' },
 ]
 </script>

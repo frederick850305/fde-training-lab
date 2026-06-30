@@ -39,14 +39,6 @@ select {
   font-weight: 800;
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
-  gap: 24px;
-  align-items: stretch;
-  padding: 28px 0 24px;
-}
-
 .eyebrow {
   margin: 0 0 10px;
   color: #2563eb;
@@ -80,14 +72,6 @@ h3 {
   font-size: 18px;
 }
 
-.subtitle {
-  max-width: 820px;
-  margin-bottom: 0;
-  color: #475569;
-  font-size: 18px;
-  line-height: 1.7;
-}
-
 button {
   cursor: pointer;
 }
@@ -111,18 +95,6 @@ button {
   color: #1e293b;
 }
 
-.service-panel,
-.section-block {
-  border: 1px solid #dbe3ef;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
-}
-
-.service-panel {
-  padding: 24px;
-}
-
 .panel-label,
 .status-label {
   display: block;
@@ -132,47 +104,12 @@ button {
   font-weight: 700;
 }
 
-.service-panel strong {
-  display: block;
-  margin-bottom: 12px;
-  color: #0f172a;
-  font-size: 22px;
-}
-
-.service-panel p {
-  margin-bottom: 18px;
-  color: #526174;
-  line-height: 1.7;
-}
-
-.service-panel dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.service-panel dl div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  border-radius: 8px;
-  padding: 12px;
-  background: #f8fafc;
-}
-
-.service-panel dt {
-  color: #64748b;
-  font-weight: 700;
-}
-
-.service-panel dd {
-  margin: 0;
-  color: #0f172a;
-  font-weight: 700;
-}
-
 .section-block {
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
   padding: 26px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
 }
 
 .section-heading {
@@ -190,44 +127,6 @@ button {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
-}
-
-.main-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 12px 0 16px;
-}
-
-.main-tabs button {
-  display: grid;
-  gap: 6px;
-  border: 1px solid #dbe3ef;
-  border-radius: 8px;
-  padding: 16px 18px;
-  background: #ffffff;
-  color: #1e293b;
-  text-align: left;
-  font-size: 18px;
-  font-weight: 900;
-  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
-}
-
-.main-tabs button span {
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.main-tabs button.active {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  color: #ffffff;
-}
-
-.main-tabs button.active span {
-  color: #dbeafe;
 }
 
 .progress-panel {
@@ -349,8 +248,6 @@ button {
     font-size: 32px;
   }
 
-  .hero,
-  .main-tabs,
   .capability-grid,
   .two-column {
     grid-template-columns: 1fr;

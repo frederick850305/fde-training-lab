@@ -10,8 +10,8 @@ cd "$PROJECT_ROOT"
 
 echo "📌 项目路径: $PROJECT_ROOT"
 echo "🚀 启动 FastAPI 服务..."
-echo "📍 访问地址: http://localhost:8001/docs"
+echo "📍 访问地址: http://127.0.0.1:8001/docs"
 echo "⚠️  按 Ctrl+C 停止服务"
 echo ""
 
-python -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8001
+${PYTHON_BIN:-python3} -m uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8001

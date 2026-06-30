@@ -2,125 +2,92 @@
   <section class="feature-design-view" aria-labelledby="feature-design-title">
     <ViewHeading
       eyebrow="Feature Design"
-      title="功能模块设计模拟工作台"
+      title="功能模块设计工作台"
       title-id="feature-design-title"
-      description="基于场景识别结果，整理功能模块、功能点、优先级、页面建议和 API 方向。当前仍为前端模拟数据。"
+      description="基于场景识别结果，整理功能模块、功能点、优先级、页面建议和 API 方向。"
     />
-
-    <StepHandoffCard
-      v-if="projectContext.selectedScenario"
-      eyebrow="来源场景确认"
-      :title="projectContext.selectedScenario.name"
-      :summary="projectContext.selectedScenario.description"
-      :items="scenarioItems"
-    />
-
-    <StepHandoffCard
-      v-if="hasRequirementContext"
-      eyebrow="上一步结果"
-      title="来自需求输入阶段的拆解摘要"
-      :summary="requirementContextSummary"
-      :items="requirementItems"
-    />
-
-    <StepHandoffCard
-      v-if="hasRequirementContext"
-      eyebrow="需求分析详情"
-      title="客户输入的结构化拆解结果"
-      :summary="requirementAnalysisSummary"
-      :items="requirementAnalysisItems"
-    />
-
-    <div class="feature-toolbar" aria-label="功能优先级筛选">
-      <button
-        v-for="filter in featureData.filters"
-        :key="filter"
-        type="button"
-        :class="{ active: filter === activeFilter }"
-        @click="setFilter(filter)"
-      >
-        {{ filter }}
-      </button>
-    </div>
 
     <div class="feature-layout">
-      <article class="feature-panel">
-        <div class="panel-heading">
-          <span>功能模块</span>
-          <strong>共 {{ filteredModules.length }} 个模块</strong>
+      <article class="scenario-panel">
+        <div class="panel-heading horizontal-heading">
+          <div>
+            <span>业务场景</span>
+            <strong>共 {{ availableScenarios.length }} 个场景</strong>
+          </div>
         </div>
 
-        <div class="module-list">
+        <div class="scenario-list">
           <button
-            v-for="item in filteredModules"
+            v-for="item in availableScenarios"
             :key="item.key"
             type="button"
-            class="module-button"
-            :class="{ active: item.key === selectedModule.key }"
-            @click="selectedKey = item.key"
+            class="scenario-nav-button"
+            :class="{ active: item.key === activeScenarioKey }"
+            @click="activeScenarioKey = item.key"
           >
-            <span class="priority-tag">{{ item.priority }}</span>
-            <strong>{{ item.name }}</strong>
+            <div class="scenario-nav-head">
+              <span class="priority-tag">{{ item.priority }}</span>
+              <strong>{{ item.name }}</strong>
+            </div>
             <small>{{ item.description }}</small>
           </button>
         </div>
       </article>
 
+      <article v-if="activeScenario" class="current-scenario-panel compact">
+        <div class="scenario-facts">
+          <div v-for="item in activeScenarioHandoffItems" :key="item.label" class="scenario-fact">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+      </article>
+
       <article class="feature-detail">
-        <span class="detail-label">当前模块</span>
-        <h3>{{ selectedModule.name }}</h3>
-        <p>{{ selectedModule.description }}</p>
-
-        <dl class="module-meta">
+        <div class="detail-heading horizontal-heading">
           <div>
-            <dt>来源场景</dt>
-            <dd>{{ selectedModule.sourceScenario }}</dd>
+            <span>功能模块映射</span>
+            <strong>基于该场景推荐的功能模块</strong>
           </div>
-          <div>
-            <dt>建议页面</dt>
-            <dd>{{ selectedModule.pageSuggestion }}</dd>
-          </div>
-          <div>
-            <dt>API 方向</dt>
-            <dd>{{ selectedModule.apiSuggestion }}</dd>
-          </div>
-        </dl>
+        </div>
 
-        <section class="feature-points" aria-label="功能点">
-          <h4>功能点</h4>
-          <ul>
-            <li v-for="item in selectedModule.features" :key="item">{{ item }}</li>
-          </ul>
-        </section>
-
-        <section class="scope-note" aria-label="范围控制说明">
-          <h4>范围控制</h4>
-          <p>{{ selectedModule.scopeNote }}</p>
-        </section>
+        <div class="mapped-modules-grid">
+          <div v-for="module in activeScenarioModules" :key="module.key" class="module-card">
+            <div class="module-card-head">
+              <span class="priority-tag">{{ module.priority }}</span>
+              <strong>{{ module.name }}</strong>
+            </div>
+            <p>{{ module.description }}</p>
+            <div class="module-features">
+              <h6>功能点预览</h6>
+              <ul>
+                <li v-for="feature in module.features" :key="feature">{{ feature }}</li>
+              </ul>
+            </div>
+            <div class="module-meta">
+              <span>建议页面：{{ module.pageSuggestion }}</span>
+              <span>API 方向：{{ module.apiSuggestion }}</span>
+            </div>
+          </div>
+          <div v-if="!activeScenarioModules.length" class="empty-placeholder">
+            未发现与该场景直接关联的功能模块，建议优先检查场景名称与角色的匹配度。
+          </div>
+        </div>
       </article>
     </div>
 
-    <section class="scope-summary" aria-labelledby="scope-summary-title">
-      <div>
-        <span>P0</span>
-        <strong>一期必须做</strong>
-        <p>支撑项目总览、计划跟踪和异常闭环，保证原型有完整业务闭环。</p>
-      </div>
-      <div>
-        <span>P1</span>
-        <strong>可以增强</strong>
-        <p>物料、资源等能力可以增强演示效果，但不影响核心闭环验证。</p>
-      </div>
-      <div>
-        <span>P2</span>
-        <strong>暂不进入一期</strong>
-        <p>AI 辅助建议等能力等后续接入 DeepSeek 后再深化。</p>
-      </div>
-    </section>
+    <LlmStepRevisionPanel
+      v-if="activeScenario"
+      class="feature-revision-panel"
+      :step="featureScenarioRevisionStep"
+      :step-output="activeScenarioFeatureOutput"
+      :project-context="projectContext"
+      @revision-applied="handleFeatureRevisionApplied"
+    />
 
     <div class="next-action">
       <button class="primary-button" type="button" @click="confirmAndNext">
-        下一步：进入页面设计
+        确认并进入下一步
       </button>
     </div>
   </section>
@@ -128,9 +95,9 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { featureDesignMock } from '../data/featureDesignMock'
+import LlmStepRevisionPanel from '../components/LlmStepRevisionPanel.vue'
 import ViewHeading from '../components/ViewHeading.vue'
-import StepHandoffCard from '../components/StepHandoffCard.vue'
+import { featureDesignMock } from '../data/featureDesignMock'
 
 const props = defineProps({
   projectContext: {
@@ -139,10 +106,75 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['feature-confirm'])
+const emit = defineEmits(['feature-confirm', 'feature-draft-update'])
 
 const featureData = featureDesignMock
-const activeFilter = ref('全部')
+const activeScenarioKey = ref('')
+const revisedModulesByScenarioKey = ref({})
+
+const featureScenarioRevisionStep = {
+  key: 'featureDesignScenarioModules',
+  resultKey: 'feature',
+  title: '基于当前场景推荐功能模块',
+}
+
+const availableScenarios = computed(() => {
+  const selectedScenario = props.projectContext.selectedScenario
+
+  if (selectedScenario?.availableScenarios?.length) {
+    return selectedScenario.availableScenarios
+  }
+
+  return selectedScenario ? [selectedScenario] : []
+})
+
+watch(
+  availableScenarios,
+  (scenarios) => {
+    if (!scenarios.length) {
+      activeScenarioKey.value = ''
+      return
+    }
+
+    if (!scenarios.some((scenario) => scenario.key === activeScenarioKey.value)) {
+      activeScenarioKey.value = scenarios[0].key
+    }
+  },
+  { immediate: true },
+)
+
+const activeScenario = computed(() => {
+  return availableScenarios.value.find((scenario) => scenario.key === activeScenarioKey.value) || null
+})
+
+function hydrateRevisedModulesFromSavedFeature(savedFeature) {
+  if (!savedFeature) {
+    return
+  }
+
+  if (savedFeature.revisedModulesByScenarioKey && typeof savedFeature.revisedModulesByScenarioKey === 'object') {
+    revisedModulesByScenarioKey.value = { ...savedFeature.revisedModulesByScenarioKey }
+    return
+  }
+
+  if (Array.isArray(savedFeature.allMappings)) {
+    revisedModulesByScenarioKey.value = savedFeature.allMappings.reduce((result, mapping) => {
+      const scenarioKey = mapping?.scenario?.key
+      if (scenarioKey && Array.isArray(mapping.modules)) {
+        result[scenarioKey] = mapping.modules
+      }
+      return result
+    }, {})
+  }
+}
+
+watch(
+  () => props.projectContext.stepResults?.feature,
+  (savedFeature) => {
+    hydrateRevisedModulesFromSavedFeature(savedFeature)
+  },
+  { immediate: true, deep: true },
+)
 
 const requirementText = computed(() => {
   const analysis = props.projectContext.requirementAnalysis || {}
@@ -166,30 +198,18 @@ function detectDomainLabel(text) {
   const source = text.toLowerCase()
 
   if (source.includes('车辆') || source.includes('车队') || source.includes('司机')) {
-    return {
-      item: '车辆',
-      process: '车辆运营',
-    }
+    return { item: '车辆' }
   }
 
   if (source.includes('物料') || source.includes('库存') || source.includes('仓储')) {
-    return {
-      item: '物料',
-      process: '物料流转',
-    }
+    return { item: '物料' }
   }
 
   if (source.includes('计划') || source.includes('工序') || source.includes('任务') || source.includes('进度')) {
-    return {
-      item: '项目',
-      process: '计划执行',
-    }
+    return { item: '项目' }
   }
 
-  return {
-    item: '业务',
-    process: '业务协同',
-  }
+  return { item: '业务' }
 }
 
 const dynamicModules = computed(() => {
@@ -240,6 +260,7 @@ const dynamicModules = computed(() => {
 
     if (item.key === 'siteResourceBoard') {
       const resourceName = domain.item === '车辆' ? '车辆和司机' : '人员和设备'
+
       return {
         ...item,
         name: `${domain.item}现场资源看板`,
@@ -271,215 +292,172 @@ const dynamicModules = computed(() => {
   })
 })
 
-const selectedKey = ref(dynamicModules.value[0].key)
-
-watch(dynamicModules, (modules) => {
-  if (!modules.some((m) => m.key === selectedKey.value)) {
-    selectedKey.value = modules[0]?.key
-  }
-}, { immediate: true })
-
-const allowedScenarioNames = computed(() => {
-  const roles = props.projectContext.requirementAnalysis?.userRoles || []
-  return roles.map((item) => item.name)
-})
-
-const filteredByScenario = computed(() => {
-  if (!props.projectContext.selectedScenario) {
-    return dynamicModules.value
-  }
-
-  const scenarioName = (props.projectContext.selectedScenario.name || '').toLowerCase()
-  const scenarioRole = (props.projectContext.selectedScenario.pageMapping?.role || '').toLowerCase()
-
-  return dynamicModules.value.filter((item) => {
-    const itemScenario = (item.sourceScenario || '').toLowerCase()
-    return (
-      itemScenario === scenarioName ||
-      itemScenario.includes(scenarioRole) ||
-      scenarioName.includes(itemScenario) ||
-      allowedScenarioNames.value.some((role) => itemScenario.includes(role.toLowerCase()))
-    )
-  })
-})
-
-const filteredModules = computed(() => {
-  const source = filteredByScenario.value
-
-  if (activeFilter.value === '全部') {
-    return source
-  }
-
-  return source.filter((item) => item.priority === activeFilter.value)
-})
-
-const selectedModule = computed(() => {
-  return (
-    filteredModules.value.find((item) => item.key === selectedKey.value) ||
-    filteredModules.value[0] ||
-    dynamicModules.value[0]
-  )
-})
-
-const hasRequirementContext = computed(() => {
-  return Boolean(props.projectContext?.requirementAnalysis)
-})
-
-const requirementContextSummary = computed(() => {
-  if (!hasRequirementContext.value) {
-    return ''
-  }
-
-  const analysis = props.projectContext.requirementAnalysis
-  const background = analysis.businessBackground || '暂无背景摘要'
-  return `基于当前输入，项目背景可归纳为：${background}。功能设计会继续承接痛点、目标、角色和待确认问题。`
-})
-
-const requirementAnalysisSummary = computed(() => {
-  if (!hasRequirementContext.value) {
-    return '暂无需求分析结果'
-  }
-
-  const analysis = props.projectContext.requirementAnalysis
-  const background = analysis.businessBackground || '暂无背景摘要'
-  const painPoints = (analysis.painPoints || []).map((item) => item.description || item).filter(Boolean)
-  const goals = (analysis.businessGoals || analysis.goals || []).map((item) => item.description || item).filter(Boolean)
-  const roles = (analysis.userRoles || []).map((item) => `${item.name}：${item.responsibility}`).filter(Boolean)
-  const questions = (analysis.questions || []).filter(Boolean)
-
-  const summaryParts = [
-    `业务背景：${background}`,
-    `客户痛点：${painPoints.length ? painPoints.join('；') : '暂无客户痛点信息'}`,
-    `业务目标：${goals.length ? goals.join('；') : '暂无业务目标信息'}`,
-    `用户角色：${roles.length ? roles.join('；') : '暂无用户角色信息'}`,
-    `待确认问题：${questions.length ? questions.join('；') : '暂无待确认问题'}`,
+function scenarioSearchText(scenario) {
+  return [
+    scenario.name,
+    scenario.description,
+    scenario.pageMapping?.role,
+    scenario.pageMapping?.page,
+    ...(scenario.workflow || []),
+    ...(scenario.pageMapping?.modules || []),
   ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
 
-  return `需求分析已从客户原始输入中提炼出完整结构，供后续功能设计持续承接。\n${summaryParts.join('\n')}`
-})
+const scenarioModuleRules = [
+  { keys: ['任务接收', '接收', '司机', '车队', '状态回传'], moduleKeys: ['scheduleTracking', 'issueTracking'] },
+  { keys: ['调度', '现场', '资源', '派单', '作业面'], moduleKeys: ['siteResourceBoard', 'scheduleTracking', 'issueTracking'] },
+  { keys: ['异常', '问题', '告警', '风险', '反馈'], moduleKeys: ['issueTracking'] },
+  { keys: ['物料', '到货', '库存', '仓储', '缺料'], moduleKeys: ['materialArrival', 'issueTracking'] },
+  { keys: ['总览', '查看业务状态', '管理', '负责人', '门岗'], moduleKeys: ['projectOverview', 'scheduleTracking'] },
+]
 
-const painPointsPreview = computed(() => {
-  if (!hasRequirementContext.value) {
-    return '暂无客户痛点信息'
+function createScenarioModule(scenario) {
+  const pageModules = scenario.pageMapping?.modules || []
+  const workflow = scenario.workflow || []
+  const role = scenario.pageMapping?.role || '业务角色'
+
+  return {
+    key: `${scenario.key}-scenario-module`,
+    priority: scenario.priority || 'P1',
+    name: `${scenario.name}工作台`,
+    sourceScenario: scenario.name,
+    description: `围绕「${scenario.name}」生成的场景专属功能模块，支撑${role}完成当前任务流程。`,
+    features: [
+      ...pageModules.map((item) => `提供${item}`),
+      ...workflow.slice(0, 3).map((item) => `支持${item}`),
+    ].slice(0, 5),
+    pageSuggestion: scenario.pageMapping?.page || 'ScenarioWorkspaceView.vue',
+    apiSuggestion: `GET /api/scenarios/${scenario.key}`,
+    scopeNote: '由当前业务场景动态生成，用于承接左侧选中场景。',
+  }
+}
+
+function getMatchedModuleKeys(scenario) {
+  const scenarioText = scenarioSearchText(scenario)
+  const keys = new Set()
+
+  if (scenario.priority === 'P0') {
+    keys.add('projectOverview')
   }
 
-  const painPoints = props.projectContext.requirementAnalysis.painPoints || []
-  if (!painPoints.length) {
-    return '暂无客户痛点信息'
-  }
+  scenarioModuleRules.forEach((rule) => {
+    if (rule.keys.some((keyword) => scenarioText.includes(keyword))) {
+      rule.moduleKeys.forEach((moduleKey) => keys.add(moduleKey))
+    }
+  })
 
-  return painPoints.map((item) => item.description || '').filter(Boolean).join('；')
-})
+  return keys
+}
 
-const goalsPreview = computed(() => {
-  if (!hasRequirementContext.value) {
-    return '暂无业务目标信息'
-  }
-
-  const goals = props.projectContext.requirementAnalysis.goals || []
-  if (!goals.length) {
-    return '暂无业务目标信息'
-  }
-
-  return goals.map((item) => item.description || '').filter(Boolean).join('；')
-})
-
-const scenarioItems = computed(() => [
-  {
-    label: '角色',
-    value: props.projectContext.selectedScenario?.pageMapping?.role || '暂无角色',
-  },
-  {
-    label: '建议页面',
-    value: props.projectContext.selectedScenario?.pageMapping?.page || '暂无建议页面',
-  },
-  {
-    label: '场景说明',
-    value: props.projectContext.selectedScenario?.description || '暂无场景说明',
-  },
-])
-
-const requirementItems = computed(() => [
-  {
-    label: '客户痛点',
-    value: painPointsPreview.value,
-  },
-  {
-    label: '业务目标',
-    value: goalsPreview.value,
-  },
-  {
-    label: '用户角色',
-    value: (props.projectContext.requirementAnalysis?.userRoles || [])
-      .map((item) => `${item.name}：${item.responsibility}`)
-      .filter(Boolean)
-      .join('；') || '暂无用户角色信息',
-  },
-  {
-    label: '待确认问题',
-    value: props.projectContext.requirementAnalysis?.questions?.join('；') || '暂无待确认问题',
-  },
-])
-
-const requirementAnalysisItems = computed(() => {
-  if (!hasRequirementContext.value) {
+function getModulesForScenario(scenario) {
+  if (!scenario) {
     return []
   }
 
-  const analysis = props.projectContext.requirementAnalysis
-  const painPoints = (analysis.painPoints || []).map((item) => item.description || item).filter(Boolean)
-  const goals = (analysis.businessGoals || analysis.goals || []).map((item) => item.description || item).filter(Boolean)
-  const roles = (analysis.userRoles || []).map((item) => `${item.name}：${item.responsibility}`).filter(Boolean)
-  const questions = (analysis.questions || []).filter(Boolean)
+  if (Object.prototype.hasOwnProperty.call(revisedModulesByScenarioKey.value, scenario.key)) {
+    return revisedModulesByScenarioKey.value[scenario.key]
+  }
 
-  return [
-    {
-      label: '业务背景',
-      value: analysis.businessBackground || '暂无背景摘要',
-    },
-    {
-      label: '客户痛点',
-      value: painPoints.length ? painPoints.join('；') : '暂无客户痛点信息',
-    },
-    {
-      label: '业务目标',
-      value: goals.length ? goals.join('；') : '暂无业务目标信息',
-    },
-    {
-      label: '用户角色',
-      value: roles.length ? roles.join('；') : '暂无用户角色信息',
-    },
-    {
-      label: '待确认问题',
-      value: questions.length ? questions.join('；') : '暂无待确认问题',
-    },
-  ]
-})
+  const matchedModuleKeys = getMatchedModuleKeys(scenario)
+  const matchedModules = dynamicModules.value.filter((module) => matchedModuleKeys.has(module.key))
+  const scenarioModule = createScenarioModule(scenario)
 
-function setFilter(filter) {
-  activeFilter.value = filter
+  return [scenarioModule, ...matchedModules].slice(0, 4)
 }
 
-watch(filteredModules, (modules) => {
-  if (!modules.some((item) => item.key === selectedKey.value)) {
-    selectedKey.value = modules[0]?.key || featureData.modules[0].key
-  }
-}, { immediate: true })
+const activeScenarioModules = computed(() => getModulesForScenario(activeScenario.value))
 
-watch(
-  () => props.projectContext.selectedScenario,
-  () => {
-    const matchedModule = filteredModules.value[0] || featureData.modules[0]
-    if (matchedModule && selectedKey.value === featureData.modules[0].key) {
-      selectedKey.value = matchedModule.key
-    }
+const activeScenarioFeatureOutput = computed(() => ({
+  scenario: activeScenario.value,
+  modules: activeScenarioModules.value,
+  instructionTarget: '请只修改 modules 字段，也就是“基于该场景推荐的功能模块”列表。',
+}))
+
+const activeScenarioHandoffItems = computed(() => [
+  {
+    label: '关联角色',
+    value: activeScenario.value?.pageMapping?.role || '暂无角色',
   },
-  { immediate: true },
-)
+  {
+    label: '任务流程',
+    value: (activeScenario.value?.workflow || []).join(' -> ') || '暂无流程',
+  },
+  {
+    label: '建议页面',
+    value: activeScenario.value?.pageMapping?.page || '暂无建议页面',
+  },
+])
 
 function confirmAndNext() {
+  const allMappings = availableScenarios.value.map((scenario) => ({
+    scenario,
+    modules: getModulesForScenario(scenario),
+  }))
+
   emit('feature-confirm', {
-    module: selectedModule.value,
+    allMappings,
+    module: activeScenarioModules.value[0] || dynamicModules.value[0],
+    revisedModulesByScenarioKey: revisedModulesByScenarioKey.value,
+  })
+}
+
+function normalizeRevisedModules(revisedOutput) {
+  const modules = Array.isArray(revisedOutput)
+    ? revisedOutput
+    : Array.isArray(revisedOutput?.modules)
+      ? revisedOutput.modules
+      : []
+
+  return modules
+    .filter((module) => module && typeof module === 'object')
+    .map((module, index) => ({
+      key: module.key || `${activeScenarioKey.value}-revised-module-${index + 1}`,
+      priority: module.priority || activeScenario.value?.priority || 'P1',
+      name: module.name || `推荐功能模块 ${index + 1}`,
+      sourceScenario: module.sourceScenario || activeScenario.value?.name || '',
+      description: module.description || '由大模型根据当前场景修改生成。',
+      features: Array.isArray(module.features) ? module.features : [],
+      pageSuggestion: module.pageSuggestion || activeScenario.value?.pageMapping?.page || 'ScenarioWorkspaceView.vue',
+      apiSuggestion: module.apiSuggestion || `GET /api/scenarios/${activeScenarioKey.value}`,
+      scopeNote: module.scopeNote || '由大模型修改当前场景推荐模块后生成。',
+    }))
+}
+
+function buildFeatureDraft() {
+  const allMappings = availableScenarios.value.map((scenario) => ({
+    scenario,
+    modules: getModulesForScenario(scenario),
+  }))
+
+  return {
+    allMappings,
+    module: activeScenarioModules.value[0] || dynamicModules.value[0],
+    revisedModulesByScenarioKey: revisedModulesByScenarioKey.value,
+  }
+}
+
+function handleFeatureRevisionApplied({ revisedOutput, revisionInstruction }) {
+  const modules = normalizeRevisedModules(revisedOutput)
+
+  if (!activeScenario.value) {
+    return
+  }
+
+  revisedModulesByScenarioKey.value = {
+    ...revisedModulesByScenarioKey.value,
+    [activeScenario.value.key]: modules,
+  }
+
+  emit('feature-draft-update', {
+    ...buildFeatureDraft(),
+    llmRevision: {
+      instruction: revisionInstruction,
+      scenarioKey: activeScenario.value.key,
+      revisedAt: new Date().toISOString(),
+    },
   })
 }
 </script>
@@ -489,214 +467,236 @@ function confirmAndNext() {
   margin-top: 16px;
 }
 
-.feature-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-  border: 1px solid #dbe3ef;
-  border-radius: 8px;
-  padding: 12px;
-  background: #ffffff;
-  box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
-}
-
-.feature-toolbar button {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 10px 14px;
-  background: #ffffff;
-  color: #1e293b;
-  font-weight: 800;
-}
-
-.feature-toolbar button.active {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  color: #ffffff;
-}
-
 .feature-layout {
   display: grid;
-  grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.1fr);
   gap: 16px;
 }
 
-.feature-panel,
-.feature-detail,
-.scope-summary {
+.scenario-panel,
+.current-scenario-panel,
+.feature-detail {
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
-}
-
-.feature-panel,
-.feature-detail {
   padding: 22px;
 }
 
-.panel-heading {
+.panel-heading,
+.detail-heading {
   display: grid;
   gap: 6px;
   margin-bottom: 16px;
 }
 
+.horizontal-heading {
+  align-items: center;
+}
+
 .panel-heading span,
-.detail-label,
-.scope-summary span {
+.detail-heading span,
+.current-scenario-main > span,
+.scenario-fact span {
+  display: block;
   color: #2563eb;
   font-size: 13px;
   font-weight: 900;
 }
 
-.panel-heading strong {
+.panel-heading strong,
+.detail-heading strong {
   color: #0f172a;
   font-size: 18px;
 }
 
-.module-list {
+.scenario-list {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
 }
 
-.module-button {
+.scenario-nav-button {
   display: grid;
+  align-content: start;
   gap: 8px;
+  min-height: 132px;
   width: 100%;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 14px;
-  background: #f8fafc;
-  text-align: left;
-}
-
-.module-button.active {
-  border-color: #93c5fd;
-  background: #eff6ff;
-}
-
-.priority-tag {
-  width: max-content;
-  border-radius: 999px;
-  padding: 4px 8px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.module-button strong {
-  color: #0f172a;
-  font-size: 16px;
-}
-
-.module-button small,
-.feature-detail p,
-.scope-note p,
-.scope-summary p {
-  color: #526174;
-  line-height: 1.65;
-}
-
-.feature-detail h3 {
-  margin: 10px 0;
-  color: #0f172a;
-  font-size: 26px;
-}
-
-.module-meta {
-  display: grid;
-  gap: 10px;
-  margin: 18px 0;
-}
-
-.module-meta div {
-  border-radius: 8px;
-  padding: 12px;
-  background: #f8fafc;
-}
-
-.module-meta dt {
-  margin-bottom: 6px;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.module-meta dd {
-  margin: 0;
-  color: #172033;
-  line-height: 1.6;
-  font-weight: 800;
-}
-
-.feature-points,
-.scope-note {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 16px;
   background: #f8fafc;
+  text-align: left;
+  transition: all 0.2s;
 }
 
-.feature-points {
-  margin-bottom: 12px;
+.scenario-nav-button.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
-.feature-points h4,
-.scope-note h4 {
-  margin: 0 0 10px;
+.scenario-nav-head,
+.module-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenario-nav-button strong {
   color: #0f172a;
   font-size: 16px;
+  line-height: 1.35;
 }
 
-.feature-points ul {
+.scenario-nav-button small {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.priority-tag {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.current-scenario-panel.compact {
+  padding: 16px;
+}
+
+.scenario-facts {
   display: grid;
-  gap: 8px;
-  margin: 0;
-  padding-left: 20px;
-  color: #263244;
-  line-height: 1.65;
-  font-weight: 700;
-}
-
-.scope-note p {
-  margin: 0;
-}
-
-.scope-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 12px;
-  margin-top: 16px;
-  padding: 18px;
 }
 
-.scope-summary div {
+.scenario-fact {
   border-radius: 8px;
   padding: 14px;
   background: #f8fafc;
 }
 
-.scope-summary strong {
+.scenario-fact strong {
   display: block;
-  margin: 8px 0;
-  color: #0f172a;
+  margin-top: 8px;
+  color: #172033;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.detail-heading {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+
+.detail-heading span {
+  margin-bottom: 4px;
+}
+
+.mapped-modules-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.module-card {
+  flex: 1 1 300px;
+  min-width: 280px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+}
+
+.module-card-head {
+  margin-bottom: 12px;
+}
+
+.module-card-head strong {
+  color: #1e293b;
   font-size: 17px;
+  line-height: 1.4;
 }
 
-.scope-summary p {
+.module-card p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.module-features {
+  margin-bottom: 16px;
+}
+
+.module-features h6 {
+  margin: 0 0 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.module-features ul {
   margin: 0;
+  padding-left: 18px;
+  color: #1e293b;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.next-action {
+.module-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.empty-placeholder {
+  flex: 1 1 100%;
+  padding: 40px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.feature-revision-panel {
   margin-top: 16px;
 }
 
-@media (max-width: 920px) {
-  .feature-layout,
-  .scope-summary {
+.next-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+@media (max-width: 1280px) {
+  .scenario-list {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .current-scenario-panel,
+  .scenario-facts {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .scenario-list {
+    grid-template-columns: 1fr;
+  }
+
+  .next-action {
+    display: grid;
   }
 }
 </style>

@@ -4,7 +4,6 @@
       <span class="brand-mark">{{ mark }}</span>
       <span class="brand-name">{{ name }}</span>
     </div>
-    <span class="stage-badge">{{ stage }}</span>
   </header>
 </template>
 
@@ -18,10 +17,6 @@ defineProps({
     type: String,
     default: 'Prototype Factory',
   },
-  stage: {
-    type: String,
-    default: '第二阶段 · Vue3 Web 原型',
-  },
 })
 </script>
 
@@ -29,7 +24,7 @@ defineProps({
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   padding: 14px 0 30px;
 }
@@ -54,15 +49,6 @@ defineProps({
   font-weight: 800;
 }
 
-.stage-badge {
-  border: 1px solid #bfdbfe;
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 12px;
-  font-weight: 800;
-}
 
 @media (max-width: 860px) {
   .topbar {

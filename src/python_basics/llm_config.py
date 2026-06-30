@@ -1,16 +1,44 @@
 import os
+from pathlib import Path
 from dataclasses import dataclass, field
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    load_dotenv = None
 
 
 DEFAULT_MODEL = "deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_MAX_RETRIES = 1
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ENV_PATH = PROJECT_ROOT / ".env"
 
-# 模块初始化时只加载一次 .env 文件
-load_dotenv(override=False)
+
+def _load_env_file_values() -> dict[str, str]:
+    if not ENV_PATH.exists():
+        return {}
+
+    values: dict[str, str] = {}
+    for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def _hydrate_env_from_file() -> None:
+    for key, value in _load_env_file_values().items():
+        if key and value and not os.getenv(key):
+            os.environ[key] = value
+
+# 模块初始化时加载项目根目录 .env；即使 python-dotenv 未安装，也会使用内置解析兜底。
+if load_dotenv is not None:
+    load_dotenv(ENV_PATH, override=False)
+_hydrate_env_from_file()
 
 
 class LLMConfigError(ValueError):
@@ -39,7 +67,8 @@ def _get_env_text(name: str, default: str) -> str:
 
 
 def load_llm_config() -> LLMConfig:
-    """从环境变量加载并校验 DeepSeek 配置。"""
+    """从环境变量或项目根目录 .env 加载并校验 DeepSeek 配置。"""
+    _hydrate_env_from_file()
     api_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
 
     if not api_key:

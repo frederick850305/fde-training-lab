@@ -102,7 +102,7 @@
 
     <div class="next-action">
       <button class="primary-button" type="button" @click="confirmAndNext">
-        下一步：进入 API 契约
+        确认并进入下一步
       </button>
     </div>
   </section>

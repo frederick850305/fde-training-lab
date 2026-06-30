@@ -97,7 +97,7 @@
 
     <div class="next-action">
       <button class="primary-button" type="button" @click="confirmAndNext">
-        下一步：进入原型流程总览
+        确认前端原型方案
       </button>
     </div>
   </section>
@@ -191,7 +191,16 @@ const apiItems = computed(() => [
 ])
 
 function confirmAndNext() {
-  emit('suggestion-confirm')
+  emit('suggestion-confirm', {
+    suggestion: {
+      viewFiles: recommendedViewFiles.value,
+      componentFiles: recommendedComponentFiles.value,
+      mockDataFiles: recommendedMockDataFiles.value,
+      generationSteps: recommendedSteps.value,
+      apiContract: props.projectContext.selectedApiContract || null,
+      prompt: suggestionData.prompt,
+    },
+  })
 }
 </script>
 
