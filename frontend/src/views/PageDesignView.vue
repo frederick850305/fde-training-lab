@@ -14,21 +14,34 @@
       </div>
 
       <div class="scenario-tabs" role="tablist" aria-label="业务场景 tabs">
-        <button
+        <article
           v-for="scenario in visibleScenarioTabs"
           :key="scenario.key"
-          type="button"
           role="tab"
+          tabindex="0"
           class="scenario-tab"
           :aria-selected="scenario.key === activeScenarioKey"
           :class="{ active: scenario.key === activeScenarioKey }"
-          @click="activeScenarioKey = scenario.key"
+          @click="selectScenario(scenario.key)"
+          @keydown.enter.prevent="selectScenario(scenario.key)"
+          @keydown.space.prevent="selectScenario(scenario.key)"
         >
+          <button
+            class="scenario-generate-button"
+            type="button"
+            :disabled="generatingScenarioKey === scenario.key"
+            @click.stop="generateScenarioPageDesign(scenario)"
+          >
+            {{ generatingScenarioKey === scenario.key ? '生成中' : '生成' }}
+          </button>
           <span class="priority-tag">{{ scenario.priority || 'P1' }}</span>
           <strong>{{ scenario.name }}</strong>
           <small>{{ scenario.pageMapping?.role || '未指定角色' }}</small>
-        </button>
+        </article>
       </div>
+      <p v-if="scenarioGenerationMessage" class="scenario-generation-message" :class="{ error: scenarioGenerationError }">
+        {{ scenarioGenerationMessage }}
+      </p>
     </section>
 
     <div class="page-layout">
@@ -37,7 +50,7 @@
           <span>页面清单 <b>{{ currentScenarioDesign.pages.length }}</b></span>
         </div>
 
-        <div class="page-list">
+        <div v-if="currentScenarioDesign.pages.length" class="page-list">
           <button
             v-for="page in currentScenarioDesign.pages"
             :key="page.key"
@@ -52,6 +65,10 @@
             </span>
             <small v-if="page.key === selectedPageKey">{{ page.type }} / {{ page.vueFile }}</small>
           </button>
+        </div>
+        <div v-else class="empty-placeholder">
+          <strong>待生成页面清单</strong>
+          <p>点击上方当前业务场景卡片的“生成”后，页面清单会在这里展示。</p>
         </div>
       </article>
 
@@ -97,43 +114,74 @@
           <div class="section-list-head">
             <div>
               <h4>页面区域</h4>
-              <p>根据左侧当前选中页面生成，并只更新这个页面。</p>
+              <p>根据左侧当前选中页面生成，并自动更新到本页 Markdown。</p>
             </div>
             <div class="section-actions">
               <button class="secondary-button small" type="button" :disabled="isGeneratingSections" @click="generateSectionsForSelectedPage">
                 {{ isGeneratingSections ? '生成中...' : '调用大模型生成' }}
               </button>
               <button class="secondary-button small" type="button" @click="addSection">新增区域</button>
-              <button class="primary-button small" type="button" @click="saveCurrentPageSections">保存</button>
             </div>
           </div>
           <p v-if="sectionMessage" class="section-message" :class="{ error: sectionError }">{{ sectionMessage }}</p>
-          <div class="editable-list">
+          <div v-if="selectedPage.sections?.length" class="editable-list">
             <label v-for="(section, index) in selectedPage.sections" :key="index">
               <span>{{ index + 1 }}</span>
               <input v-model.trim="selectedPage.sections[index]" type="text" @input="markUnsaved" />
               <button class="text-button" type="button" @click="removeSection(index)">移除</button>
             </label>
           </div>
+          <div v-else class="empty-placeholder compact-placeholder">
+            <strong>待生成页面区域</strong>
+            <p>点击“调用大模型生成”后，当前页面的区域设计会在这里展示。</p>
+          </div>
         </section>
+      </article>
+      <article v-else class="page-detail-panel empty-detail-panel">
+        <div class="empty-placeholder">
+          <strong>待生成当前页面</strong>
+          <p>先在上方选择业务场景并点击“生成”，系统会基于第 03 步功能模块映射生成页面清单和当前页面基础信息。</p>
+        </div>
       </article>
     </div>
 
-    <section class="context-handoff" aria-label="页面设计结果保存">
-      <div>
-        <span>本地保存</span>
-        <strong>保存页面设计成果，供下一步交互设计导入</strong>
-        <p>保存当前页面设计阶段的完整成果，包括业务场景、页面清单、导航结构、文件建议和页面区域。</p>
-        <p v-if="localSaveMessage" class="local-save-message">{{ localSaveMessage }}</p>
-      </div>
-      <div class="action-row">
-        <button class="secondary-button" type="button" @click="saveLocalDraft">
-          {{ saveButtonLabel }}
-        </button>
-        <button class="primary-button" type="button" @click="confirmAndNext">
-          确认并进入下一步
-        </button>
-      </div>
+    <section class="design-context-panel" aria-label="页面设计上下文输出">
+      <article class="output-box">
+        <div class="panel-heading compact">
+          <span>导航结构</span>
+          <strong>供后续页面跳转和原型导航使用</strong>
+        </div>
+        <ol v-if="currentScenarioDesign.navigation.length" class="navigation-list">
+          <li v-for="item in currentScenarioDesign.navigation" :key="`${item.label}-${item.target}`">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.target }}</span>
+            <small v-if="item.default">默认入口</small>
+          </li>
+        </ol>
+        <div v-else class="empty-placeholder compact-placeholder">
+          <strong>待生成导航结构</strong>
+          <p>点击上方业务场景卡片的“生成”后，系统会根据页面清单生成导航入口。</p>
+        </div>
+      </article>
+
+      <article class="output-box">
+        <div class="panel-heading compact">
+          <span>文件建议</span>
+          <strong>供前端原型方案生成 Vue 文件、组件和 mock 数据</strong>
+        </div>
+        <div v-if="fileStructureGroups.some((group) => group.items.length)" class="file-structure-grid">
+          <section v-for="group in fileStructureGroups" :key="group.key">
+            <span>{{ group.label }}</span>
+            <ul>
+              <li v-for="item in group.items" :key="item">{{ item }}</li>
+            </ul>
+          </section>
+        </div>
+        <div v-else class="empty-placeholder compact-placeholder">
+          <strong>待生成文件建议</strong>
+          <p>生成页面方案后，这里会展示 views、components 和 data 文件建议。</p>
+        </div>
+      </article>
     </section>
 
     <LlmStepRevisionPanel
@@ -143,14 +191,27 @@
       :project-context="projectContext"
       @revision-applied="handlePageRevisionApplied"
     />
+
+    <section class="context-handoff" aria-label="页面设计结果保存">
+      <div>
+        <span>本地保存</span>
+        <strong>保存页面设计成果，供下一步交互设计导入</strong>
+        <p>确认时会自动保存本页全部关键内容，包括业务场景、页面清单、导航结构、文件建议和页面区域。</p>
+        <p v-if="localSaveMessage" class="local-save-message">{{ localSaveMessage }}</p>
+      </div>
+      <div class="action-row">
+        <button class="primary-button" type="button" @click="confirmAndNext">
+          确认并进入下一步
+        </button>
+      </div>
+    </section>
   </section>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import LlmStepRevisionPanel from '../components/LlmStepRevisionPanel.vue'
 import ViewHeading from '../components/ViewHeading.vue'
-import { pageDesignMock } from '../data/pageDesignMock'
 
 const props = defineProps({
   projectContext: {
@@ -174,11 +235,13 @@ const selectedPageKey = ref('')
 const revisedDesignsByScenarioKey = ref({})
 const savedMessage = ref('尚未保存')
 const isGeneratingSections = ref(false)
+const generatingScenarioKey = ref('')
 const sectionMessage = ref('')
 const sectionError = ref(false)
 const localSaveMessage = ref('')
-const saveButtonLabel = ref('保存本地版本')
 const sectionGenerationSource = ref('initial')
+const scenarioGenerationMessage = ref('')
+const scenarioGenerationError = ref(false)
 
 const availableScenarios = computed(() => {
   const selectedScenario = props.projectContext.selectedScenario
@@ -187,8 +250,10 @@ const availableScenarios = computed(() => {
     return selectedScenario.availableScenarios
   }
 
-  if (props.projectContext.allFeatureMappings?.length) {
-    return props.projectContext.allFeatureMappings.map((item) => item.scenario).filter(Boolean)
+  const featureMappings = getAllFeatureMappings()
+
+  if (featureMappings.length) {
+    return featureMappings.map((item) => item.scenario).filter(Boolean)
   }
 
   return selectedScenario ? [selectedScenario] : []
@@ -209,15 +274,14 @@ watch(
   { immediate: true },
 )
 
-const visibleScenarioTabs = computed(() => availableScenarios.value.slice(0, 4))
+const visibleScenarioTabs = computed(() => availableScenarios.value)
 
 const activeScenario = computed(() => {
   return availableScenarios.value.find((scenario) => scenario.key === activeScenarioKey.value) || availableScenarios.value[0] || null
 })
 
 const activeFeatureModules = computed(() => {
-  const mappings = props.projectContext.allFeatureMappings || []
-  const mapping = mappings.find((item) => item.scenario?.key === activeScenario.value?.key)
+  const mapping = getFeatureMappingForScenario(activeScenario.value)
 
   if (mapping?.modules?.length) {
     return mapping.modules
@@ -231,7 +295,11 @@ const currentScenarioDesign = computed(() => {
     return createEmptyDesign()
   }
 
-  return revisedDesignsByScenarioKey.value[activeScenario.value.key] || createEmptyDesign()
+  const design = revisedDesignsByScenarioKey.value[activeScenario.value.key]
+    || getStoredScenarioDesign(activeScenario.value.key)
+    || createEmptyDesign()
+
+  return normalizeScenarioDesignNames(design, activeScenario.value)
 })
 
 const selectedPage = computed(() => currentScenarioDesign.value.pages.find((page) => page.key === selectedPageKey.value) || currentScenarioDesign.value.pages[0] || null)
@@ -243,13 +311,14 @@ const currentRevisionOutput = computed(() => ({
   instructionTarget: '请修改 pageDesign 字段，保持 JSON 结构包含 pages、navigation、fileStructure。pages 中每个页面需包含 key、priority、type、name、vueFile、goal、features、sections。',
 }))
 
-watch(
-  [activeScenario, activeFeatureModules],
-  () => {
-    ensureActiveScenarioDesign()
-  },
-  { immediate: true },
-)
+const fileStructureGroups = computed(() => {
+  const fileStructure = currentScenarioDesign.value.fileStructure || {}
+  return [
+    { key: 'views', label: '页面文件', items: fileStructure.views || [] },
+    { key: 'components', label: '组件文件', items: fileStructure.components || [] },
+    { key: 'data', label: 'Mock 数据', items: fileStructure.data || [] },
+  ]
+})
 
 watch(
   currentScenarioDesign,
@@ -262,20 +331,22 @@ watch(
 )
 
 watch(activeScenarioKey, () => {
-  ensureActiveScenarioDesign()
   savedMessage.value = '尚未保存'
   localSaveMessage.value = ''
-  saveButtonLabel.value = '保存本地版本'
   sectionMessage.value = ''
   sectionError.value = false
 })
 
 watch(selectedPageKey, () => {
   localSaveMessage.value = ''
-  saveButtonLabel.value = '保存本地版本'
   sectionMessage.value = ''
   sectionError.value = false
 })
+
+function selectScenario(scenarioKey) {
+  activeScenarioKey.value = scenarioKey
+}
+
 
 function createEmptyDesign() {
   return {
@@ -289,12 +360,83 @@ function createEmptyDesign() {
   }
 }
 
+function getAllFeatureMappings() {
+  const directMappings = props.projectContext.allFeatureMappings || []
+  const featureResultMappings = props.projectContext.stepResults?.feature?.allMappings || []
+  const featureResultScenarioMappings = props.projectContext.stepResults?.feature?.scenarioMappings || []
+
+  if (directMappings.length) {
+    return directMappings
+  }
+
+  if (featureResultMappings.length) {
+    return featureResultMappings
+  }
+
+  if (featureResultScenarioMappings.length) {
+    return featureResultScenarioMappings
+  }
+
+  return []
+}
+
+function getFeatureMappingForScenario(scenario) {
+  if (!scenario) {
+    return null
+  }
+
+  return getAllFeatureMappings().find((item) => item.scenario?.key === scenario.key) || null
+}
+
+function getStoredScenarioDesign(scenarioKey) {
+  if (!scenarioKey) {
+    return null
+  }
+
+  const savedPageResult = props.projectContext.pageDesignResult || props.projectContext.stepResults?.page || {}
+  const savedDesigns = props.projectContext.allPageDesigns
+    || savedPageResult.scenarioDesigns
+    || {}
+
+  const design = savedDesigns[scenarioKey] || null
+  if (!design) {
+    return null
+  }
+
+  const savedPage = savedPageResult.currentPage || savedPageResult.page
+  const savedSections = savedPageResult.currentPageSections || savedPage?.sections || []
+  const savedScenarioKey = savedPageResult.currentScenarioKey || savedPageResult.scenario?.key || savedPage?.scenarioKey || ''
+  if (!savedPage || !savedSections.length || (savedScenarioKey && savedScenarioKey !== scenarioKey)) {
+    return design
+  }
+
+  const pages = (design.pages || []).map((page) => {
+    const isSamePage = (savedPage.key && page.key === savedPage.key)
+      || (savedPage.vueFile && page.vueFile === savedPage.vueFile)
+      || (savedPage.name && page.name === savedPage.name)
+
+    if (!isSamePage || page.sections?.length) {
+      return page
+    }
+
+    return {
+      ...page,
+      sections: savedSections,
+    }
+  })
+
+  return {
+    ...design,
+    pages,
+  }
+}
+
 function ensureActiveScenarioDesign() {
   if (!activeScenario.value) {
     return
   }
 
-  if (revisedDesignsByScenarioKey.value[activeScenario.value.key]) {
+  if (revisedDesignsByScenarioKey.value[activeScenario.value.key] || getStoredScenarioDesign(activeScenario.value.key)) {
     return
   }
 
@@ -302,6 +444,52 @@ function ensureActiveScenarioDesign() {
     ...revisedDesignsByScenarioKey.value,
     [activeScenario.value.key]: buildScenarioDesign(activeScenario.value, activeFeatureModules.value),
   }
+}
+
+function getActiveScenarioDesignSource() {
+  if (!activeScenario.value) {
+    return createEmptyDesign()
+  }
+
+  return revisedDesignsByScenarioKey.value[activeScenario.value.key]
+    || getStoredScenarioDesign(activeScenario.value.key)
+    || buildScenarioDesign(activeScenario.value, activeFeatureModules.value)
+}
+
+function updateSelectedPageInActiveDesign(updater) {
+  if (!activeScenario.value) {
+    return null
+  }
+
+  const design = normalizeScenarioDesignNames(getActiveScenarioDesignSource(), activeScenario.value)
+  const targetPageKey = selectedPageKey.value || design.pages[0]?.key || ''
+  let updatedPage = null
+  const pages = design.pages.map((page) => {
+    if (page.key !== targetPageKey) {
+      return page
+    }
+
+    updatedPage = syncPageFeatures(updater({
+      ...page,
+      sections: [...(page.sections || [])],
+    }))
+    return updatedPage
+  })
+
+  if (!updatedPage) {
+    return null
+  }
+
+  revisedDesignsByScenarioKey.value = {
+    ...revisedDesignsByScenarioKey.value,
+    [activeScenario.value.key]: {
+      ...design,
+      pages,
+    },
+  }
+
+  selectedPageKey.value = updatedPage.key
+  return updatedPage
 }
 
 function toPascalCase(value) {
@@ -371,7 +559,7 @@ function createScenarioVueFile(scenario, module, index = 0) {
     'ScenarioWorkspaceView.vue',
   ])
 
-  if (rawSuggestion && !genericSuggestions.has(rawSuggestion)) {
+  if (rawSuggestion.endsWith('.vue') && !genericSuggestions.has(rawSuggestion)) {
     return rawSuggestion
   }
 
@@ -386,6 +574,90 @@ function createScenarioVueFile(scenario, module, index = 0) {
   const pageName = toBusinessPageName(source)
   const suffix = index > 0 ? `${index + 1}` : ''
   return `${getDomainPrefix()}${pageName}${suffix}View.vue`
+}
+
+function isGenericEnglishPageName(value) {
+  const text = String(value || '').trim()
+  return /\.vue\b/i.test(text)
+    || /^[A-Z][A-Za-z0-9]+$/.test(text)
+    || /^(VehicleDispatch|StatisticsDashboard|DriverTask|GateCheck|VehicleReservation|NavigationOverlay|ArrivalConfirmModal|TaskCompletionForm)$/.test(text)
+}
+
+function inferChinesePageTitle(page, scenario, module, index = 0) {
+  if (module?.pageTitleSuggestion) {
+    return module.pageTitleSuggestion
+  }
+
+  const moduleName = String(module?.name || '').replace(/模块$/, '')
+  if (index === 0 && scenario?.name) {
+    return `${scenario.name}工作台`
+  }
+
+  if (moduleName) {
+    return `${moduleName}页面`
+  }
+
+  const sourceText = [
+    page?.goal || '',
+    page?.featureText || '',
+    ...(page?.features || []),
+    ...(page?.sections || []),
+  ].join(' ')
+  const titleRules = [
+    { keys: ['导航', '路线', '前往'], title: '导航路线指引页面' },
+    { keys: ['到达', '拍照', '签到', '确认'], title: '到达拍照确认页面' },
+    { keys: ['完成', '关闭', '装卸', '作业'], title: '任务完成关闭页面' },
+    { keys: ['智能', '匹配', '派车', '下发'], title: '智能派车页面' },
+    { keys: ['任务状态', '任务列表', '进度', '跟踪'], title: '任务跟踪页面' },
+    { keys: ['异常', '告警', '处理'], title: '异常处理页面' },
+    { keys: ['效率', '利用率', '完成率', '等待时长'], title: '效率分析页面' },
+    { keys: ['费用', '外协'], title: '费用分析页面' },
+    { keys: ['报表', '导出'], title: '报表导出页面' },
+    { keys: ['下钻', '明细'], title: '数据下钻页面' },
+    { keys: ['入场', '核验', '门岗'], title: '门岗入场核验页面' },
+    { keys: ['预约', '申请'], title: '预约申请页面' },
+  ]
+  const matchedRule = titleRules.find((rule) => rule.keys.some((key) => sourceText.includes(key)))
+
+  if (matchedRule) {
+    return matchedRule.title
+  }
+
+  const feature = page?.features?.[0] || splitTextList(page?.featureText)[0]
+  if (feature) {
+    return `${feature.replace(/^展示|^提供|^支持/, '')}页面`
+  }
+
+  return `${scenario?.name || '业务'}页面${index + 1}`
+}
+
+function normalizePageTitle(page, scenario, module, index = 0) {
+  if (!page?.name || isGenericEnglishPageName(page.name)) {
+    return inferChinesePageTitle(page, scenario, module, index)
+  }
+
+  return page.name
+}
+
+function normalizeScenarioDesignNames(design, scenario) {
+  const mapping = getFeatureMappingForScenario(scenario)
+  const modules = mapping?.modules || []
+  const pages = (design.pages || []).map((page, index) => {
+    const module = modules[index]
+    return syncPageFeatures({
+      ...page,
+      name: normalizePageTitle(page, scenario, module, index),
+    })
+  })
+
+  return {
+    ...design,
+    pages,
+    navigation: (design.navigation || []).map((item, index) => ({
+      ...item,
+      label: normalizePageTitle(pages[index] || { name: item.label }, scenario, modules[index], index).replace(/页$/, ''),
+    })),
+  }
 }
 
 function normalizeFeatureText(features) {
@@ -409,23 +681,18 @@ function splitTextList(value) {
 
 function createPageFromModule(module, scenario, index) {
   const vueFile = createScenarioVueFile(scenario, module, index)
-  const pageName = vueFile.replace(/View\.vue$/, '') || `${scenario.name}页面${index + 1}`
   const features = module?.features?.length ? module.features : scenario.pageMapping?.modules || []
 
   return syncPageFeatures({
     key: `${scenario.key}-page-${index + 1}`,
     priority: index === 0 ? scenario.priority || 'P0' : 'P1',
     type: index === 0 ? '工作台页' : '辅助页',
-    name: index === 0 ? `${scenario.name}工作台` : pageName,
+    name: inferChinesePageTitle(null, scenario, module, index),
     vueFile,
     goal: module?.description || `支撑「${scenario.name}」场景下的查看、处理、反馈和闭环操作。`,
     features,
     featureText: normalizeFeatureText(features),
-    sections: [
-      `${scenario.name}状态概览`,
-      ...(scenario.pageMapping?.modules || []).slice(0, 3),
-      ...(scenario.workflow || []).slice(0, 2).map((item) => `${item}操作区`),
-    ].filter(Boolean),
+    sections: [],
   })
 }
 
@@ -440,7 +707,7 @@ function buildScenarioDesign(scenario, modules) {
     goal: scenario.description || `支撑「${scenario.name}」业务场景。`,
     features: scenario.pageMapping?.modules || [],
     featureText: normalizeFeatureText(scenario.pageMapping?.modules || []),
-    sections: scenario.pageMapping?.modules?.length ? scenario.pageMapping.modules : pageDesignMock.pages[0].sections,
+    sections: [],
   })
   const pages = modulePages.length ? modulePages : [fallbackPage]
 
@@ -477,7 +744,7 @@ function normalizePageDesign(output) {
     key: page.key || `${activeScenario.value.key}-revised-page-${index + 1}`,
     priority: page.priority || (index === 0 ? activeScenario.value.priority || 'P0' : 'P1'),
     type: page.type || '业务页',
-    name: page.name || `页面 ${index + 1}`,
+    name: normalizePageTitle(page, activeScenario.value, null, index),
     vueFile: createScenarioVueFile(activeScenario.value, { pageSuggestion: page.vueFile, features: page.features || [] }, index),
     goal: page.goal || '由大模型根据当前场景修改生成。',
     features: Array.isArray(page.features) ? page.features : splitTextList(page.featureText),
@@ -498,11 +765,24 @@ function normalizePageDesign(output) {
   }
 }
 
+function stripGeneratedPageSections(design) {
+  return {
+    ...design,
+    pages: (design.pages || []).map((page) => ({
+      ...page,
+      sections: [],
+    })),
+  }
+}
+
 async function regenerateActiveScenarioDesign() {
   if (!activeScenario.value) {
     return
   }
 
+  generatingScenarioKey.value = activeScenario.value.key
+  scenarioGenerationMessage.value = `正在根据「${activeScenario.value.name}」的功能模块映射生成页面方案。`
+  scenarioGenerationError.value = false
   const localDesign = buildScenarioDesign(activeScenario.value, activeFeatureModules.value)
 
   if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
@@ -510,7 +790,9 @@ async function regenerateActiveScenarioDesign() {
       ...revisedDesignsByScenarioKey.value,
       [activeScenario.value.key]: localDesign,
     }
-    savedMessage.value = '已重新生成，待保存'
+    saveLocalDraft('页面方案已重新生成并覆盖保存')
+    scenarioGenerationMessage.value = `已根据「${activeScenario.value.name}」生成页面清单和当前页面基础信息。`
+    generatingScenarioKey.value = ''
     return
   }
 
@@ -524,6 +806,7 @@ async function regenerateActiveScenarioDesign() {
         instruction: '请根据当前业务场景、任务流程、页面映射和功能模块，重新生成合理的页面设计。返回严格 JSON，字段为 {"pageDesign":{"pages":[],"navigation":[],"fileStructure":{"views":[],"components":[],"data":[]}}}。不要让所有场景共用同一个泛化页面名，页面名和 Vue 文件必须贴合当前场景。',
         current_output: {
           scenario: activeScenario.value,
+          featureMapping: getFeatureMappingForScenario(activeScenario.value),
           featureModules: activeFeatureModules.value,
           pageDesign: localDesign,
         },
@@ -541,21 +824,38 @@ async function regenerateActiveScenarioDesign() {
       throw new Error(getApiErrorMessage(payload, '页面方案生成失败。'))
     }
 
+    const generatedDesign = stripGeneratedPageSections(normalizePageDesign(payload.data?.revised_output))
     revisedDesignsByScenarioKey.value = {
       ...revisedDesignsByScenarioKey.value,
-      [activeScenario.value.key]: normalizePageDesign(payload.data?.revised_output),
+      [activeScenario.value.key]: generatedDesign,
     }
-    savedMessage.value = '大模型已重新生成，待保存'
+    saveLocalDraft('大模型页面方案已重新生成并覆盖保存')
+    scenarioGenerationMessage.value = `已根据「${activeScenario.value.name}」生成页面清单和当前页面基础信息。`
   } catch (error) {
     revisedDesignsByScenarioKey.value = {
       ...revisedDesignsByScenarioKey.value,
       [activeScenario.value.key]: localDesign,
     }
-    savedMessage.value = '本地规则已重新生成，待保存'
+    saveLocalDraft('本地页面方案已重新生成并覆盖保存')
     sectionMessage.value = getFetchFailureMessage(error)
     sectionError.value = true
+    scenarioGenerationMessage.value = getFetchFailureMessage(error)
+    scenarioGenerationError.value = true
+  } finally {
+    generatingScenarioKey.value = ''
   }
 }
+
+async function generateScenarioPageDesign(scenario) {
+  if (!scenario?.key) {
+    return
+  }
+
+  activeScenarioKey.value = scenario.key
+  await nextTick()
+  await regenerateActiveScenarioDesign()
+}
+
 
 function handlePageRevisionApplied({ revisedOutput, revisionInstruction }) {
   if (!activeScenario.value) {
@@ -579,7 +879,6 @@ function handlePageRevisionApplied({ revisedOutput, revisionInstruction }) {
 function markUnsaved() {
   savedMessage.value = '已修改，待保存'
   localSaveMessage.value = ''
-  saveButtonLabel.value = '保存本地版本'
 }
 
 function getApiErrorMessage(payload, fallback) {
@@ -634,11 +933,12 @@ function buildLocalSectionsForSelectedPage() {
 }
 
 function applyGeneratedSections(sections, message, source = 'llm') {
-  selectedPage.value.sections = sections
+  updateSelectedPageInActiveDesign((page) => ({
+    ...page,
+    sections,
+  }))
   sectionGenerationSource.value = source
-  savedMessage.value = '页面区域已生成，待保存'
-  localSaveMessage.value = ''
-  saveButtonLabel.value = '保存本地版本'
+  saveCurrentPageSections('页面区域已生成并覆盖保存')
   sectionError.value = false
   sectionMessage.value = message
 }
@@ -653,6 +953,8 @@ function getFetchFailureMessage(error) {
 
 async function generateSectionsForSelectedPage() {
   if (!selectedPage.value || !activeScenario.value) {
+    sectionError.value = true
+    sectionMessage.value = '请先点击上方业务场景卡片的“生成”，生成页面清单和当前页面后，再生成页面区域。'
     return
   }
 
@@ -667,10 +969,14 @@ async function generateSectionsForSelectedPage() {
       body: JSON.stringify({
         step_key: 'pageDesignCurrentPageSections',
         step_title: '根据当前页面生成页面区域',
-        instruction: '请只根据 currentPage、scenario 和 featureModules 生成当前页面的页面区域。返回严格 JSON，字段为 {"sections": ["区域1", "区域2"]}，不要返回 Markdown。页面区域要贴合当前页面名称、目标、承载功能和业务场景。',
+        instruction: '请根据上一步保存到本页的输入信息生成当前页面的页面区域。只返回严格 JSON，字段为 {"sections": ["区域1", "区域2"]}，不要返回 Markdown。页面区域必须贴合当前业务场景、页面清单中的当前页面、页面目标、承载功能和功能模块。',
         current_output: {
           scenario: activeScenario.value,
+          allScenarios: availableScenarios.value,
           featureModules: activeFeatureModules.value,
+          pageList: currentScenarioDesign.value.pages.map((page) => syncPageFeatures(page)),
+          navigation: currentScenarioDesign.value.navigation,
+          fileStructure: currentScenarioDesign.value.fileStructure,
           currentPage: syncPageFeatures(selectedPage.value),
         },
         project_context: {
@@ -695,20 +1001,10 @@ async function generateSectionsForSelectedPage() {
       throw new Error('大模型未返回可用的页面区域。')
     }
 
-    applyGeneratedSections(nextSections, '已根据当前页面调用大模型生成页面区域，请点击“保存”写入本地。', 'llm')
+    applyGeneratedSections(nextSections, '已根据当前页面调用大模型生成页面区域，并覆盖保存到本地 page.md。', 'llm')
   } catch (error) {
-    const fallbackSections = buildLocalSectionsForSelectedPage()
-
-    if (fallbackSections.length) {
-      applyGeneratedSections(
-        fallbackSections,
-        `${getFetchFailureMessage(error)} 已先用本地规则生成页面区域，请点击“保存”写入本地。`,
-        'local-fallback',
-      )
-    } else {
-      sectionError.value = true
-      sectionMessage.value = getFetchFailureMessage(error)
-    }
+    sectionError.value = true
+    sectionMessage.value = getFetchFailureMessage(error)
   } finally {
     isGeneratingSections.value = false
   }
@@ -719,7 +1015,10 @@ function addSection() {
     return
   }
 
-  selectedPage.value.sections.push('新增页面区域')
+  updateSelectedPageInActiveDesign((page) => ({
+    ...page,
+    sections: [...(page.sections || []), '新增页面区域'],
+  }))
   sectionGenerationSource.value = 'manual'
   markUnsaved()
 }
@@ -729,7 +1028,10 @@ function removeSection(index) {
     return
   }
 
-  selectedPage.value.sections.splice(index, 1)
+  updateSelectedPageInActiveDesign((page) => ({
+    ...page,
+    sections: page.sections.filter((_, itemIndex) => itemIndex !== index),
+  }))
   sectionGenerationSource.value = 'manual'
   markUnsaved()
 }
@@ -738,11 +1040,43 @@ function buildSavedPageDesign() {
   const scenarioDesigns = Object.fromEntries(
     availableScenarios.value.map((scenario) => [
       scenario.key,
-      revisedDesignsByScenarioKey.value[scenario.key] || buildScenarioDesign(scenario, getModulesForScenario(scenario)),
+      normalizeScenarioDesignNames(revisedDesignsByScenarioKey.value[scenario.key]
+        || getStoredScenarioDesign(scenario.key)
+        || buildScenarioDesign(scenario, getModulesForScenario(scenario)), scenario),
     ]),
   )
-  const activeDesign = normalizePageDesign(currentScenarioDesign.value)
+  const activeDesign = normalizePageDesign(scenarioDesigns[activeScenario.value?.key] || currentScenarioDesign.value)
   const currentPage = selectedPage.value ? syncPageFeatures(selectedPage.value) : activeDesign.pages[0]
+  const scenarioSummaries = availableScenarios.value.map((scenario) => {
+    const design = scenarioDesigns[scenario.key] || createEmptyDesign()
+    return {
+      key: scenario.key,
+      name: scenario.name,
+      priority: scenario.priority || 'P1',
+      pageCount: design.pages?.length || 0,
+      pages: (design.pages || []).map((page) => syncPageFeatures(page)),
+    }
+  })
+  const allPages = scenarioSummaries.flatMap((scenario) =>
+    scenario.pages.map((page) => ({
+      ...page,
+      scenarioKey: scenario.key,
+      scenarioName: scenario.name,
+    })),
+  )
+  const aggregateNavigation = availableScenarios.value.flatMap((scenario) => {
+    const design = scenarioDesigns[scenario.key] || createEmptyDesign()
+    return (design.navigation || []).map((item) => ({
+      ...item,
+      scenarioKey: scenario.key,
+      scenarioName: scenario.name,
+    }))
+  })
+  const aggregateFileStructure = {
+    views: [...new Set(allPages.map((page) => page.vueFile).filter(Boolean))],
+    components: [...new Set(availableScenarios.value.flatMap((scenario) => scenarioDesigns[scenario.key]?.fileStructure?.components || []))],
+    data: [...new Set(availableScenarios.value.flatMap((scenario) => scenarioDesigns[scenario.key]?.fileStructure?.data || []))],
+  }
   const savedAt = new Date().toISOString()
 
   return {
@@ -752,7 +1086,12 @@ function buildSavedPageDesign() {
     page: currentPage,
     currentPage,
     currentPageSections: currentPage?.sections || [],
-    pageDesign: activeDesign,
+    pageDesign: {
+      pages: allPages,
+      navigation: aggregateNavigation,
+      fileStructure: aggregateFileStructure,
+    },
+    scenarioSummaries,
     scenarioDesigns,
     sectionGenerationSource: sectionGenerationSource.value,
     savedAt,
@@ -764,37 +1103,37 @@ function getModulesForScenario(scenario) {
     return []
   }
 
-  const mappings = props.projectContext.allFeatureMappings || []
-  const mapping = mappings.find((item) => item.scenario?.key === scenario.key)
+  const mapping = getFeatureMappingForScenario(scenario)
   return mapping?.modules || []
 }
 
-function saveCurrentPageSections() {
+function saveCurrentPageSections(statusText = '当前页面区域已保存') {
   if (!selectedPage.value) {
     return
   }
 
   const draft = buildSavedPageDesign()
   emit('page-design-draft-update', draft)
-  savedMessage.value = '当前页面区域已保存'
-  saveButtonLabel.value = '已保存'
+  savedMessage.value = statusText
   const savedTime = new Date(draft.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   sectionError.value = false
   sectionMessage.value = `已保存当前页面区域：${draft.currentPage?.name || '当前页面'} / ${draft.currentPageSections.length} 个区域（${savedTime}）。`
   localSaveMessage.value = `已保存当前页面区域：${draft.currentPage?.name || '当前页面'}（${savedTime}）。`
 }
 
-function saveLocalDraft() {
+function saveLocalDraft(statusText = '已保存') {
   const draft = buildSavedPageDesign()
   emit('page-design-draft-update', draft)
-  savedMessage.value = '已保存本地版本'
-  saveButtonLabel.value = '已保存'
+  savedMessage.value = statusText
   const savedTime = new Date(draft.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  localSaveMessage.value = `已保存当前页面区域：${draft.currentPage?.name || '当前页面'}（${savedTime}）。`
+  localSaveMessage.value = `页面设计成果已保存（${savedTime}）。`
+  return draft
 }
 
 function confirmAndNext() {
   const draft = buildSavedPageDesign()
+  savedMessage.value = '已确认保存'
+  localSaveMessage.value = '页面设计成果已保存，正在进入交互设计。'
   emit('page-design-confirm', draft)
 }
 </script>
@@ -828,6 +1167,7 @@ function confirmAndNext() {
 .scenario-tabs-panel,
 .scenario-output-panel,
 .page-layout,
+.design-context-panel,
 .context-handoff {
   margin-top: 16px;
 }
@@ -913,6 +1253,78 @@ function confirmAndNext() {
   text-align: left;
 }
 
+.scenario-tab {
+  position: relative;
+  cursor: pointer;
+  padding-right: 80px;
+}
+
+.scenario-generate-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 54px;
+  min-height: 30px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.scenario-generate-button:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.scenario-generate-button:disabled {
+  cursor: wait;
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.scenario-generation-message {
+  margin: 12px 0 0;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.scenario-generation-message.error {
+  color: #dc2626;
+}
+
+.empty-placeholder {
+  display: grid;
+  align-content: center;
+  min-height: 180px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.empty-placeholder strong {
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.empty-placeholder p {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+
+.compact-placeholder {
+  min-height: 120px;
+}
+
+.empty-detail-panel {
+  min-height: 320px;
+}
+
 .scenario-tab.active,
 .page-button.active {
   border-color: #93c5fd;
@@ -961,6 +1373,67 @@ function confirmAndNext() {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 14px;
+}
+
+.design-context-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.navigation-list,
+.file-structure-grid ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigation-list li,
+.file-structure-grid section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.navigation-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.navigation-list strong {
+  color: #0f172a;
+}
+
+.navigation-list span,
+.file-structure-grid li {
+  color: #526174;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.navigation-list small {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.file-structure-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.file-structure-grid section > span {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .output-box ul,
@@ -1122,6 +1595,8 @@ button:disabled {
 
 @media (max-width: 980px) {
   .page-layout,
+  .design-context-panel,
+  .file-structure-grid,
   .panel-heading.with-action,
   .context-handoff,
   .edit-grid {
@@ -1132,6 +1607,7 @@ button:disabled {
 @media (max-width: 720px) {
   .scenario-tabs,
   .scenario-output-grid,
+  .navigation-list li,
   .editable-list label {
     grid-template-columns: 1fr;
   }

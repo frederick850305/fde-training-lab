@@ -39,7 +39,7 @@
         <textarea
           id="customer-requirement"
           v-model.trim="requirementText"
-          rows="12"
+          rows="3"
           placeholder="可以直接粘贴客户需求、会议纪要、招标片段、方案描述；如果主要依赖附件，也可以先写一句材料背景。"
           :aria-invalid="Boolean(errorMessage)"
         ></textarea>
@@ -129,7 +129,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['analysis-complete', 'context-update'])
+const emit = defineEmits(['analysis-complete', 'analysis-draft-update', 'context-update'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
@@ -535,12 +535,30 @@ async function handleAnalyze() {
 
     analysisResult.value = dynamicAnalysis
     questionReplies.value = dynamicAnalysis.questions.map(() => '')
+    emit('analysis-draft-update', buildRequirementResult(dynamicAnalysis, []))
   } catch (error) {
     analysisResult.value = null
     questionReplies.value = []
     errorMessage.value = error.message || '需求拆解生成失败，请稍后重试。'
   } finally {
     isLoading.value = false
+  }
+}
+
+function buildRequirementResult(analysis, questionResponses) {
+  return {
+    sourceRequirement: combinedRequirementInput.value,
+    manualRequirement: requirementText.value,
+    attachmentText: extractedAttachmentText.value,
+    attachments: uploadedFiles.value,
+    analysis: {
+      ...analysis,
+      sourceText: combinedRequirementInput.value,
+      manualRequirement: requirementText.value,
+      attachmentText: extractedAttachmentText.value,
+      questionResponses,
+      generationSource: analysis.generationSource || 'local',
+    },
   }
 }
 
@@ -554,20 +572,7 @@ function goNext() {
     answer: questionReplies.value[index] || '',
   }))
 
-  emit('analysis-complete', {
-    sourceRequirement: combinedRequirementInput.value,
-    manualRequirement: requirementText.value,
-    attachmentText: extractedAttachmentText.value,
-    attachments: uploadedFiles.value,
-    analysis: {
-      ...analysisResult.value,
-      sourceText: combinedRequirementInput.value,
-      manualRequirement: requirementText.value,
-      attachmentText: extractedAttachmentText.value,
-      questionResponses,
-      generationSource: analysisResult.value.generationSource || 'local',
-    },
-  })
+  emit('analysis-complete', buildRequirementResult(analysisResult.value, questionResponses))
 }
 </script>
 
@@ -792,6 +797,8 @@ textarea[aria-invalid='true'] {
 }
 
 .next-action {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 16px;
 }
 
