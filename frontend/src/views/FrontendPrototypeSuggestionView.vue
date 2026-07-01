@@ -15,6 +15,14 @@
       :items="apiItems"
     />
 
+    <StepHandoffCard
+      v-if="hasPageDesignContext"
+      eyebrow="页面设计输入"
+      title="来自页面设计阶段的原型生成依据"
+      :summary="pageDesignSummary"
+      :items="pageDesignItems"
+    />
+
     <div class="suggestion-tabs" aria-label="建议类型切换">
       <button
         v-for="item in suggestionTabs"
@@ -123,12 +131,44 @@ const activeTab = ref('views')
 
 const apiContractKey = computed(() => props.projectContext.selectedApiContract?.key || '')
 
+const savedPageDesignResult = computed(() => props.projectContext.pageDesignResult || props.projectContext.stepResults?.page || null)
+
+const savedPageDesign = computed(() => savedPageDesignResult.value?.pageDesign || null)
+
+const savedScenarioSummaries = computed(() => savedPageDesignResult.value?.scenarioSummaries || [])
+
+const savedFileStructure = computed(() => savedPageDesign.value?.fileStructure || {})
+
+const savedPageList = computed(() => {
+  if (savedPageDesign.value?.pages?.length) {
+    return savedPageDesign.value.pages
+  }
+
+  return props.projectContext.selectedPageDesign ? [props.projectContext.selectedPageDesign] : []
+})
+
 const recommendedViewFiles = computed(() => {
+  if (savedPageList.value.length) {
+    return savedPageList.value.map((page) => ({
+      file: page.vueFile,
+      responsibility: page.goal || `实现「${page.name}」页面的业务查看、处理和反馈。`,
+      source: '页面设计：页面清单 + 页面详情',
+    }))
+  }
+
   const matched = suggestionData.viewFiles.filter((item) => item.source.includes(apiContractKey.value))
   return matched.length ? matched : suggestionData.viewFiles.slice(0, 1)
 })
 
 const recommendedComponentFiles = computed(() => {
+  if (savedFileStructure.value.components?.length) {
+    return savedFileStructure.value.components.map((file) => ({
+      file,
+      responsibility: inferComponentResponsibility(file),
+      reusedBy: recommendedViewFiles.value.map((view) => view.file),
+    }))
+  }
+
   const matched = suggestionData.componentFiles.filter((item) =>
     item.reusedBy.some((name) => recommendedViewFiles.value.some((view) => view.file === name)),
   )
@@ -136,6 +176,14 @@ const recommendedComponentFiles = computed(() => {
 })
 
 const recommendedMockDataFiles = computed(() => {
+  if (savedFileStructure.value.data?.length) {
+    return savedFileStructure.value.data.map((file) => ({
+      file,
+      content: '承载页面设计阶段确认的页面清单、导航结构、页面区域和示例业务数据。',
+      usedBy: recommendedViewFiles.value.map((view) => view.file),
+    }))
+  }
+
   const matched = suggestionData.mockDataFiles.filter((item) =>
     item.usedBy.some((name) => recommendedViewFiles.value.some((view) => view.file === name)),
   )
@@ -151,15 +199,52 @@ const suggestionTabs = [
   { key: 'steps', label: '生成顺序' },
 ]
 
-const hasApiContext = computed(() => Boolean(props.projectContext?.selectedApiContract))
+const apiContractResult = computed(() => props.projectContext.apiContractResult || props.projectContext.stepResults?.api || null)
+
+const apiContracts = computed(() => {
+  if (apiContractResult.value?.contracts?.length) {
+    return apiContractResult.value.contracts
+  }
+
+  return props.projectContext.selectedApiContract ? [props.projectContext.selectedApiContract] : []
+})
+
+const hasApiContext = computed(() => Boolean(apiContracts.value.length))
+
+const hasPageDesignContext = computed(() => Boolean(savedPageList.value.length || savedFileStructure.value.views?.length))
+
+const pageDesignSummary = computed(() => {
+  const scenarioCount = savedScenarioSummaries.value.length || 1
+  const pageCount = savedPageList.value.length
+  const viewCount = savedFileStructure.value.views?.length || pageCount
+  return `页面设计阶段已提供 ${scenarioCount} 个场景、${pageCount} 个页面、${viewCount} 个页面文件建议，可直接作为前端原型生成输入。`
+})
+
+const pageDesignItems = computed(() => [
+  {
+    label: '场景与页面数量',
+    value: savedScenarioSummaries.value.map((scenario) => `${scenario.name}：${scenario.pageCount} 个页面`).join('；') || `${savedPageList.value.length} 个页面`,
+  },
+  {
+    label: '页面清单',
+    value: savedPageList.value.map((page) => `${page.name} / ${page.vueFile}`).join('；') || '暂无页面清单',
+  },
+  {
+    label: '导航结构',
+    value: formatNavigation(savedPageDesign.value?.navigation),
+  },
+  {
+    label: '文件建议',
+    value: formatFileStructure(savedFileStructure.value),
+  },
+])
 
 const apiContextSummary = computed(() => {
   if (!hasApiContext.value) {
     return '暂无 API 契约上下文'
   }
 
-  const contract = props.projectContext.selectedApiContract
-  return `已确认接口 ${contract.name}，可据此生成页面、组件与 mock 数据建议。`
+  return `已确认 ${apiContracts.value.length} 个接口契约，可据此生成页面、组件与 mock 数据建议。`
 })
 
 const apiContractPreview = computed(() => {
@@ -167,8 +252,7 @@ const apiContractPreview = computed(() => {
     return '暂无接口信息'
   }
 
-  const contract = props.projectContext.selectedApiContract
-  return `${contract.name} / ${contract.path}`
+  return apiContracts.value.map((contract) => `${contract.name} / ${contract.path}`).join('；')
 })
 
 const apiMethodPreview = computed(() => {
@@ -176,7 +260,7 @@ const apiMethodPreview = computed(() => {
     return '暂无请求方法'
   }
 
-  return props.projectContext.selectedApiContract.method
+  return [...new Set(apiContracts.value.map((contract) => contract.method).filter(Boolean))].join('、') || '暂无请求方法'
 })
 
 const apiItems = computed(() => [
@@ -197,10 +281,50 @@ function confirmAndNext() {
       componentFiles: recommendedComponentFiles.value,
       mockDataFiles: recommendedMockDataFiles.value,
       generationSteps: recommendedSteps.value,
-      apiContract: props.projectContext.selectedApiContract || null,
+      pageDesign: savedPageDesignResult.value,
+      apiContract: apiContractResult.value || props.projectContext.selectedApiContract || null,
       prompt: suggestionData.prompt,
     },
   })
+}
+
+function inferComponentResponsibility(file) {
+  if (file.includes('Header')) {
+    return '承载页面标题、状态摘要和主操作入口。'
+  }
+
+  if (file.includes('Filter')) {
+    return '承载筛选条件、查询和重置动作。'
+  }
+
+  if (file.includes('Detail')) {
+    return '承载当前记录详情、处理表单和状态反馈。'
+  }
+
+  if (file.includes('Table')) {
+    return '承载列表展示、分页和行级操作。'
+  }
+
+  return '根据页面设计阶段的文件建议拆分出的可复用组件。'
+}
+
+function formatNavigation(navigation = []) {
+  if (!navigation.length) {
+    return '暂无导航结构'
+  }
+
+  return navigation.map((item) => `${item.label} -> ${item.target}${item.default ? '（默认）' : ''}`).join('；')
+}
+
+function formatFileStructure(fileStructure = {}) {
+  const views = fileStructure.views || []
+  const components = fileStructure.components || []
+  const data = fileStructure.data || []
+  if (!views.length && !components.length && !data.length) {
+    return '暂无文件建议'
+  }
+
+  return `views：${views.join('、') || '无'}；components：${components.join('、') || '无'}；data：${data.join('、') || '无'}`
 }
 </script>
 
@@ -340,6 +464,8 @@ function confirmAndNext() {
 }
 
 .next-action {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 16px;
 }
 

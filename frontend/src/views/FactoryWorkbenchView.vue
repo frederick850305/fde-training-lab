@@ -1,12 +1,5 @@
 <template>
-  <section class="factory-workbench-view" aria-labelledby="factory-workbench-title">
-    <ViewHeading
-      eyebrow="FDE Self-Service Wizard"
-      title="FDE 自助式原型工厂"
-      title-id="factory-workbench-title"
-      description="从客户原始需求开始，按步骤生成并确认需求、场景、功能、页面、交互、API 契约和前端原型方案。"
-    />
-
+  <section class="factory-workbench-view" aria-label="FDE 自助式原型工厂工作台">
     <section class="runtime-panel" aria-label="生成方式选择">
       <div class="runtime-copy compact">
         <span>生成方式</span>
@@ -64,19 +57,6 @@
       </form>
     </section>
 
-    <section v-if="savedSession" class="local-session-panel" aria-label="本地版本接续">
-      <div>
-        <span>本地版本</span>
-        <strong>发现本地 Markdown 记录</strong>
-        <p>已保存 {{ savedSession.completedCount }} 步，点击接续后从项目本地文件恢复上下文。</p>
-      </div>
-      <div class="local-session-actions">
-        <button class="primary-button" type="button" @click="$emit('restore-local-session')">
-          接续本地版本
-        </button>
-      </div>
-    </section>
-
     <div class="wizard-layout">
       <aside class="wizard-sidebar" aria-label="FDE 方法步骤">
         <div class="step-list">
@@ -118,7 +98,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import StatusTag from '../components/StatusTag.vue'
-import ViewHeading from '../components/ViewHeading.vue'
 
 const props = defineProps({
   projectContext: {
@@ -133,21 +112,17 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  savedSession: {
-    type: Object,
-    default: null,
-  },
   stepOutput: {
     type: [Object, Array, String, Number, Boolean],
     default: null,
   },
 })
 
-const emit = defineEmits(['select-step', 'restore-local-session', 'revision-applied', 'runtime-update'])
+const emit = defineEmits(['select-step', 'revision-applied', 'runtime-update'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
-const localExecutionMode = ref(props.projectContext.executionMode || 'local')
+const localExecutionMode = ref(props.projectContext.executionMode || 'llm-ready')
 const localLlmProvider = ref(props.projectContext.llmProvider === 'none' ? 'deepseek' : props.projectContext.llmProvider || 'deepseek')
 const deepSeekApiKey = ref('')
 const deepSeekModel = ref(props.projectContext.llmModel || 'deepseek-v4-flash')
@@ -163,7 +138,7 @@ const llmConfig = ref({
 watch(
   () => props.projectContext.executionMode,
   (value) => {
-    localExecutionMode.value = value || 'local'
+    localExecutionMode.value = value || 'llm-ready'
   },
 )
 
@@ -171,6 +146,18 @@ watch(
   () => props.projectContext.llmProvider,
   (value) => {
     localLlmProvider.value = value === 'none' ? 'deepseek' : value || 'deepseek'
+  },
+)
+
+watch(
+  () => [props.projectContext.llmConfigured, props.projectContext.llmModel, props.projectContext.llmBaseUrl],
+  ([configured, model, baseUrl]) => {
+    llmConfig.value = {
+      ...llmConfig.value,
+      configured: Boolean(configured),
+    }
+    deepSeekModel.value = model || deepSeekModel.value
+    deepSeekBaseUrl.value = baseUrl || deepSeekBaseUrl.value
   },
 )
 
@@ -309,11 +296,9 @@ function emitRuntimeUpdate() {
 
 <style scoped>
 .factory-workbench-view {
-  margin-top: 16px;
 }
 
 .runtime-panel,
-.local-session-panel,
 .wizard-sidebar,
 .wizard-stage {
   border: 1px solid #dbe3ef;
@@ -326,48 +311,9 @@ function emitRuntimeUpdate() {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(320px, 1fr);
   align-items: end;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 14px 16px;
-}
-
-.local-session-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 14px;
-  border-color: #bfdbfe;
-  padding: 16px;
-  background: #eff6ff;
-}
-
-.local-session-panel div:first-child {
-  display: grid;
-  gap: 6px;
-}
-
-.local-session-panel span {
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.local-session-panel strong {
-  color: #0f172a;
-  font-size: 18px;
-}
-
-.local-session-panel p {
-  margin: 0;
-  color: #526174;
-  line-height: 1.65;
-}
-
-.local-session-actions {
-  display: flex;
-  flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
 }
 
 .runtime-copy.compact {
@@ -465,37 +411,37 @@ function emitRuntimeUpdate() {
 
 .wizard-layout {
   display: grid;
-  gap: 14px;
+  gap: 8px;
 }
 
 .wizard-sidebar,
 .wizard-stage {
-  padding: 14px;
+  padding: 8px 10px;
 }
 
 .wizard-sidebar {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 10px;
+  padding: 8px;
 }
 
 .step-list {
   display: grid;
   grid-template-columns: repeat(7, minmax(110px, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .step-button {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  min-height: 58px;
+  gap: 6px;
+  min-height: 48px;
   width: 100%;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 9px 10px;
+  padding: 7px 8px;
   background: #f8fafc;
   text-align: left;
 }
@@ -542,8 +488,8 @@ function emitRuntimeUpdate() {
 
 .step-main strong {
   color: #0f172a;
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: 13px;
+  line-height: 1.2;
 }
 
 .step-main small {
@@ -554,10 +500,10 @@ function emitRuntimeUpdate() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .stage-strip div {
@@ -580,7 +526,6 @@ function emitRuntimeUpdate() {
 
 @media (max-width: 980px) {
   .runtime-panel,
-  .local-session-panel,
   .stage-strip {
     display: grid;
     grid-template-columns: 1fr;

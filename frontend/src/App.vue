@@ -10,9 +10,6 @@
         :active-step-key="activeMethodStepKey"
         :step-output="activeStepResult"
         @select-step="selectMethodStep"
-        :saved-session="savedSessionSummary"
-        @hydrate-context="resetMethodWorkflow"
-        @restore-local-session="restoreLocalSession"
         @revision-applied="handleStepRevisionApplied"
         @runtime-update="handleRuntimeUpdate"
         @restart-workflow="startNewMethodWorkflow"
@@ -21,12 +18,14 @@
           v-if="activeMethodStepKey === 'requirementInput'"
           :project-context="projectContext"
           @analysis-complete="handleRequirementAnalysisComplete"
+          @analysis-draft-update="handleRequirementAnalysisDraftUpdate"
           @context-update="handleProjectContextUpdate"
         />
         <ScenarioIdentificationView
           v-else-if="activeMethodStepKey === 'scenarioIdentification'"
           :project-context="projectContext"
           @scenario-confirm="handleScenarioConfirm"
+          @scenario-draft-update="handleScenarioDraftUpdate"
         />
         <FeatureDesignView
           v-else-if="activeMethodStepKey === 'featureDesign'"
@@ -43,11 +42,13 @@
         <PageInteractionView
           v-else-if="activeMethodStepKey === 'pageInteraction'"
           :project-context="projectContext"
+          @interaction-draft-update="handleInteractionDraftUpdate"
           @interaction-confirm="handleInteractionConfirm"
         />
         <ApiContractView
           v-else-if="activeMethodStepKey === 'apiContract'"
           :project-context="projectContext"
+          @api-contract-draft-update="handleApiContractDraftUpdate"
           @api-contract-confirm="handleApiContractConfirm"
         />
         <FrontendPrototypeSuggestionView
@@ -112,6 +113,12 @@ const activeWorkspace = ref('requirementInput')
 const activeMainTab = ref('method')
 const isRestoringLocalSession = ref(false)
 const savedSessionSummary = ref(null)
+const deepSeekConfigStatus = ref({
+  configured: false,
+  maskedApiKey: '',
+  model: 'deepseek-v4-flash',
+  baseUrl: 'https://api.deepseek.com',
+})
 
 const createEmptyStepResults = () => ({
   requirement: null,
@@ -128,10 +135,10 @@ const createDefaultProjectContext = () => ({
   customerName: '示范客户',
   projectStage: '需求分析准备',
   currentStepLabel: '客户需求输入',
-  contextStatus: '本地规则生成',
-  summary: '当前为 FDE 自助式原型工厂上下文。可先用本地规则生成草案，后续切换为 DeepSeek 或其他大模型。',
-  executionMode: 'local',
-  llmProvider: 'none',
+  contextStatus: 'DeepSeek 服务已选择',
+  summary: '默认使用大模型生成；DeepSeek Key 保存后，将通过本地 FastAPI 调用真实服务。',
+  executionMode: 'llm-ready',
+  llmProvider: 'deepseek',
   llmConfigured: false,
   llmModel: 'deepseek-v4-flash',
   llmBaseUrl: 'https://api.deepseek.com',
@@ -140,6 +147,44 @@ const createDefaultProjectContext = () => ({
 })
 
 const projectContext = ref(createDefaultProjectContext())
+
+const mergeDeepSeekConfigStatus = (context) => ({
+  ...context,
+  llmConfigured: deepSeekConfigStatus.value.configured,
+  llmModel: deepSeekConfigStatus.value.model || context.llmModel,
+  llmBaseUrl: deepSeekConfigStatus.value.baseUrl || context.llmBaseUrl,
+})
+
+const updateDeepSeekConfigStatus = ({ configured, maskedApiKey, model, baseUrl }) => {
+  deepSeekConfigStatus.value = {
+    configured: Boolean(configured),
+    maskedApiKey: maskedApiKey || deepSeekConfigStatus.value.maskedApiKey,
+    model: model || deepSeekConfigStatus.value.model,
+    baseUrl: baseUrl || deepSeekConfigStatus.value.baseUrl,
+  }
+
+  projectContext.value = mergeDeepSeekConfigStatus(projectContext.value)
+}
+
+const loadGlobalDeepSeekConfigStatus = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/llm/config`)
+    if (!response.ok) {
+      throw new Error(`读取 DeepSeek 配置失败：${response.status}`)
+    }
+
+    const payload = await response.json()
+    const data = payload.data || {}
+    updateDeepSeekConfigStatus({
+      configured: data.configured,
+      maskedApiKey: data.masked_api_key,
+      model: data.model,
+      baseUrl: data.base_url,
+    })
+  } catch (error) {
+    console.warn('Failed to read global DeepSeek config', error)
+  }
+}
 
 const hasConfirmedStepResult = (context) => {
   return Object.values(context.stepResults || {}).some(Boolean)
@@ -245,7 +290,11 @@ watch(projectContext, persistLocalSession, { deep: true })
 
 watch([activeWorkspace, activeMainTab], persistLocalSession)
 
-onMounted(refreshSavedSessionSummary)
+onMounted(async () => {
+  refreshSavedSessionSummary()
+  loadGlobalDeepSeekConfigStatus()
+  await hydrateRequiredMethodInputs(activeMethodStepKey.value, { preferSaved: true })
+})
 
 const prototypeNavItems = [
   { key: 'projectOverview', label: '项目总览', stage: 'P0' },
@@ -464,12 +513,12 @@ const readStepResultFromMarkdown = async (stepKey) => {
 const hydrateRequiredMethodInputs = async (targetWorkspaceKey, options = {}) => {
   const targetIndex = methodStepDefinitions.findIndex((item) => item.key === targetWorkspaceKey)
 
-  if (targetIndex <= 0) {
+  if (targetIndex < 0) {
     return
   }
 
   const existingResults = projectContext.value.stepResults || createEmptyStepResults()
-  for (const definition of methodStepDefinitions.slice(0, targetIndex)) {
+  for (const definition of methodStepDefinitions.slice(0, targetIndex + 1)) {
     if (existingResults[definition.resultKey] && !options.preferSaved) {
       continue
     }
@@ -600,11 +649,17 @@ const handleStepRevisionApplied = ({ stepKey, revisedOutput, revisionInstruction
 const handleRuntimeUpdate = ({ executionMode, llmProvider, llmConfigured, llmModel, llmBaseUrl }) => {
   const isLocalRule = executionMode === 'local'
   const nextProvider = isLocalRule ? 'none' : llmProvider
+  updateDeepSeekConfigStatus({
+    configured: typeof llmConfigured === 'boolean' ? llmConfigured : deepSeekConfigStatus.value.configured,
+    model: llmModel,
+    baseUrl: llmBaseUrl,
+  })
+
   projectContext.value = {
     ...projectContext.value,
     executionMode,
     llmProvider: nextProvider,
-    llmConfigured: typeof llmConfigured === 'boolean' ? llmConfigured : projectContext.value.llmConfigured,
+    llmConfigured: deepSeekConfigStatus.value.configured,
     llmModel: llmModel || projectContext.value.llmModel,
     llmBaseUrl: llmBaseUrl || projectContext.value.llmBaseUrl,
     contextStatus: isLocalRule ? '本地规则生成' : nextProvider === 'deepseek' ? 'DeepSeek 服务已选择' : '大模型生成配置已选择',
@@ -627,10 +682,10 @@ const getWorkspaceForLastSavedStep = (stepResults) => {
 
 const restoreMarkdownSession = async () => {
   isRestoringLocalSession.value = true
-  projectContext.value = {
+  projectContext.value = mergeDeepSeekConfigStatus({
     ...createDefaultProjectContext(),
     contextStatus: '正在读取本地 Markdown 版本',
-  }
+  })
 
   const loadedResults = createEmptyStepResults()
   for (const definition of methodStepDefinitions) {
@@ -643,11 +698,11 @@ const restoreMarkdownSession = async () => {
 
   activeWorkspace.value = getWorkspaceForLastSavedStep(loadedResults)
   activeMainTab.value = 'method'
-  projectContext.value = {
+  projectContext.value = mergeDeepSeekConfigStatus({
     ...projectContext.value,
     contextStatus: '已接续本地 Markdown 版本',
     summary: '已从项目本地 Markdown 文件读取此前保存的步骤结果。',
-  }
+  })
   isRestoringLocalSession.value = false
   await refreshSavedSessionSummary()
 }
@@ -668,7 +723,7 @@ const restoreLocalSession = async () => {
   }
 
   isRestoringLocalSession.value = true
-  projectContext.value = {
+  projectContext.value = mergeDeepSeekConfigStatus({
     ...createDefaultProjectContext(),
     ...summary.projectContext,
     stepResults: {
@@ -676,7 +731,7 @@ const restoreLocalSession = async () => {
       ...(summary.projectContext.stepResults || {}),
     },
     contextStatus: '已恢复浏览器本地版本',
-  }
+  })
   activeWorkspace.value = summary.activeWorkspace
   activeMainTab.value = summary.activeMainTab
   isRestoringLocalSession.value = false
@@ -695,14 +750,14 @@ const startNewMethodWorkflow = () => {
 }
 
 const hydrateProjectContext = () => {
-  projectContext.value = {
+  projectContext.value = mergeDeepSeekConfigStatus({
     ...createDefaultProjectContext(),
     customerName: '华东海工制造客户',
     projectStage: '客户需求调研阶段',
     summary: '客户希望通过前台原型先验证项目进度、现场调度、物料到货和异常闭环，再逐步接入 FastAPI 与 DeepSeek。',
     sourceRequirement: '',
     requirementAnalysis: null,
-  }
+  })
 }
 
 
@@ -734,6 +789,21 @@ const handleRequirementAnalysisComplete = async ({ sourceRequirement, manualRequ
   await selectWorkspace('scenarioIdentification')
 }
 
+const handleRequirementAnalysisDraftUpdate = (result) => {
+  writeStepResult('requirement', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: '客户需求输入',
+    contextStatus: '已覆盖保存需求拆解草稿到本地 Markdown',
+    sourceRequirement: result.sourceRequirement,
+    manualRequirement: result.manualRequirement,
+    attachmentText: result.attachmentText,
+    requirementAttachments: result.attachments,
+    requirementAnalysis: result.analysis,
+    summary: '需求拆解草稿已覆盖保存，requirement.md 保持唯一最新版本。',
+  }
+}
+
 const handleScenarioConfirm = async ({ scenario }) => {
   const savePromise = writeStepResult('scenario', scenario)
   projectContext.value = {
@@ -749,20 +819,37 @@ const handleScenarioConfirm = async ({ scenario }) => {
   await selectWorkspace('featureDesign')
 }
 
+const handleScenarioDraftUpdate = (result) => {
+  writeStepResult('scenario', result)
+  const scenarioName = result.selectedScenario?.name || result.name || '场景识别草稿'
+  projectContext.value = {
+    ...projectContext.value,
+    contextStatus: '已覆盖保存场景识别草稿到本地 Markdown',
+    selectedScenario: result,
+    summary: `已覆盖保存「${scenarioName}」到 prototype_factory/local_step_outputs/scenario.md，文件保持唯一最新版本。`,
+  }
+}
+
 const handleFeatureConfirm = async (result) => {
   const savePromise = writeStepResult('feature', result)
+  const selectedModule = result.module || result.allMappings?.find((mapping) => mapping.modules?.length)?.modules?.[0] || null
   projectContext.value = {
     ...projectContext.value,
     projectStage: '功能设计已确认',
     currentStepLabel: '功能设计',
-    contextStatus: '已写入功能模块结果',
-    selectedFeatureModule: result.module,
+    contextStatus: '正在保存功能模块结果',
+    selectedFeatureModule: selectedModule,
     allFeatureMappings: result.allMappings,
     revisedModulesByScenarioKey: result.revisedModulesByScenarioKey,
-    summary: `已确认功能模块：${result.module.name}，同步保存全部场景映射结果，下一步进入页面设计。`,
+    summary: `正在保存功能设计结果：${selectedModule?.name || '未命名模块'}，保存完成后进入页面设计。`,
   }
 
   await savePromise
+  projectContext.value = {
+    ...projectContext.value,
+    contextStatus: '已写入功能模块结果',
+    summary: `已确认功能模块：${selectedModule?.name || '未命名模块'}，同步保存全部场景映射结果，下一步进入页面设计。`,
+  }
   await selectWorkspace('pageDesign')
 }
 
@@ -770,15 +857,15 @@ const handleFeatureDraftUpdate = (result) => {
   writeStepResult('feature', result)
   projectContext.value = {
     ...projectContext.value,
-    contextStatus: '已保存功能模块修改草稿',
+    contextStatus: '已覆盖保存功能设计草稿到本地 Markdown',
     selectedFeatureModule: result.module,
     allFeatureMappings: result.allMappings,
     revisedModulesByScenarioKey: result.revisedModulesByScenarioKey,
-    summary: `已保存当前场景的功能模块修改：${result.module?.name || '未命名模块'}。`,
+    summary: `已覆盖保存当前功能设计结果：${result.module?.name || '已生成模块映射'}，feature.md 保持唯一最新版本。`,
   }
 }
 
-const applyPageDesignResult = (result, statusText = '已保存页面设计草稿') => {
+const applyPageDesignResult = (result, statusText = '已覆盖保存页面设计草稿到本地 Markdown') => {
   const savePromise = writeStepResult('page', result)
   projectContext.value = {
     ...projectContext.value,
@@ -811,30 +898,59 @@ const handlePageDesignConfirm = async (result) => {
   await selectWorkspace('pageInteraction')
 }
 
-const handleInteractionConfirm = async ({ page }) => {
-  const savePromise = writeStepResult('interaction', page)
+const handleInteractionConfirm = async ({ page, interactionDesign }) => {
+  const result = interactionDesign || { pages: page ? [page] : [], selectedPage: page }
+  const savePromise = writeStepResult('interaction', result)
   projectContext.value = {
     ...projectContext.value,
     projectStage: '交互设计已确认',
     currentStepLabel: '交互设计',
     contextStatus: '已写入交互设计结果',
     selectedInteractionPage: page,
-    summary: `已确认交互页面：${page.name}，下一步进入 API 契约设计。`,
+    interactionDesignResult: result,
+    summary: `已确认 ${result.pages?.length || 1} 个页面的交互设计，下一步进入 API 契约设计。`,
   }
 
   await savePromise
   await selectWorkspace('apiContract')
 }
 
-const handleApiContractConfirm = async ({ contract }) => {
-  const savePromise = writeStepResult('api', contract)
+const handleInteractionDraftUpdate = (result) => {
+  writeStepResult('interaction', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: '交互设计',
+    contextStatus: '已覆盖保存当前页面交互设计草稿',
+    selectedInteractionPage: result.selectedPage,
+    interactionDesignResult: result,
+    summary: `已覆盖保存 ${result.pages?.length || 1} 个页面的交互设计草稿到本地 interaction.md，文件保持唯一最新版本。`,
+  }
+}
+
+const handleApiContractDraftUpdate = (result) => {
+  const selectedContract = result?.selectedContract || result?.contracts?.[0] || null
+  writeStepResult('api', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: 'API 契约设计',
+    contextStatus: '已覆盖保存 API 契约草稿',
+    selectedApiContract: selectedContract,
+    apiContractResult: result,
+    summary: `已生成并保存 ${result?.contracts?.length || 0} 个接口契约到本地 api.md。`,
+  }
+}
+
+const handleApiContractConfirm = async ({ contract, apiContractDesign }) => {
+  const result = apiContractDesign || { contracts: contract ? [contract] : [], selectedContract: contract }
+  const savePromise = writeStepResult('api', result)
   projectContext.value = {
     ...projectContext.value,
     projectStage: 'API 契约已确认',
     currentStepLabel: 'API 契约设计',
     contextStatus: '已写入 API 契约结果',
     selectedApiContract: contract,
-    summary: `已确认接口：${contract.name}，下一步进入前端原型建议。`,
+    apiContractResult: result,
+    summary: `已确认 ${result.contracts?.length || 1} 个接口契约，下一步进入前端原型建议。`,
   }
 
   await savePromise

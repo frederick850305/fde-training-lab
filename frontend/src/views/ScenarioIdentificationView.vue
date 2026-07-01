@@ -47,8 +47,8 @@
         <strong>先生成用户角色，再生成业务场景、任务流程和页面映射</strong>
         <p>当前草案基于第 01 步的需求文本、附件解析内容、需求拆解结果和你的问题回复生成；可在写入前逐项修订。</p>
       </div>
-      <button class="secondary-button" type="button" @click="regenerateDraft">
-        重新拆解
+      <button class="secondary-button" type="button" :disabled="isLlmGenerating" @click="generateScenarioDraftFromRequirement">
+        {{ isLlmGenerating ? '拆解中...' : '重新拆解' }}
       </button>
     </section>
 
@@ -63,6 +63,9 @@
         </div>
 
         <div class="role-list">
+          <div v-if="!editableRoles.length" class="empty-placeholder compact">
+            暂无用户角色。点击“重新拆解”后，系统会先基于第 01 步结果调用大模型拆分用户角色。
+          </div>
           <section v-for="(role, roleIndex) in editableRoles" :key="role.id" class="role-card">
             <label>
               <span>角色名称</span>
@@ -88,12 +91,18 @@
             <strong>由用户角色推导出的关键使用场景</strong>
           </div>
           <div class="panel-actions">
-            <button class="secondary-button small" type="button" @click="rebuildScenariosFromCurrentRoles">根据角色生成场景</button>
+            <button class="secondary-button small" type="button" :disabled="isLlmGenerating" @click="rebuildScenariosFromCurrentRoles">
+              {{ isLlmGenerating ? '生成中...' : '根据角色生成场景' }}
+            </button>
             <button class="secondary-button small" type="button" @click="addScenario">新增场景</button>
           </div>
+          <p v-if="llmGenerateMessage" class="llm-generate-message">{{ llmGenerateMessage }}</p>
         </div>
 
         <div class="scenario-list" aria-label="业务场景列表">
+          <div v-if="!editableScenarios.length" class="empty-placeholder compact">
+            暂无业务场景。确认用户角色后，系统会再调用大模型生成业务场景、任务流程和页面映射。
+          </div>
           <section
             v-for="(item, index) in editableScenarios"
             :key="item.key"
@@ -103,7 +112,9 @@
           >
             <div class="scenario-card-head">
               <input v-model.trim="item.priority" type="text" aria-label="优先级" />
-              <button class="text-button" type="button" @click.stop="removeScenario(index)">移除</button>
+              <div class="card-head-actions">
+                <button class="secondary-button tiny" type="button" @click.stop="removeScenario(index)">移除</button>
+              </div>
             </div>
             <label>
               <span>场景名称</span>
@@ -134,7 +145,9 @@
       <article class="detail-card editable-detail">
         <div class="detail-heading">
           <span>任务流程</span>
-          <button class="secondary-button small" type="button" @click="addWorkflowStep">新增步骤</button>
+          <div class="detail-head-actions">
+            <button class="secondary-button small" type="button" @click="addWorkflowStep">新增步骤</button>
+          </div>
         </div>
         <div class="editable-list">
           <label v-for="(step, index) in selectedScenario.workflow" :key="index">
@@ -148,7 +161,9 @@
       <article class="detail-card editable-detail">
         <div class="detail-heading">
           <span>页面映射</span>
-          <button class="secondary-button small" type="button" @click="addPageModule">新增模块</button>
+          <div class="detail-head-actions">
+            <button class="secondary-button small" type="button" @click="addPageModule">新增模块</button>
+          </div>
         </div>
         <label>
           <span>建议页面</span>
@@ -162,7 +177,29 @@
           </label>
         </div>
       </article>
+
     </section>
+
+    <div v-if="pendingRoleDialogOpen" class="dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="role-confirm-title">
+      <article class="role-confirm-dialog">
+        <div class="dialog-heading">
+          <span>用户角色确认</span>
+          <h3 id="role-confirm-title">大模型已完成用户角色拆分</h3>
+          <p>确认后，将基于这些用户角色继续调用大模型生成业务场景、任务流程和页面映射。</p>
+        </div>
+        <div class="pending-role-list">
+          <section v-for="role in pendingRoles" :key="role.id" class="pending-role-card">
+            <strong>{{ role.name }}</strong>
+            <p>{{ role.focus || '暂无职责说明' }}</p>
+            <small>{{ role.tagText || '暂无场景标签' }}</small>
+          </section>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" @click="cancelPendingRoles">取消</button>
+          <button class="primary-button" type="button" @click="confirmPendingRolesAndGenerateScenarios">确认并生成业务场景</button>
+        </div>
+      </article>
+    </div>
 
     <LlmStepRevisionPanel
       class="scenario-revision-panel"
@@ -178,14 +215,14 @@
         <strong>阅读并修订完成后，将当前选中的场景写入项目上下文</strong>
       </div>
       <button class="primary-button" type="button" @click="confirmScenario">
-        写入场景并进入功能设计
+        确认并进入下一步
       </button>
     </section>
   </section>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import LlmStepRevisionPanel from '../components/LlmStepRevisionPanel.vue'
 import ViewHeading from '../components/ViewHeading.vue'
 
@@ -196,7 +233,10 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['scenario-confirm'])
+const emit = defineEmits(['scenario-confirm', 'scenario-draft-update'])
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
+const LLM_REQUEST_TIMEOUT_MS = 30000
 
 const scenarioRevisionStep = {
   key: 'scenarioIdentification',
@@ -206,8 +246,22 @@ const scenarioRevisionStep = {
 
 const editableRoles = ref([])
 const editableScenarios = ref([])
+const pendingRoles = ref([])
+const pendingRoleDialogOpen = ref(false)
 const selectedKey = ref('')
 const isRequirementSummaryOpen = ref(false)
+const isLlmGenerating = ref(false)
+const llmGenerateMessage = ref('')
+let activeScenarioGenerationController = null
+
+onUnmounted(() => {
+  if (messageClearTimer) {
+    clearTimeout(messageClearTimer)
+  }
+  if (activeScenarioGenerationController) {
+    activeScenarioGenerationController.abort()
+  }
+})
 
 const requirementText = computed(() => {
   const analysis = props.projectContext.requirementAnalysis || {}
@@ -295,13 +349,38 @@ const currentScenarioOutput = computed(() => ({
   },
 }))
 
+const requirementGenerationSignature = computed(() => JSON.stringify({
+  sourceRequirement: props.projectContext.sourceRequirement || '',
+  requirementAnalysis: props.projectContext.requirementAnalysis || null,
+  attachmentText: props.projectContext.attachmentText || '',
+}))
+
 watch(
-  () => props.projectContext.requirementAnalysis,
+  () => requirementGenerationSignature.value,
   () => {
-    regenerateDraft()
+    const saved = props.projectContext.stepResults?.scenario || props.projectContext.selectedScenario
+    if (hasSavedScenarioData(saved)) {
+      applyScenarioOutput(saved)
+      return
+    }
+
+    resetScenarioPlaceholders()
   },
   { immediate: true },
 )
+
+function hasSavedScenarioData(saved) {
+  return Boolean(
+    saved
+      && (
+        saved.sourceRoles?.length
+        || saved.availableScenarios?.length
+        || saved.selectedScenario
+        || saved.scenario
+        || saved.name
+      ),
+  )
+}
 
 function detectDomainLabel(text) {
   const source = text.toLowerCase()
@@ -455,6 +534,15 @@ function toBusinessPageName(value) {
   return pascal === 'Scenario' ? 'ScenarioWorkspace' : pascal
 }
 
+function resetScenarioPlaceholders() {
+  editableRoles.value = []
+  editableScenarios.value = []
+  pendingRoles.value = []
+  pendingRoleDialogOpen.value = false
+  selectedKey.value = ''
+  llmGenerateMessage.value = ''
+}
+
 function regenerateDraft() {
   const roles = buildRolesFromRequirement()
   editableRoles.value = roles
@@ -462,10 +550,226 @@ function regenerateDraft() {
   selectedKey.value = editableScenarios.value[0]?.key || ''
 }
 
-function rebuildScenariosFromCurrentRoles() {
-  editableScenarios.value = buildScenariosFromRoles(editableRoles.value)
-  selectedKey.value = editableScenarios.value[0]?.key || ''
+function buildRequirementInputForLlm() {
+  const analysis = props.projectContext.requirementAnalysis || {}
+  return {
+    projectName: props.projectContext.projectName,
+    customerName: props.projectContext.customerName,
+    sourceRequirement: props.projectContext.sourceRequirement || '',
+    manualRequirement: props.projectContext.manualRequirement || '',
+    attachmentText: props.projectContext.attachmentText || analysis.attachmentText || '',
+    businessBackground: analysis.businessBackground || '',
+    painPoints: analysis.painPoints || [],
+    businessGoals: analysis.businessGoals || analysis.goals || [],
+    userRoles: analysis.userRoles || [],
+    questions: analysis.questions || [],
+    questionResponses: analysis.questionResponses || [],
+  }
 }
+
+async function requestLlmRevision({ stepKey, stepTitle, instruction, currentOutput, signal }) {
+  const response = await fetch(`${API_BASE_URL}/llm/revise-step`, {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      step_key: stepKey,
+      step_title: stepTitle,
+      instruction,
+      current_output: currentOutput,
+      project_context: {
+        projectName: props.projectContext.projectName,
+        customerName: props.projectContext.customerName,
+        sourceRequirement: props.projectContext.sourceRequirement,
+      },
+    }),
+  })
+
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || payload.success === false) {
+    throw new Error(payload?.detail?.message || payload?.message || '大模型调用失败')
+  }
+
+  return payload.data?.revised_output
+}
+
+async function withLlmTimeout(task) {
+  if (activeScenarioGenerationController) {
+    activeScenarioGenerationController.abort()
+  }
+
+  const controller = new AbortController()
+  activeScenarioGenerationController = controller
+  const timeoutId = setTimeout(() => controller.abort(), LLM_REQUEST_TIMEOUT_MS)
+
+  try {
+    return await task(controller.signal)
+  } finally {
+    clearTimeout(timeoutId)
+    if (activeScenarioGenerationController === controller) {
+      activeScenarioGenerationController = null
+    }
+  }
+}
+
+async function generateScenarioDraftFromRequirement() {
+  if (isLlmGenerating.value) {
+    return
+  }
+
+  if (!props.projectContext.requirementAnalysis) {
+    setLlmMessage('请先完成第 01 步需求拆解', false)
+    return
+  }
+
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    setLlmMessage('请先切换到大模型生成并配置 DeepSeek Key', false)
+    return
+  }
+
+  isLlmGenerating.value = true
+  setLlmMessage('正在基于第 01 步结果拆分用户角色...', false)
+
+  try {
+    const revised = await withLlmTimeout((signal) => requestLlmRevision({
+      signal,
+      stepKey: 'scenarioRoleAutoGenerate',
+      stepTitle: '基于第 01 步需求拆解生成用户角色',
+      instruction: `请基于第 01 步传来的客户原始需求、附件解析文本、业务背景、痛点、目标和待确认问题回复，只拆分将使用该系统的用户角色。必须只输出严格 JSON 对象，不要 Markdown，不要解释。JSON 结构必须为 {"roles":[{"name":"角色名","focus":"职责说明","tagText":"该角色可能使用的场景标签，用顿号分隔"}]}。要求：角色必须来自需求信息或由需求合理推导；不要生成泛化职位；一般生成 3-6 个角色。`,
+      currentOutput: buildRequirementInputForLlm(),
+    }))
+
+    const roles = revised?.roles || revised?.sourceRoles || []
+    if (!Array.isArray(roles) || !roles.length) {
+      throw new Error('大模型没有返回可用的用户角色')
+    }
+
+    pendingRoles.value = roles.map(normalizeEditableRole)
+    pendingRoleDialogOpen.value = true
+    emitScenarioDraftUpdate({ roles: pendingRoles.value, scenarios: editableScenarios.value, selectedScenario: selectedScenario.value })
+    setLlmMessage('用户角色已生成，请在弹窗中确认')
+  } catch (error) {
+    const message = error.name === 'AbortError'
+      ? '大模型拆分用户角色超过 30 秒未返回'
+      : error.message || '大模型拆分用户角色失败'
+    setLlmMessage(message, false)
+  } finally {
+    isLlmGenerating.value = false
+  }
+}
+
+function cancelPendingRoles() {
+  pendingRoleDialogOpen.value = false
+  pendingRoles.value = []
+  setLlmMessage('已取消本次用户角色拆分')
+}
+
+async function confirmPendingRolesAndGenerateScenarios() {
+  if (!pendingRoles.value.length || isLlmGenerating.value) {
+    return
+  }
+
+  editableRoles.value = pendingRoles.value.map((role, index) => normalizeEditableRole(role, index))
+  pendingRoleDialogOpen.value = false
+  pendingRoles.value = []
+  await rebuildScenariosFromCurrentRoles()
+}
+
+
+let messageClearTimer = null
+
+function setLlmMessage(msg, isSuccess = true) {
+  llmGenerateMessage.value = msg
+  if (messageClearTimer) {
+    clearTimeout(messageClearTimer)
+  }
+  if (isSuccess) {
+    messageClearTimer = setTimeout(() => {
+      llmGenerateMessage.value = ''
+    }, 3000)
+  }
+}
+
+async function rebuildScenariosFromCurrentRoles() {
+  const currentRoles = editableRoles.value.map((r) => ({
+    name: r.name,
+    focus: r.focus,
+    tags: splitTags(r.tagText),
+  }))
+
+  if (!currentRoles.length) {
+    setLlmMessage('请先生成或新增用户角色，再生成业务场景', false)
+    return
+  }
+
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    editableScenarios.value = buildScenariosFromRoles(editableRoles.value)
+    selectedKey.value = editableScenarios.value[0]?.key || ''
+    emitScenarioDraftUpdate()
+    setLlmMessage(`未启用大模型，已使用本地规则生成 ${editableScenarios.value.length} 个业务场景`, false)
+    return
+  }
+
+  isLlmGenerating.value = true
+  setLlmMessage('正在根据已确认用户角色生成业务场景...', false)
+
+  try {
+    const revised = await withLlmTimeout((signal) => requestLlmRevision({
+      signal,
+      stepKey: 'scenarioGenerationFromRoles',
+      stepTitle: '根据已确认用户角色生成业务场景',
+      instruction: `请根据已确认的用户角色列表和第 01 步需求摘要，生成合理的业务场景、任务流程和页面映射。必须只输出严格 JSON 对象，不要 Markdown，不要解释。JSON 结构必须为 {"scenarios":[{"priority":"P0/P1","name":"场景名称","description":"场景说明","role":"关联角色名","workflow":["步骤1","步骤2"],"pageMapping":{"role":"关联角色名","page":"VuePageNameView.vue","modules":["模块1","模块2"]}}]}。场景名称格式建议为“角色名+核心动作”，如“调度员现场调度”。P0 场景给最重要角色，P1 给其他关键角色。一般生成 3-6 个场景。`,
+      currentOutput: {
+        roles: currentRoles,
+        requirementSummary: requirementSummaryPreview.value,
+        requirementPainPoints: requirementPainPointsPreview.value,
+        requirementGoals: requirementGoalsPreview.value,
+        questionsAndAnswers: requirementQuestionsPreview.value,
+      },
+    }))
+
+    const scenarios = revised?.scenarios || revised?.availableScenarios || []
+    if (!Array.isArray(scenarios) || !scenarios.length) {
+      throw new Error('大模型没有返回可用的业务场景')
+    }
+
+    const newScenarios = scenarios.map((item, index) => ({
+      key: item.key || `scenario-${Date.now()}-${index}`,
+      name: item.name || `业务场景 ${index + 1}`,
+      priority: item.priority || 'P1',
+      description: item.description || '',
+      workflow: Array.isArray(item.workflow) && item.workflow.length
+        ? item.workflow
+        : [
+            `进入${item.name || '业务'}页面`,
+            `查看${item.role || item.pageMapping?.role || '角色'}关注的业务状态`,
+            '处理关键动作',
+            '补充处理说明或异常反馈',
+            '确认结果并同步给相关角色',
+          ],
+      pageMapping: {
+        role: item.pageMapping?.role || item.role || editableRoles.value[0]?.name || '业务角色',
+        page: item.pageMapping?.page || `${getDomainPrefixForScenario({ name: item.name, description: item.description })}${toBusinessPageName(item.name || '')}View.vue`,
+        modules: Array.isArray(item.pageMapping?.modules) && item.pageMapping.modules.length
+          ? item.pageMapping.modules
+          : [`${item.name || '业务'}列表`, '状态筛选', '详情查看', '处理反馈'],
+      },
+    }))
+
+    editableScenarios.value = newScenarios
+    selectedKey.value = newScenarios[0]?.key || ''
+    emitScenarioDraftUpdate()
+    setLlmMessage(`已根据用户角色生成 ${newScenarios.length} 个业务场景`)
+  } catch (error) {
+    const message = error.name === 'AbortError'
+      ? '大模型生成业务场景超过 30 秒未返回'
+      : error.message || '大模型生成业务场景失败'
+    setLlmMessage(message, false)
+  } finally {
+    isLlmGenerating.value = false
+  }
+}
+
 
 function addRole() {
   const domain = detectDomainLabel(requirementText.value)
@@ -604,11 +908,51 @@ function handleScenarioRevisionApplied({ revisedOutput }) {
   }
 
   applyScenarioOutput(revisedOutput)
+  emitScenarioDraftUpdate()
+}
+
+function buildScenarioDraftResult({ roles = editableRoles.value, scenarios = editableScenarios.value, selectedScenario: activeScenario = selectedScenario.value } = {}) {
+  const normalizedRoles = roles.map((role) => {
+    const normalizedRole = normalizeRole(role)
+    return {
+      name: normalizedRole.name,
+      focus: normalizedRole.focus,
+      tags: normalizedRole.tags,
+    }
+  })
+  const normalizedScenarios = scenarios.map((scenario, index) => {
+    const normalizedScenario = normalizeEditableScenario(scenario, index)
+    return {
+      ...normalizedScenario,
+      workflow: normalizedScenario.workflow.map((step) => step.trim()).filter(Boolean),
+      pageMapping: {
+        ...normalizedScenario.pageMapping,
+        modules: normalizedScenario.pageMapping.modules.map((module) => module.trim()).filter(Boolean),
+      },
+    }
+  })
+  const matchedSelectedScenario = activeScenario
+    ? normalizedScenarios.find((scenario) => scenario.key === activeScenario.key) || normalizeEditableScenario(activeScenario, 0)
+    : normalizedScenarios[0] || null
+
+  return {
+    ...(matchedSelectedScenario || {}),
+    generatedFromRequirementSignature: requirementGenerationSignature.value,
+    sourceRoles: normalizedRoles,
+    availableScenarios: normalizedScenarios,
+    selectedScenarioKey: matchedSelectedScenario?.key || '',
+    selectedScenario: matchedSelectedScenario,
+  }
+}
+
+function emitScenarioDraftUpdate(options) {
+  emit('scenario-draft-update', buildScenarioDraftResult(options))
 }
 
 function normalizeScenarioForSubmit(scenario) {
   return {
     ...scenario,
+    generatedFromRequirementSignature: requirementGenerationSignature.value,
     workflow: scenario.workflow.map((item) => item.trim()).filter(Boolean),
     pageMapping: {
       ...scenario.pageMapping,
@@ -628,6 +972,25 @@ function normalizeScenarioForSubmit(scenario) {
       },
     })),
   }
+}
+
+function getDomainPrefixForScenario(scenario) {
+  const text = [
+    scenario.name || '',
+    scenario.description || '',
+    props.projectContext.sourceRequirement || '',
+  ].join(' ')
+
+  if (text.includes('车辆') || text.includes('司机') || text.includes('车队') || text.includes('门岗')) {
+    return 'Vehicle'
+  }
+  if (text.includes('物料') || text.includes('库存') || text.includes('仓储')) {
+    return 'Material'
+  }
+  if (text.includes('计划') || text.includes('工序') || text.includes('任务') || text.includes('进度')) {
+    return 'Schedule'
+  }
+  return 'Business'
 }
 
 function confirmScenario() {
@@ -942,6 +1305,31 @@ select:focus {
   padding: 16px;
 }
 
+.card-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tiny {
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.llm-generate-message {
+  margin-top: 8px;
+  color: #6366f1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 1080px) {
   .summary-metrics {
     grid-template-columns: 1fr;
@@ -960,4 +1348,95 @@ select:focus {
     display: grid;
   }
 }
+
+.empty-placeholder.compact {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+  color: #64748b;
+  line-height: 1.7;
+  font-weight: 800;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.role-confirm-dialog {
+  display: grid;
+  gap: 16px;
+  width: min(760px, 100%);
+  max-height: min(760px, 90vh);
+  overflow: auto;
+  border-radius: 8px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+.dialog-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.dialog-heading span {
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.dialog-heading h3,
+.dialog-heading p {
+  margin: 0;
+}
+
+.dialog-heading h3 {
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.dialog-heading p {
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.pending-role-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pending-role-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.pending-role-card strong {
+  color: #0f172a;
+}
+
+.pending-role-card p,
+.pending-role-card small {
+  margin: 0;
+  color: #526174;
+  line-height: 1.6;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 </style>
