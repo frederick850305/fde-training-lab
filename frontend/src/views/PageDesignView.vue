@@ -27,7 +27,7 @@
           @keydown.space.prevent="selectScenario(scenario.key)"
         >
           <button
-            class="scenario-generate-button"
+            class="gen-btn"
             type="button"
             :disabled="generatingScenarioKey === scenario.key"
             @click.stop="generateScenarioPageDesign(scenario)"
@@ -117,7 +117,7 @@
               <p>根据左侧当前选中页面生成，并自动更新到本页 Markdown。</p>
             </div>
             <div class="section-actions">
-              <button class="secondary-button small" type="button" :disabled="isGeneratingSections" @click="generateSectionsForSelectedPage">
+              <button class="gen-btn" type="button" :disabled="isGeneratingSections" @click="generateSectionsForSelectedPage">
                 {{ isGeneratingSections ? '生成中...' : '调用大模型生成' }}
               </button>
               <button class="secondary-button small" type="button" @click="addSection">新增区域</button>

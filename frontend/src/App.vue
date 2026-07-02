@@ -55,6 +55,7 @@
           v-else
           :project-context="projectContext"
           @suggestion-confirm="handleSuggestionConfirm"
+          @prototype-draft-update="handlePrototypeDraftUpdate"
         />
       </FactoryWorkbenchView>
     </template>
@@ -79,7 +80,9 @@
         @select="selectWorkspace"
       />
 
-      <ProjectOverviewView v-if="activeWorkspace === 'projectOverview'" :project-context="projectContext" />
+      <PrototypeHubView v-if="activeWorkspace === 'prototypeHub'" :project-context="projectContext" />
+      <DispatchMapView v-else-if="activeWorkspace === 'dispatchMap'" :project-context="projectContext" />
+      <ProjectOverviewView v-else-if="activeWorkspace === 'projectOverview'" :project-context="projectContext" />
       <ScheduleTrackingView v-else-if="activeWorkspace === 'scheduleTracking'" :project-context="projectContext" />
       <IssueTrackingView v-else-if="activeWorkspace === 'issueTracking'" :project-context="projectContext" />
       <OnsiteDispatchView v-else-if="activeWorkspace === 'onsiteDispatch'" :project-context="projectContext" />
@@ -92,6 +95,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import ApiContractView from './views/ApiContractView.vue'
+import DispatchMapView from './views/prototype/DispatchMapView.vue'
 import FeatureDesignView from './views/FeatureDesignView.vue'
 import FactoryWorkbenchView from './views/FactoryWorkbenchView.vue'
 import FrontendPrototypeSuggestionView from './views/FrontendPrototypeSuggestionView.vue'
@@ -102,6 +106,7 @@ import PageDesignView from './views/PageDesignView.vue'
 import PageInteractionView from './views/PageInteractionView.vue'
 import ProjectOverviewView from './views/ProjectOverviewView.vue'
 import PrototypeNav from './components/PrototypeNav.vue'
+import PrototypeHubView from './views/PrototypeHubView.vue'
 import RequirementInputView from './views/RequirementInputView.vue'
 import ScheduleTrackingView from './views/ScheduleTrackingView.vue'
 import ScenarioIdentificationView from './views/ScenarioIdentificationView.vue'
@@ -297,6 +302,8 @@ onMounted(async () => {
 })
 
 const prototypeNavItems = [
+  { key: 'prototypeHub', label: '原型中心', stage: '🏠' },
+  { key: 'dispatchMap', label: '地图监控', stage: 'P0' },
   { key: 'projectOverview', label: '项目总览', stage: 'P0' },
   { key: 'scheduleTracking', label: '计划任务', stage: 'P0' },
   { key: 'issueTracking', label: '异常闭环', stage: 'P0' },
@@ -539,6 +546,9 @@ const applyStoredStepResult = (stepKey, result) => {
   }
 
   if (stepKey === 'requirement') {
+    nextContext.projectName = result.projectName || nextContext.projectName
+    nextContext.customerName = result.customerName || nextContext.customerName
+    nextContext.projectStage = result.projectStage || nextContext.projectStage
     nextContext.sourceRequirement = result.sourceRequirement || nextContext.sourceRequirement
     nextContext.manualRequirement = result.manualRequirement || nextContext.manualRequirement
     nextContext.attachmentText = result.attachmentText || nextContext.attachmentText
@@ -770,11 +780,13 @@ const handleProjectContextUpdate = (nextContext) => {
   }
 }
 
-const handleRequirementAnalysisComplete = async ({ sourceRequirement, manualRequirement = '', attachmentText = '', attachments = [], analysis }) => {
-  const savePromise = writeStepResult('requirement', { sourceRequirement, manualRequirement, attachmentText, attachments, analysis })
+const handleRequirementAnalysisComplete = async ({ projectName = '', customerName = '', projectStage = '', sourceRequirement, manualRequirement = '', attachmentText = '', attachments = [], analysis }) => {
+  const savePromise = writeStepResult('requirement', { projectName, customerName, projectStage, sourceRequirement, manualRequirement, attachmentText, attachments, analysis })
   projectContext.value = {
     ...projectContext.value,
-    projectStage: '需求拆解已确认',
+    projectName: projectName || projectContext.value.projectName,
+    customerName: customerName || projectContext.value.customerName,
+    projectStage: projectStage || '需求拆解已确认',
     currentStepLabel: '客户需求输入',
     contextStatus: '已写入需求拆解结果',
     sourceRequirement,
@@ -940,6 +952,16 @@ const handleApiContractDraftUpdate = (result) => {
   }
 }
 
+const handlePrototypeDraftUpdate = (result) => {
+  writeStepResult('prototype', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: '前端原型建议',
+    contextStatus: '已覆盖保存前端原型草案',
+    summary: `前端原型方案已更新：${result?.pageDetailSpecs?.length || 0} 个页面规格、${result?.pageApiMapping?.length || 0} 个 API 映射、${result?.navigationRoutes?.length || 0} 个导航分组。`,
+  }
+}
+
 const handleApiContractConfirm = async ({ contract, apiContractDesign }) => {
   const result = apiContractDesign || { contracts: contract ? [contract] : [], selectedContract: contract }
   const savePromise = writeStepResult('api', result)
@@ -963,12 +985,14 @@ const handleSuggestionConfirm = async ({ suggestion } = {}) => {
     ...projectContext.value,
     projectStage: '前端原型方案已确认',
     currentStepLabel: '前端原型建议',
-    contextStatus: 'FDE 自助式方法链路已闭环',
-    summary: '已完成需求输入、场景识别、功能设计、页面设计、交互设计、API 契约和前端原型方案输出。',
+    contextStatus: '原型已生成',
+    summary: 'FDE 方法链路已闭环。原型已生成到 prototypes/sea-industry-dispatch/，可独立启动：cd prototypes/sea-industry-dispatch && npm run dev → http://127.0.0.1:5180',
     selectedPrototypeSuggestion: suggestion || { confirmed: true },
   }
 
   await savePromise
+  activeMainTab.value = 'prototypeSystem'
+  activeWorkspace.value = 'prototypeHub'
 }
 
 const workspaceStepLabelMap = {
@@ -982,6 +1006,8 @@ const workspaceStepLabelMap = {
   frontendSuggestion: '前端原型建议',
   prototypeWorkflow: '原型生成流程总览',
   requirementSummary: '客户需求分析',
+  prototypeHub: '业务原型系统',
+  dispatchMap: '业务原型系统',
   projectOverview: '业务原型系统',
   scheduleTracking: '业务原型系统',
   issueTracking: '业务原型系统',
@@ -1024,6 +1050,9 @@ const progressItems = [
   { name: '2-38：API 契约动态路径推荐', status: '完成', statusClass: 'done' },
   { name: '2-39：FDE 自助式单页向导方法', status: '完成', statusClass: 'done' },
   { name: '2-40：需求输入正式化与问题回复流转', status: '完成', statusClass: 'done' },
-  { name: '2-42：本地版本保存与接续', status: '当前', statusClass: 'active' },
+  { name: '2-42：本地版本保存与接续', status: '完成', statusClass: 'done' },
+  { name: '2-43：方法链路闭环后自动跳转原型系统', status: '完成', statusClass: 'done' },
+  { name: '2-44：生成 P0 核心页面 DispatchMapView', status: '完成', statusClass: 'done' },
+  { name: '2-45：独立原型系统架构与打包发布', status: '当前', statusClass: 'active' },
 ]
 </script>

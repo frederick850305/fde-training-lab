@@ -51,7 +51,7 @@
         <button class="secondary-button" type="button" :disabled="isLoading || isParsingFiles" @click="clearInput">
           清空
         </button>
-        <button class="primary-button" type="submit" :disabled="isLoading || isParsingFiles">
+        <button class="gen-btn" type="submit" :disabled="isLoading || isParsingFiles">
           {{ isLoading ? '正在生成草案...' : isParsingFiles ? '正在解析附件...' : '生成草案' }}
         </button>
       </div>
@@ -547,6 +547,9 @@ async function handleAnalyze() {
 
 function buildRequirementResult(analysis, questionResponses) {
   return {
+    projectName: props.projectContext.projectName || '',
+    customerName: props.projectContext.customerName || '',
+    projectStage: props.projectContext.projectStage || '',
     sourceRequirement: combinedRequirementInput.value,
     manualRequirement: requirementText.value,
     attachmentText: extractedAttachmentText.value,
