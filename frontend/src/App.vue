@@ -1053,6 +1053,12 @@ const progressItems = [
   { name: '2-42：本地版本保存与接续', status: '完成', statusClass: 'done' },
   { name: '2-43：方法链路闭环后自动跳转原型系统', status: '完成', statusClass: 'done' },
   { name: '2-44：生成 P0 核心页面 DispatchMapView', status: '完成', statusClass: 'done' },
-  { name: '2-45：独立原型系统架构与打包发布', status: '当前', statusClass: 'active' },
+  { name: '2-45：独立原型系统架构与打包发布', status: '完成', statusClass: 'done' },
+  { name: '2-46：生成 P0 页面 TaskListView', status: '完成', statusClass: 'done' },
+  { name: '2-47：生成 P1 页面 OnsiteVehicleFilter', status: '完成', statusClass: 'done' },
+  { name: '2-48：生成 P1 页面 OnsiteDispatchDialog', status: '完成', statusClass: 'done' },
+  { name: '2-49：生成 P1 页面 OnsiteExceptionAlert', status: '完成', statusClass: 'done' },
+  { name: '2-50：生成 P1 页面 EntryCheckPanel', status: '完成', statusClass: 'done' },
+  { name: '2-51：补齐遗漏的 8 个 P1 页面', status: '当前', statusClass: 'active' },
 ]
 </script>
