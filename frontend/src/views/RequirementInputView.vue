@@ -57,13 +57,16 @@
       </div>
     </form>
 
-    <section v-if="analysisResult" class="analysis-preview" aria-labelledby="analysis-preview-title">
-      <div class="analysis-heading">
-        <p class="eyebrow">Requirement Analysis</p>
-        <h3 id="analysis-preview-title">需求拆解草案</h3>
-      </div>
+    <section v-if="analysisResult" class="analysis-preview" :class="{ collapsed: !isAnalysisOpen }" aria-labelledby="analysis-preview-title">
+      <button class="analysis-toggle" type="button" :aria-expanded="isAnalysisOpen" @click="isAnalysisOpen = !isAnalysisOpen">
+        <div class="analysis-heading">
+          <p class="eyebrow">Requirement Analysis</p>
+          <h3 id="analysis-preview-title">需求拆解草案</h3>
+        </div>
+        <small>{{ isAnalysisOpen ? '收起 ▲' : '展开 ▼' }}</small>
+      </button>
 
-      <div class="analysis-grid">
+      <div v-if="isAnalysisOpen" class="analysis-body">
         <article class="analysis-card wide">
           <span>业务背景</span>
           <p>{{ analysisResult.businessBackground }}</p>
@@ -92,7 +95,6 @@
             </div>
           </dl>
         </article>
-      </div>
 
       <section class="question-replies" aria-labelledby="question-replies-title">
         <div class="analysis-heading compact">
@@ -107,6 +109,8 @@
           </label>
         </div>
       </section>
+
+      </div>
 
       <div class="next-action">
         <button class="primary-button" type="button" @click="goNext">
@@ -140,6 +144,7 @@ const questionReplies = ref([])
 const errorMessage = ref('')
 const isLoading = ref(false)
 const analysisResult = ref(null)
+const isAnalysisOpen = ref(true)
 
 const requirementLength = computed(() => requirementText.value.length)
 
@@ -718,7 +723,29 @@ textarea[aria-invalid='true'] {
   margin-top: 16px;
   padding: 24px;
 }
+.analysis-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
 
+.analysis-toggle small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+.analysis-body {
+  margin-top: 16px;
+}
 .analysis-heading {
   margin-bottom: 16px;
 }

@@ -1,7 +1,7 @@
-# 07 前端原型方案
+# 04 前端原型方案
 
 - 步骤标识：`prototype`
-- 保存时间：2026-07-02T03:26:38.592012+00:00
+- 保存时间：2026-07-02T11:51:03.347124+00:00
 - 用途：作为下一步工作台的输入来源。
 
 ## 内容摘要
@@ -15,1242 +15,570 @@
 {
   "viewFiles": [
     {
-      "file": "DispatchMapView.vue",
-      "responsibility": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
+      "file": "VehicleDispatchView.vue",
+      "responsibility": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
       "source": "页面设计：页面清单 + 页面详情",
       "priority": "P0"
     },
     {
-      "file": "OnsiteVehicleFilter.vue",
-      "responsibility": "支持按车辆类型、状态（空闲/排队/任务中）、作业区域、距离远近等条件筛选车辆，便于调度员快速定位合适车辆",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "OnsiteDispatchDialog.vue",
-      "responsibility": "调度员为选中的车辆分配任务，支持选择用车申请、输入作业点、选择优先级，并一键下发至司机移动端",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "OnsiteExceptionAlert.vue",
-      "responsibility": "实时接收车辆异常告警（超速、禁入区域、异常停留、未授权入场等），支持调度员查看详情、处理告警、标记解决",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "TaskListView.vue",
-      "responsibility": "司机查看个人任务列表，接收新任务通知，筛选和查看不同状态的任务",
+      "file": "DriverTaskView.vue",
+      "responsibility": "司机在移动端集中接收调度任务、导航至作业点确认到达、拍照提交任务完成，实现任务执行全程操作。",
       "source": "页面设计：页面清单 + 页面详情",
       "priority": "P0"
     },
     {
-      "file": "TaskDetailView.vue",
-      "responsibility": "展示任务的详细信息，包括作业点位置、任务要求、物资信息等",
+      "file": "GateCheckView.vue",
+      "responsibility": "门岗人员在一个界面内完成待入场车辆核验、人工授权确认、放行或异常登记，实现入场全流程管控",
       "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
+      "priority": "P0"
     },
     {
-      "file": "NavigationView.vue",
-      "responsibility": "从司机当前位置导航至指定作业点，实时显示路径和预计到达时间",
+      "file": "ManagerReportsView.vue",
+      "responsibility": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
       "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "SiteFeedbackView.vue",
-      "responsibility": "司机在到达作业点后确认到达，并上传现场照片或备注信息",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "EntryCheckPanel.vue",
-      "responsibility": "支持通过扫描车牌或预约二维码，自动核验车辆预约有效性及派车任务关联，快速得出入场许可结果",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "ReleaseManagementPanel.vue",
-      "responsibility": "根据核验结果执行放行或拒绝操作，记录放行时间、车辆信息，并更新相关任务状态",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "AlertPanel.vue",
-      "responsibility": "实时处理未授权入场、证照过期、异常停留等告警，支持告警确认、解除与上报",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "ReleaseRecordQueryView.vue",
-      "responsibility": "按时间、车牌、车辆类型等条件检索放行记录，查看核验详情，支持导出用于审计追溯",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "StatisticsAnalysisView.vue",
-      "responsibility": "提供车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等核心统计指标的图表展示与分析功能",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "ReportExportView.vue",
-      "responsibility": "支持将统计分析结果导出为Excel、PDF等格式，便于管理人员存档、分发和进一步分析",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
-    },
-    {
-      "file": "ResourceAllocationView.vue",
-      "responsibility": "基于历史数据与当前车辆使用情况，提供车辆资源配置优化建议和外协车辆费用管理参考",
-      "source": "页面设计：页面清单 + 页面详情",
-      "priority": "P1"
+      "priority": "P0"
     }
   ],
   "pageDetailSpecs": [
     {
-      "file": "DispatchMapView.vue",
+      "file": "VehicleDispatchView.vue",
       "layoutZones": [
-        {
-          "zone": "地图主区域",
-          "content": "占据屏幕大部分空间的高德/百度地图，显示车辆标记、作业区域热力图、园区电子围栏"
-        },
-        {
-          "zone": "顶部状态栏",
-          "content": "车辆统计卡片（空闲/排队/任务中/异常数量）、刷新按钮、当前视图层级指示"
-        },
-        {
-          "zone": "底部车辆预览面板",
-          "content": "可收起/展开的卡片列表，显示当前地图视野内最近5辆车的摘要信息"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "地图底图加载中，显示旋转加载动画和“地图加载中...”文字，车辆标记暂不显示"
-        },
-        {
-          "state": "empty",
-          "content": "当前视野内无可用车辆，地图区域显示灰色遮罩和“当前区域无车辆”提示"
-        },
-        {
-          "state": "error",
-          "content": "地图API加载失败或网络异常，显示错误图标和“地图加载失败，请检查网络或稍后重试”，并提供重试按钮"
-        },
-        {
-          "state": "success",
-          "content": "地图正常显示，车辆标记按类型/状态着色，图例清晰，交互正常"
-        },
-        {
-          "state": "vehicle_selected",
-          "content": "点击车辆标记后该标记放大并高亮，底部面板展开显示该车辆的详细信息（车牌、司机、速度、状态、任务单号）"
-        },
-        {
-          "state": "zoomed_in",
-          "content": "地图缩放级别≥15时，车辆标记变为详细图标（含方向箭头），并显示车牌号缩写"
-        }
-      ],
-      "keyInteractions": [
-        "点击车辆标记 → 弹出信息气泡（含车辆基本信息），同时底部面板展开详情",
-        "双击地图空白处 → 以点击位置为中心放大一级，并重新加载该区域车辆列表",
-        "单指拖动地图 → 实时更新底部预览面板中的车辆列表，保持与视野同步",
-        "点击顶部统计卡片中的状态数字（如“空闲 12”） → 自动过滤地图只显示该状态的车辆标记",
-        "两指捏合缩放 → 车辆标记大小自适应，缩放级别低于12时合并重叠标记并显示数量角标"
-      ]
-    },
-    {
-      "file": "OnsiteVehicleFilter.vue",
-      "layoutZones": [
-        {
-          "zone": "筛选条件区",
-          "content": "位于页面顶部，包含车辆类型下拉框（叉车/牵引车/AGV）、状态多选按钮组、作业区域树形选择器、距离范围滑块"
-        },
-        {
-          "zone": "结果列表区",
-          "content": "位于页面中部，以卡片列表形式展示匹配车辆，每项包含车牌、类型、状态、当前位置、距调度员距离"
-        },
-        {
-          "zone": "底部操作栏",
-          "content": "悬浮于底部，包含“重置筛选”按钮、“选定派车”按钮（仅在勾选车辆后可用）"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "筛选条件保留用户选择，结果区显示骨架屏（3个灰色卡片脉冲动画）"
-        },
-        {
-          "state": "empty",
-          "content": "结果区显示空状态插图（放大镜+无结果文案）和“尝试调整筛选条件”引导文字"
-        },
-        {
-          "state": "error",
-          "content": "结果区显示错误提示（红色感叹号+“筛选项加载失败”），并提供“重试”按钮"
-        },
-        {
-          "state": "success",
-          "content": "正常展示筛选结果列表，每项右侧有复选框，可多选"
-        },
-        {
-          "state": "filter_active",
-          "content": "筛选条件区有任一条件被选中时，筛选条件区背景变为浅蓝色，底部显示“已筛选X项”标签"
-        },
-        {
-          "state": "vehicle_selected",
-          "content": "用户勾选至少一辆车后，底部“选定派车”按钮从灰色变为高亮蓝色，并显示已选数量"
-        }
-      ],
-      "keyInteractions": [
-        "点击车辆类型下拉选项 → 列表即时刷新，所选类型高亮，其他类型置灰",
-        "拖动距离范围滑块（0-50km） → 滑块右侧数字实时更新，结果列表自动按距离排序并过滤超出范围的车辆",
-        "点击结果列表中车辆的复选框 → 选中时复选框打勾并该行背景高亮；再次点击取消选中",
-        "点击“重置筛选”按钮 → 所有筛选条件恢复默认值（类型=全部、状态=无、距离=50km），结果列表重新加载全部车辆",
-        "点击“选定派车”按钮（至少选1辆车） → 触发派车弹窗（OnsiteDispatchDialog）并传入已选车辆ID数组"
-      ]
-    },
-    {
-      "file": "OnsiteDispatchDialog.vue",
-      "layoutZones": [
-        {
-          "zone": "已选车辆展示区",
-          "content": "位于弹窗顶部，显示已选车辆的车牌号、类型、当前位置，可点击“×”移除某辆车"
-        },
-        {
-          "zone": "任务表单区",
-          "content": "包含用车申请编号下拉选择（来自待分配申请列表）、作业点输入（支持地图选点或文字输入）、优先级单选组（高/中/低）、预计到达时间显示（自动计算）"
-        },
-        {
-          "zone": "底部按钮区",
-          "content": "左侧“取消”按钮，右侧“下发任务”主按钮，提交时显示加载状态"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "提交“下发任务”后：按钮变为禁用并显示转圈动画，同时显示“正在下发...”，弹窗不可关闭"
-        },
-        {
-          "state": "empty",
-          "content": "未选中任何车辆时弹窗不应被打开（此状态不会出现）；若用车申请列表为空，下拉框显示“暂无待分配申请”占位文字"
-        },
-        {
-          "state": "error",
-          "content": "提交失败：按钮恢复可用，弹窗顶部显示红色错误横幅（如“下发失败：网络异常，请重试”）"
-        },
-        {
-          "state": "success",
-          "content": "提交成功：弹窗自动关闭，并在页面右下角弹出绿色成功通知（“已成功派车给【车牌号】”）"
-        },
-        {
-          "state": "form_incomplete",
-          "content": "必填项（用车申请、作业点）未填写时，“下发任务”按钮为灰色禁用状态，且鼠标悬停显示tooltip提示“请完成所有必填项”"
-        },
-        {
-          "state": "submitting",
-          "content": "提交过程中，表单所有输入组件变为只读，防止重复操作"
-        }
-      ],
-      "keyInteractions": [
-        "点击用车申请下拉框 → 展开列表显示所有状态为“待派车”的申请编号及创建时间，选中后自动填充作业点（若申请单已有作业位置）",
-        "在作业点输入框点击地图图标 → 弹出一个微型地图选择器，用户可点击地图上的位置进行定位然后自动填入坐标和地址",
-        "切换优先级单选按钮 → 下方预计到达时间动态变化（高优先级预估时间缩短30%）",
-        "点击“下发任务”按钮（表单有效时） → 弹出二次确认对话框（显示派车摘要：车辆+申请+作业点+优先级），确认后调用后端API并进入loading状态",
-        "点击已选车辆右侧的“×”图标 → 该车辆从列表移除，若移除后车辆数变为0则自动关闭弹窗并返回筛选页面"
-      ]
-    },
-    {
-      "file": "NavigationView.vue",
-      "layoutZones": [
-        {
-          "zone": "顶部导航信息栏",
-          "content": "显示目的地名称、预计到达时间和剩余距离"
-        },
         {
           "zone": "地图区域",
-          "content": "高德/百度地图组件，显示当前位置到目的地的路径，实时更新位置标记"
+          "content": "显示车辆实时位置、状态标记、作业区域边界、异常告警标记；支持缩放和拖动"
         },
         {
-          "zone": "底部操作栏",
-          "content": "包含‘开始导航’、‘结束导航’、‘重新规划’按钮"
+          "zone": "任务请求面板",
+          "content": "任务请求列表，包含请求时间、作业点、优先级、车型需求；支持按区域、优先级筛选"
+        },
+        {
+          "zone": "车辆状态列表",
+          "content": "车辆列表，显示车牌、当前位置、在线/离线、任务状态（空闲/作业中/告警）；支持按区域、类型筛选"
+        },
+        {
+          "zone": "异常告警面板",
+          "content": "超速、禁入区域等告警事件列表，含时间、车辆、类型、处理状态"
         }
       ],
       "uiStates": [
         {
-          "state": "loading",
-          "content": "地图加载中，显示加载动画"
+          "state": "normal",
+          "content": "地图正常显示，任务请求面板和车辆列表正常刷新，无突出告警"
         },
         {
-          "state": "empty",
-          "content": "无路径数据，提示‘请输入目的地或选择作业点’"
+          "state": "urgent",
+          "content": "高优先级任务或紧急告警时，地图高亮闪烁标记，告警面板置顶并显示红点"
         },
         {
-          "state": "error",
-          "content": "定位失败或网络异常，显示错误提示和重试按钮"
-        },
-        {
-          "state": "success",
-          "content": "正常导航中，路径高亮，实时更新车辆位置和预计到达时间"
-        },
-        {
-          "state": "arrived",
-          "content": "到达目的地附近，弹出确认到达对话框，自动跳转到现场反馈页面"
+          "state": "default",
+          "content": "初始加载状态，地图居中显示整体区域，任务请求和车辆列表为空提示"
         }
       ],
       "keyInteractions": [
-        "点击‘开始导航’ → 请求路径规划，地图显示最佳路径，开始实时导航",
-        "点击‘结束导航’ → 确认结束导航，弹出是否到达确认提示",
-        "点击‘重新规划’ → 重新请求路径，避开拥堵或关闭路段",
-        "地图长按 → 查看路径详情，包括途经节点和预计耗时"
+        "点击车辆图标弹出卡片，显示详细状态和可用操作（查看轨迹、发起调度）",
+        "长按任务请求可拖拽至车辆图标完成派车，或点击任务后选择车辆并确认",
+        "点击告警条目，地图自动定位至告警位置，弹出处理弹窗（忽略、强制派券、通知司机）"
       ]
     },
     {
-      "file": "SiteFeedbackView.vue",
+      "file": "DriverTaskView.vue",
       "layoutZones": [
         {
-          "zone": "顶部状态栏",
-          "content": "显示当前作业点名称和‘已到达’标签"
+          "zone": "任务列表",
+          "content": "待接收/已接收任务列表，显示任务编号、作业地点、优先级、距当前位置距离"
         },
         {
-          "zone": "照片上传区",
-          "content": "拍照或从相册选择，支持多张照片预览和删除"
+          "zone": "导航区域",
+          "content": "嵌入式地图或导航卡片，显示从当前位置到作业点的路线和预计时间"
         },
         {
-          "zone": "备注输入区",
-          "content": "文本输入框，支持输入现场备注信息"
-        },
-        {
-          "zone": "底部确认栏",
-          "content": "‘确认到达并提交’按钮，提交后显示结果"
+          "zone": "任务详情/操作区",
+          "content": "显示当前任务的详细信息（客户、联系人、备注），并包含到达确认、提交完成等操作按钮"
         }
       ],
       "uiStates": [
         {
-          "state": "loading",
-          "content": "正在上传照片或提交反馈，显示进度条"
+          "state": "noTask",
+          "content": "列表为空提示，导航区域隐藏，操作区显示'暂无任务'状态"
         },
         {
-          "state": "empty",
-          "content": "尚未上传任何照片和备注，提示‘请添加现场照片’"
+          "state": "taskPending",
+          "content": "列表中有待接收任务，操作区显示'接收任务'按钮，导航区域未激活"
         },
         {
-          "state": "error",
-          "content": "提交失败，显示错误原因和重试按钮"
+          "state": "taskAccepted",
+          "content": "已接收任务，列表该任务标记为已接收，导航区域激活显示路线，操作区显示'到达确认'按钮"
         },
         {
-          "state": "success",
-          "content": "反馈提交成功，显示成功图标和‘已反馈’文字"
-        },
-        {
-          "state": "confirmed",
-          "content": "用户已点击确认到达，但尚未提交反馈，显示灰色‘已确认’状态"
+          "state": "taskArrived",
+          "content": "司机点击到达后，操作区显示'拍照提交完成'按钮，导航区域显示'已到达'标记"
         }
       ],
       "keyInteractions": [
-        "点击‘确认到达’ → 弹出确认对话框，确认后标志变为‘已到达’",
-        "点击拍照按钮 → 打开手机相机，拍照后自动添加到照片列表",
-        "点击备注输入框 → 弹出键盘，实时保存草稿",
-        "点击‘确认到达并提交’ → 验证必填项（至少一张照片），上传数据；成功后跳转回任务列表"
+        "点击任务列表中的任务，展开详情并显示导航预览",
+        "点击'接收任务'按钮确认接单，任务状态变更并启动语音播报",
+        "点击'到达确认'按钮，自动定位打卡并上传位置，状态切换为已到达",
+        "点击'拍照提交完成'，调用摄像头拍摄作业照片，上传后任务关闭"
       ]
     },
     {
-      "file": "EntryCheckPanel.vue",
+      "file": "GateCheckView.vue",
       "layoutZones": [
         {
-          "zone": "扫描区域",
-          "content": "摄像头实时预览，自动识别车牌或二维码，显示识别结果"
+          "zone": "待入场车辆列表",
+          "content": "显示车牌号、预约时间、车辆类型、货物信息、司机信息；支持按时间排序"
         },
         {
-          "zone": "核验结果展示区",
-          "content": "显示核验通过/不通过状态、车辆信息、任务关联信息"
+          "zone": "车辆详情/核验区",
+          "content": "选中车辆后的详情卡片，包含预约单信息、人脸比对结果、证件照片预览"
         },
         {
-          "zone": "手动输入区",
-          "content": "车牌号输入框和‘手动核验’按钮，用于摄像头无法识别时备用"
+          "zone": "操作按钮区",
+          "content": "包含'授权放行'、'登记异常'、'刷新列表'等操作按钮"
         }
       ],
       "uiStates": [
         {
-          "state": "loading",
-          "content": "正在扫描或核验中，显示扫描动画和‘请稍候’"
+          "state": "idle",
+          "content": "列表为空，显示'当前无待入场车辆'提示，详情区空白"
         },
         {
-          "state": "empty",
-          "content": "未开始扫描，提示‘将摄像头对准车牌或二维码’"
+          "state": "selectedVehicle",
+          "content": "列表中有车辆且选中后，详情区显示核验信息，操作按钮可用"
         },
         {
-          "state": "error",
-          "content": "核验失败（如未预约、任务不匹配），显示失败原因和‘重新扫描’按钮"
-        },
-        {
-          "state": "success",
-          "content": "核验通过，显示绿色‘允许入场’和车辆信息"
-        },
-        {
-          "state": "scanning",
-          "content": "正在自动识别车牌或二维码，边框高亮显示识别区域"
-        },
-        {
-          "state": "verified",
-          "content": "已成功完成一次核验，结果保持在屏幕上，等待下次扫描"
+          "state": "abnormal",
+          "content": "当核验发现问题时，详情区高亮显示异常项，操作区'登记异常'按钮突出"
         }
       ],
       "keyInteractions": [
-        "自动扫描车牌 → 识别车牌号，自动触发核验请求",
-        "手动输入车牌号 → 点击‘手动核验’按钮，发起核验",
-        "核验通过 → 显示入场许可二维码，可点击‘打印凭条’",
-        "核验不通过 → 显示具体原因并高亮错误项，提供‘联系管理人员’快速入口"
+        "点击列表车辆条目，右侧详情区自动加载该车辆的预约单与核验数据",
+        "点击'授权放行'，弹出确认弹窗，确认后道闸开启并记录放行日志",
+        "点击'登记异常'，弹出异常登记表单（选择异常类型、填写备注、拍照留证），提交后车辆状态标记为异常"
       ]
     },
     {
-      "file": "ReleaseManagementPanel.vue",
-      "layoutZones": [
-        {
-          "zone": "查询过滤区",
-          "content": "包含时间范围、车牌号、车辆类型等筛选条件输入框，以及搜索/重置按钮"
-        },
-        {
-          "zone": "放行操作区",
-          "content": "展示当前待核验车辆信息（车牌、车型、核验结果），提供放行、拒绝按钮，以及放行/拒绝备注输入框"
-        },
-        {
-          "zone": "放行记录列表区",
-          "content": "以表格形式展示近期放行记录，包含放行时间、车牌、车辆类型、核验结果、操作人、状态（已放行/已拒绝）"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "列表区域显示骨架屏或旋转加载图标，操作按钮禁用"
-        },
-        {
-          "state": "empty",
-          "content": "列表区域显示‘暂无放行记录’提示，操作区显示默认占位信息"
-        },
-        {
-          "state": "error",
-          "content": "列表区域显示错误提示（如‘数据加载失败，请重试’），操作区保持上次有效状态或隐藏"
-        },
-        {
-          "state": "success",
-          "content": "正常显示所有区域数据，操作区根据当前待核验车辆状态显示对应按钮"
-        },
-        {
-          "state": "pending",
-          "content": "操作区显示待核验车辆信息，放行按钮和拒绝按钮均可用，列表区正常显示"
-        },
-        {
-          "state": "rejected",
-          "content": "操作区显示已拒绝信息（含拒绝原因），放行按钮禁用，拒绝按钮变为‘撤销拒绝’"
-        }
-      ],
-      "keyInteractions": [
-        "点击放行按钮 → 弹出确认对话框，点击确认后提交放行请求，列表刷新并显示新记录，操作区切换到下一个待核验车辆",
-        "点击拒绝按钮 → 弹出拒绝原因输入框（必填），提交后列表新增拒绝记录，操作区更新状态",
-        "点击列表行 → 高亮选中行，操作区显示对应记录的详情（只读）",
-        "修改筛选条件后点击查询 → 列表重新加载匹配数据，操作区重置为默认待核验状态"
-      ]
-    },
-    {
-      "file": "AlertPanel.vue",
-      "layoutZones": [
-        {
-          "zone": "告警筛选区",
-          "content": "包含告警类型（未授权、证照过期、异常停留等）、状态（新告警、已确认、已解除、已上报）、时间范围等筛选条件"
-        },
-        {
-          "zone": "告警列表区",
-          "content": "以列表形式显示告警事件，每项包含时间、车辆信息、告警类型、状态、操作按钮（确认、解除、上报）"
-        },
-        {
-          "zone": "告警详情/操作区",
-          "content": "展示选中告警的详细信息（车辆图片、证照图片、停留时长等），并提供批量操作按钮（批量确认、批量解除）"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "列表区域显示加载指示器，操作按钮不可用"
-        },
-        {
-          "state": "empty",
-          "content": "列表区域显示‘无告警事件’，详情区显示‘请选择告警’提示"
-        },
-        {
-          "state": "error",
-          "content": "列表区域显示错误信息（如‘获取告警数据失败’），详情区清空"
-        },
-        {
-          "state": "success",
-          "content": "正常显示所有区域，根据选中告警显示相应按钮（新告警显示确认、解除；已确认显示解除、上报等）"
-        },
-        {
-          "state": "new",
-          "content": "告警列表项标记为红色‘新’标签，操作区显示‘确认’、‘解除’、‘上报’按钮（全部可用）"
-        },
-        {
-          "state": "acknowledged",
-          "content": "告警列表项状态显示为‘已确认’，操作区显示‘解除’、‘上报’按钮，‘确认’按钮隐藏"
-        },
-        {
-          "state": "escalated",
-          "content": "告警列表项状态显示为‘已上报’，操作区仅显示‘解除’按钮，且上报按钮禁用"
-        }
-      ],
-      "keyInteractions": [
-        "点击告警列表中的某一行 → 右侧详情区显示该告警的完整信息，同时操作按钮根据状态更新",
-        "点击‘确认’按钮 → 确认该告警（状态变为已确认），列表刷新，操作按钮更新",
-        "点击‘解除’按钮 → 弹出确认对话框，确认后告警状态变为已解除，列表刷新",
-        "点击‘上报’按钮 → 弹出上级处理人选择对话框，提交后状态变为已上报",
-        "勾选多条告警后点击批量确认/批量解除 → 对选中的告警执行批量操作，列表实时更新"
-      ]
-    },
-    {
-      "file": "ReleaseRecordQueryView.vue",
-      "layoutZones": [
-        {
-          "zone": "查询条件区",
-          "content": "包含入厂时间范围、出厂时间范围（可选）、车牌号输入框、车辆类型下拉选择、放行结果下拉选择（全部/已放行/已拒绝），以及查询和重置按钮"
-        },
-        {
-          "zone": "查询结果列表区",
-          "content": "以表格形式展示符合条件的放行记录，包含序号、车牌号、车辆类型、入厂时间、放行时间、放行结果、操作人、操作列（查看详情）"
-        },
-        {
-          "zone": "导出操作区",
-          "content": "位于列表上方或右侧，提供‘导出全部’、‘导出选中’按钮，以及导出格式选择（Excel/CSV）"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "列表区域显示加载动画，查询按钮显示‘查询中…’并禁用"
-        },
-        {
-          "state": "empty",
-          "content": "列表区域显示‘未查询到相关记录，请调整查询条件’，查询条件区保留用户输入"
-        },
-        {
-          "state": "error",
-          "content": "列表区域显示错误提示（如‘查询失败，请稍后重试’），并显示重试按钮"
-        },
-        {
-          "state": "success",
-          "content": "列表正常显示查询结果，底部显示分页组件"
-        },
-        {
-          "state": "exporting",
-          "content": "导出按钮显示‘导出中…’并禁用，列表区域上方显示导出进度条（如‘正在导出，请勿关闭页面’）"
-        }
-      ],
-      "keyInteractions": [
-        "填写查询条件后点击‘查询’ → 列表显示加载状态，完成查询后展示结果列表，若结果为空则显示空状态提示",
-        "点击列表行中的‘查看详情’ → 弹出详情弹窗，展示该记录的完整核验信息（包括车辆照片、证照、核验结果等）",
-        "点击‘导出全部’ → 根据当前查询条件导出所有记录，下载文件（Excel/CSV）至本地",
-        "勾选列表中的记录后点击‘导出选中’ → 仅导出勾选的记录",
-        "点击重置按钮 → 清空所有查询条件，并自动触发一次默认查询（显示最近一天的记录）"
-      ]
-    },
-    {
-      "file": "StatisticsAnalysisView.vue",
-      "layoutZones": [
-        {
-          "zone": "筛选条件区",
-          "content": "位于页面顶部，提供日期范围选择器、车辆类型下拉框、任务状态过滤等筛选控件，支持快速选择预设时段（今日、本周、本月、自定义）"
-        },
-        {
-          "zone": "KPI指标区",
-          "content": "紧接筛选区下方，以卡片形式展示车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等关键数值，每个卡片包含图标、数值和环比变化指示"
-        },
-        {
-          "zone": "图表分析区",
-          "content": "页面中部，使用折线图、柱状图、饼图等可视化组件展示各指标趋势及分布，支持图表联动与钻取，图表标题显示当前筛选范围"
-        },
-        {
-          "zone": "明细数据表格区",
-          "content": "页面底部，以表格形式展示每辆车的详细运营数据，支持分页、排序和自定义列，表格行可点击查看详情弹窗"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "骨架屏占位，筛选控件禁用，KPI卡片显示加载动画，图表区域显示旋转加载图标"
-        },
-        {
-          "state": "empty",
-          "content": "提示文字“暂无运营数据，请调整筛选条件或确认数据源”，所有图表区域显示空状态插画，表格显示空行"
-        },
-        {
-          "state": "error",
-          "content": "顶部红色错误横幅提示“数据加载失败，请稍后重试”，筛选控件可用，图表区显示错误图标与重试按钮"
-        },
-        {
-          "state": "success",
-          "content": "正常显示所有数据和图表，KPI卡片数值以动画递增呈现，图表使用完整配色"
-        },
-        {
-          "state": "filterApplied",
-          "content": "筛选条件区显示已选条件标签，清除按钮可见，图表标题追加当前筛选描述，KPI卡片数值相应更新"
-        }
-      ],
-      "keyInteractions": [
-        "选择日期范围 → 所有KPI卡片和图表的数值、趋势线即时刷新，表格数据重新加载",
-        "点击KPI卡片 → 弹窗展示该指标的详细趋势图及同期对比数据",
-        "点击图表数据点 → 在图表附近显示Tooltip，包含该点的具体数值与时间戳",
-        "切换车辆类型下拉 → 过滤数据并更新所有区域，同时保留其他筛选条件"
-      ]
-    },
-    {
-      "file": "ReportExportView.vue",
-      "layoutZones": [
-        {
-          "zone": "导出配置区",
-          "content": "页面左侧或顶部区域，包含导出格式选择（Excel / PDF）、报表模板选择（简洁报表、详细报表）、时间范围选择、数据范围（全部车辆/筛选车辆）等设置项"
-        },
-        {
-          "zone": "预览区",
-          "content": "页面中央，根据当前配置实时显示报表预览缩略图或示例数据表格，支持分页预览，预览内容随配置变化动态更新"
-        },
-        {
-          "zone": "操作区",
-          "content": "页面底部，包含“导出报表”主按钮、“取消”次按钮，以及进度条（导出中）状态，下方可选设置项如文件名自定义、是否包含图表等"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "预览区显示加载骨架，按钮禁用且显示“正在生成预览”，配置区所有控件可用但轻微置灰"
-        },
-        {
-          "state": "empty",
-          "content": "提示“未找到可导出的报表数据”，预览区显示空状态提示，导出按钮禁用"
-        },
-        {
-          "state": "error",
-          "content": "预览区顶部显示错误消息“预览生成失败”，导出按钮可用但点击后提示“请先解决错误”，配置区高亮错误项"
-        },
-        {
-          "state": "success",
-          "content": "预览区正常显示报表内容，导出按钮亮起可点击，点击后开始异步导出"
-        },
-        {
-          "state": "exporting",
-          "content": "操作区进度条显示百分比，按钮文字变为“导出中...”，配置区锁定不可修改，完成后自动变为成功状态"
-        },
-        {
-          "state": "exportSuccess",
-          "content": "顶部绿色提示“导出成功”，自动触发浏览器下载，按钮恢复为“导出报表”，并提供“再次导出”链接"
-        }
-      ],
-      "keyInteractions": [
-        "切换导出格式（Excel/PDF） → 预览区立即更新为对应格式的模拟样式（如Excel显示网格，PDF显示分页）",
-        "点击“导出报表”按钮 → 触发后台生成任务，操作区显示进度条，按钮禁用，生成完成后自动下载文件",
-        "选择时间范围 → 预览区数据刷新，并显示所选时间段的统计摘要",
-        "点击预览区某行 → 高亮该行并在右侧弹窗显示该报表项的详细信息"
-      ]
-    },
-    {
-      "file": "ResourceAllocationView.vue",
-      "layoutZones": [
-        {
-          "zone": "优化建议概览区",
-          "content": "页面顶部，以卡片形式展示系统自动生成的资源配置优化建议摘要，包括建议标题、预期效果（节省成本/提升利用率）、置信等级和推荐优先级，卡片可点击展开详情"
-        },
-        {
-          "zone": "车辆使用热力图区",
-          "content": "页面中部左侧，使用热力图展示各时间段各车辆的使用频率，横轴为时间（小时/天），纵轴为车辆或车组，颜色深浅表示使用强度，帮助识别闲置与繁忙车辆"
-        },
-        {
-          "zone": "详细建议列表区",
-          "content": "页面中部右侧或下方，以列表形式逐条展示具体优化建议，每条包含车辆编号、建议类型（增加/减少/外协）、依据数据（当前利用率、任务量）、预估收益与风险评估，支持批量操作"
-        },
-        {
-          "zone": "外协费用参考区",
-          "content": "页面底部，以表格或图表对比自营车辆成本与外协车辆费用，展示历史外协使用次数与费用趋势，辅助决策是否扩大外协比例"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "概览区显示骨架卡片，热力图区显示加载动画，列表区显示占位行，外协费用区显示旋转图标"
-        },
-        {
-          "state": "empty",
-          "content": "提示“当前无资源配置优化建议，可能数据不足或配置已最优”，所有区域显示空状态图标，建议列表显示“暂无建议”"
-        },
-        {
-          "state": "error",
-          "content": "页面顶部错误横幅“计算服务异常，请稍后重试”，建议概览区显示错误提示，操作按钮均可用但点击提示服务不可用"
-        },
-        {
-          "state": "success",
-          "content": "正常显示所有优化建议和图表，概览卡片带有绿色/黄色/红色标签表示建议优先度，热力图使用色阶正常渲染"
-        },
-        {
-          "state": "calculationInProgress",
-          "content": "概览区显示“正在计算优化方案...”的进度提示，热力图显示当前数据，列表区显示“等待计算结果”，外协费用区保留上次数据"
-        }
-      ],
-      "keyInteractions": [
-        "点击优化建议概览卡片 → 下方详细列表自动滚动至对应位置并高亮该建议条目",
-        "点击详细列表中的“应用建议”按钮 → 弹出确认对话框，确认后提交变更请求并刷新概览区状态",
-        "切换热力图时间粒度（日/周/月） → 热力图重新绘制，同时详细建议列表根据新粒度重新排序",
-        "勾选多条建议并点击“批量导出” → 下载包含所选建议的Excel文件，文件名包含当前时间",
-        "点击外协费用趋势图上的数据点 → 显示该时间点的具体费用构成明细"
-      ]
-    },
-    {
-      "file": "OnsiteExceptionAlert.vue",
-      "layoutZones": [
-        {
-          "zone": "告警列表",
-          "content": "显示实时告警条目，包含告警类型、车辆、时间、状态标签，支持按类型筛选"
-        },
-        {
-          "zone": "告警详情",
-          "content": "选中告警后展开显示详细信息：车辆信息、位置、速度、时间戳、告警原因等"
-        },
-        {
-          "zone": "操作面板",
-          "content": "底部固化的处理按钮区域，包括标记解决、忽略、转派等操作"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "全屏加载动画，骨架屏占位列表"
-        },
-        {
-          "state": "empty",
-          "content": "空状态插图，文字提示'暂无告警'，附带刷新按钮"
-        },
-        {
-          "state": "error",
-          "content": "错误提示条，显示网络异常或加载失败，重试按钮"
-        },
-        {
-          "state": "success",
-          "content": "正常列表显示，告警条目按时间倒序排列"
-        },
-        {
-          "state": "alert_detected",
-          "content": "列表中存在未处理告警，条目左侧显示红色脉冲圆点"
-        },
-        {
-          "state": "processing",
-          "content": "点击处理按钮后按钮变为加载状态，显示'处理中...'"
-        }
-      ],
-      "keyInteractions": [
-        "点击告警条目 → 列表右侧/下方展开详情面板，高亮选中行",
-        "点击'标记解决'按钮 → 弹出确认弹窗，确认后按钮变为'已解决'，列表项状态更新",
-        "点击筛选标签(超速/禁入/异常停留) → 刷新列表，仅显示对应类型告警",
-        "下拉列表 → 触发刷新，获取最新告警数据，显示加载指示器",
-        "左右滑动告警条目 → 显示快速处理(忽略/标记解决)按钮"
-      ]
-    },
-    {
-      "file": "TaskListView.vue",
+      "file": "ManagerReportsView.vue",
       "layoutZones": [
         {
           "zone": "顶部筛选栏",
-          "content": "包含任务状态标签(全部/待执行/进行中/已完成)、关键字搜索框、排序选项"
+          "content": "包含时间范围选择器、车辆分组下拉框、指标类型切换按钮（如营收、利用率、故障率）"
         },
         {
-          "zone": "任务列表",
-          "content": "卡片式列表，每项显示任务编号、目的地、时间、状态标签，支持点击进入详情"
+          "zone": "核心指标卡片区",
+          "content": "展示总车辆数、月均里程、维修成本占比、车辆利用率等 KPI 卡片，每个卡片含趋势箭头和数值"
         },
         {
-          "zone": "新任务通知",
-          "content": "顶部横幅区域，当有新任务推送时显示通知横幅，可关闭"
-        }
-      ],
-      "uiStates": [
-        {
-          "state": "loading",
-          "content": "列表区域显示骨架屏，顶部筛选栏正常显示"
+          "zone": "报表图表区",
+          "content": "支持折线图、柱状图、饼图展示运营趋势、资源分配、故障分布等，图表可切换、可缩放"
         },
         {
-          "state": "empty",
-          "content": "空状态插图，文字'暂无任务'，附加'刷新'按钮"
-        },
-        {
-          "state": "error",
-          "content": "列表区域显示网络错误提示，'点击重试'按钮"
-        },
-        {
-          "state": "success",
-          "content": "列表正常显示任务卡片，每张卡片带状态色条"
-        },
-        {
-          "state": "new_task_notification",
-          "content": "顶部横幅滑动出现，显示'您有X条新任务'，右侧'查看'按钮"
-        },
-        {
-          "state": "task_updated",
-          "content": "列表项后部出现'已更新'徽章，表示任务信息有变更"
-        }
-      ],
-      "keyInteractions": [
-        "点击状态标签(待执行/进行中) → 列表刷新，仅显示对应状态任务",
-        "下拉列表 → 触发刷新，顶部显示刷新动画，更新列表",
-        "点击任务卡片 → 跳转至任务详情页(TaskDetailView)，传递任务ID参数",
-        "接收推送通知 → 顶部横幅弹出，5秒后自动消失，点击横幅跳转至新任务",
-        "长按任务卡片 → 弹出操作菜单(分享/取消/备注)"
-      ]
-    },
-    {
-      "file": "TaskDetailView.vue",
-      "layoutZones": [
-        {
-          "zone": "任务头部信息",
-          "content": "显示任务编号、任务类型、当前状态、优先级标签，以及司机/车辆信息"
-        },
-        {
-          "zone": "作业点详情",
-          "content": "嵌入式地图显示作业点位置标记，下方列出地址、联系人、预计到达时间"
-        },
-        {
-          "zone": "物资/要求清单",
-          "content": "可折叠列表，展示任务要求的物资清单或作业要求，每项带勾选框"
+          "zone": "表格详情区",
+          "content": "展示车辆列表或资源调度明细，含分页、排序、筛选功能，每行可展开查看详情"
         },
         {
           "zone": "底部操作栏",
-          "content": "根据任务状态显示不同按钮：开始任务、完成任务、上传凭证等"
+          "content": "包含导出 Excel/PDF 按钮、保存快照按钮、生成决策建议报告入口"
         }
       ],
       "uiStates": [
         {
-          "state": "loading",
-          "content": "全屏加载动画，内容区域骨架占位"
+          "state": "默认加载完成",
+          "content": "所有区域正常显示数据，图表渲染完整，表格有数据行"
         },
         {
-          "state": "empty",
-          "content": "数据缺失提示，'任务信息未找到'，返回列表按钮"
+          "state": "空数据",
+          "content": "各区域展示空状态占位图及提示文字（如“暂无运营数据”），筛选器可操作"
         },
         {
-          "state": "error",
-          "content": "错误提示卡片，'加载任务详情失败'，重试按钮"
+          "state": "加载中",
+          "content": "整体展示骨架屏或局部 loading 指示器，不可交互，禁止重复点击"
         },
         {
-          "state": "success",
-          "content": "正常展示所有区域，地图正常加载，任务状态显示"
-        },
-        {
-          "state": "task_assigned",
-          "content": "底部操作栏显示'开始任务'按钮，任务状态标签为'待执行'"
-        },
-        {
-          "state": "task_in_progress",
-          "content": "底部操作栏显示'完成任务'和'暂停'按钮，地图显示实时导航"
-        },
-        {
-          "state": "task_completed",
-          "content": "底部操作栏显示'重新打开'和'查看报告'，任务状态标签为'已完成'"
-        },
-        {
-          "state": "pending_upload",
-          "content": "底部操作栏出现'上传凭证'按钮，且有红色角标提示未上传数量"
+          "state": "错误/异常",
+          "content": "出现 toast 或 banner 提示错误信息，图表/表格区域显示重试按钮，不影响其他正常区域"
         }
       ],
       "keyInteractions": [
-        "点击地图标记 → 弹出信息窗，显示详细地址和导航入口",
-        "点击'开始任务'按钮 → 弹出确认弹窗，确认后状态变为进行中，底部按钮变化",
-        "点击物资清单中的勾选框 → 切换完成状态，进度条更新",
-        "点击'完成任务'按钮 → 校验必填项(如凭证)，弹出拍照/上传组件",
-        "点击'上传凭证'按钮 → 唤起相机/相册选择，上传后显示缩略图和进度"
+        "点击筛选条件变更后，异步刷新所有关联区域的数据",
+        "点击 KPI 卡片可下钻查看该指标的详细趋势",
+        "图表区域支持悬浮查看数据点数值、点击图例筛选数据系列",
+        "表格行点击展开或跳转到车辆详情页（待定）",
+        "导出按钮触发预览弹窗，确认后下载文件",
+        "生成决策建议报告按钮调用后端接口，完成后弹出报告预览并支持下载"
       ]
     }
   ],
   "componentFiles": [
     {
-      "file": "VehicleInfoCard.vue",
-      "responsibility": "通用车辆信息卡片，展示车牌、类型、状态、当前位置、距离等摘要信息，支持选中和点击交互",
+      "file": "MapView.vue",
+      "responsibility": "通用地图组件，支持显示标记点、路线、告警标记，提供缩放拖动、点击标记交互。",
       "reusedBy": [
-        "DispatchMapView.vue",
-        "OnsiteVehicleFilter.vue",
-        "OnsiteDispatchDialog.vue"
+        "VehicleDispatchView.vue",
+        "DriverTaskView.vue"
       ],
       "props": [
         {
-          "name": "vehicle",
-          "type": "Object",
+          "name": "markers",
+          "type": "Array",
           "required": true,
-          "default": "",
-          "description": "车辆数据对象，包含plate, type, status, location, distance等字段"
+          "default": "[]",
+          "description": "地图标记点数组，每项包含经纬度、图标、颜色等属性"
         },
         {
-          "name": "selectable",
-          "type": "Boolean",
+          "name": "routes",
+          "type": "Array",
           "required": false,
-          "default": "false",
-          "description": "是否显示复选框，允许选中/取消选中"
+          "default": "[]",
+          "description": "路线数组，每项包含起点、终点、路径点列表"
         },
         {
-          "name": "selected",
-          "type": "Boolean",
+          "name": "alerts",
+          "type": "Array",
           "required": false,
-          "default": "false",
-          "description": "当前选中状态（仅当selectable为true时生效）"
+          "default": "[]",
+          "description": "告警标记数组，每项包含位置、类型、严重程度"
         },
         {
-          "name": "highlight",
-          "type": "Boolean",
+          "name": "center",
+          "type": "Object",
           "required": false,
-          "default": "false",
-          "description": "是否高亮显示（用于地图选中车辆时联动）"
+          "default": "{lng:0, lat:0}",
+          "description": "地图初始中心点坐标"
+        },
+        {
+          "name": "zoom",
+          "type": "Number",
+          "required": false,
+          "default": "12",
+          "description": "地图缩放级别"
         }
       ],
       "events": [
         {
-          "name": "click",
-          "payload": "vehicle: Object",
-          "description": "点击卡片区域时触发，传递当前车辆对象"
+          "name": "marker-click",
+          "payload": "Object",
+          "description": "点击标记点时触发，返回该标记的数据对象"
         },
         {
-          "name": "select-change",
-          "payload": "{ vehicle: Object, selected: Boolean }",
-          "description": "复选框状态变化时触发"
-        }
-      ],
-      "slots": []
-    },
-    {
-      "file": "StatusBadge.vue",
-      "responsibility": "通用状态标签，显示车辆或任务的状态文本及对应颜色，支持不同尺寸和自定义颜色",
-      "reusedBy": [
-        "DispatchMapView.vue",
-        "OnsiteVehicleFilter.vue",
-        "OnsiteDispatchDialog.vue",
-        "TaskListView.vue",
-        "AlertPanel.vue",
-        "OnsiteExceptionAlert.vue"
-      ],
-      "props": [
-        {
-          "name": "status",
-          "type": "String",
-          "required": true,
-          "default": "",
-          "description": "状态枚举值，如'空闲','排队','任务中','异常','已到达','已完成'等"
-        },
-        {
-          "name": "size",
-          "type": "String",
-          "required": false,
-          "default": "medium",
-          "description": "标签尺寸：small / medium / large"
-        },
-        {
-          "name": "customColor",
-          "type": "String",
-          "required": false,
-          "default": "",
-          "description": "自定义状态颜色（覆盖默认映射），格式为十六进制或CSS色值"
-        }
-      ],
-      "events": [],
-      "slots": []
-    },
-    {
-      "file": "TaskCard.vue",
-      "responsibility": "任务摘要卡片，展示任务编号、状态、作业点、截止时间等关键信息，支持点击和长按操作",
-      "reusedBy": [
-        "TaskListView.vue",
-        "TaskDetailView.vue"
-      ],
-      "props": [
-        {
-          "name": "task",
-          "type": "Object",
-          "required": true,
-          "default": "",
-          "description": "任务数据对象，包含id, title, status, location, deadline, assignee等字段"
-        },
-        {
-          "name": "compact",
-          "type": "Boolean",
-          "required": false,
-          "default": "false",
-          "description": "紧凑模式（用于列表密集展示时）"
-        }
-      ],
-      "events": [
-        {
-          "name": "click",
-          "payload": "task: Object",
-          "description": "点击卡片时触发"
-        },
-        {
-          "name": "longpress",
-          "payload": "task: Object",
-          "description": "长按卡片时触发"
+          "name": "map-click",
+          "payload": "Object",
+          "description": "点击地图空白区域时触发，返回点击位置经纬度"
         }
       ],
       "slots": [
         {
           "name": "default",
-          "description": "卡片主体内容外部扩展区域，可用于添加自定义操作按钮或状态标签"
+          "description": "地图上的自定义覆盖层，可放置信息窗口等"
         }
       ]
     },
     {
-      "file": "AlertItem.vue",
-      "responsibility": "告警条目组件，显示告警类型、时间、车辆/人员、详情摘要，并提供确认、解除、上报等操作按钮",
+      "file": "DataList.vue",
+      "responsibility": "通用数据列表/表格组件，支持列配置、排序、筛选、分页，适应不同数据展示需求。",
       "reusedBy": [
-        "OnsiteExceptionAlert.vue",
-        "AlertPanel.vue"
+        "VehicleDispatchView.vue",
+        "DriverTaskView.vue",
+        "GateCheckView.vue",
+        "ManagerReportsView.vue"
       ],
       "props": [
         {
-          "name": "alert",
-          "type": "Object",
-          "required": true,
-          "default": "",
-          "description": "告警数据对象，包含type, time, source, description, severity等"
-        },
-        {
-          "name": "actions",
+          "name": "columns",
           "type": "Array",
-          "required": false,
-          "default": "['confirm','resolve']",
-          "description": "可用操作按钮名称列表，支持'confirm','resolve','report'"
-        }
-      ],
-      "events": [
-        {
-          "name": "action",
-          "payload": "{ action: String, alert: Object }",
-          "description": "点击某个操作按钮时触发，携带动作名称及告警对象"
-        }
-      ],
-      "slots": []
-    },
-    {
-      "file": "PagedList.vue",
-      "responsibility": "通用分页列表容器，内置加载、空状态、错误状态，支持自定义列表项渲染",
-      "reusedBy": [
-        "ReleaseRecordQueryView.vue",
-        "TaskListView.vue",
-        "OnsiteVehicleFilter.vue"
-      ],
-      "props": [
+          "required": true,
+          "default": "[]",
+          "description": "列定义数组，每项包含 key、label、sortable、filterable等"
+        },
         {
           "name": "data",
           "type": "Array",
           "required": true,
-          "default": "",
-          "description": "列表数据源"
+          "default": "[]",
+          "description": "数据行数组"
+        },
+        {
+          "name": "pagination",
+          "type": "Object",
+          "required": false,
+          "default": "{pageSize:20, total:0}",
+          "description": "分页配置，包含pageSize和total"
         },
         {
           "name": "loading",
           "type": "Boolean",
           "required": false,
           "default": "false",
-          "description": "是否处于加载状态"
+          "description": "是否处于加载状态，显示骨架屏"
         },
         {
           "name": "emptyText",
           "type": "String",
           "required": false,
           "default": "暂无数据",
-          "description": "数据为空时的提示文字"
-        },
-        {
-          "name": "total",
-          "type": "Number",
-          "required": false,
-          "default": "0",
-          "description": "总记录数（用于分页）"
-        },
-        {
-          "name": "pageSize",
-          "type": "Number",
-          "required": false,
-          "default": "10",
-          "description": "每页条数"
+          "description": "空数据时显示的提示文字"
         }
       ],
       "events": [
         {
+          "name": "row-click",
+          "payload": "Object",
+          "description": "点击数据行时触发，返回该行数据对象"
+        },
+        {
+          "name": "sort-change",
+          "payload": "Object",
+          "description": "排序条件变化时触发，返回 {key, order}"
+        },
+        {
           "name": "page-change",
-          "payload": "page: Number",
-          "description": "切换页码时触发"
+          "payload": "Number",
+          "description": "分页页码变化时触发，返回当前页码"
         }
       ],
       "slots": [
         {
-          "name": "item",
-          "description": "用于渲染每个列表项的自定义内容，绑定作用域 slot props: { item, index }"
-        },
-        {
-          "name": "empty",
-          "description": "数据为空时展示的定制内容（覆盖默认空状态）"
+          "name": "default",
+          "description": "可替代默认表格内容，例如自定义列表渲染"
         }
       ]
     },
     {
-      "file": "MapLocationPicker.vue",
-      "responsibility": "地图选点组件，弹出微型地图供用户选择地理位置，返回经纬度和地址文本",
+      "file": "DetailCard.vue",
+      "responsibility": "通用详情卡片组件，展示选定对象的详细信息，支持字段列表、图片预览等。",
       "reusedBy": [
-        "OnsiteDispatchDialog.vue",
-        "NavigationView.vue"
+        "VehicleDispatchView.vue",
+        "DriverTaskView.vue",
+        "GateCheckView.vue",
+        "ManagerReportsView.vue"
       ],
       "props": [
         {
-          "name": "initialLocation",
+          "name": "item",
           "type": "Object",
-          "required": false,
-          "default": "null",
-          "description": "默认选中的位置 { lng, lat }"
-        },
-        {
-          "name": "readonly",
-          "type": "Boolean",
-          "required": false,
-          "default": "false",
-          "description": "是否只读（仅显示地图，不可选点）"
-        },
-        {
-          "name": "height",
-          "type": "String",
-          "required": false,
-          "default": "400px",
-          "description": "地图容器高度"
-        }
-      ],
-      "events": [
-        {
-          "name": "location-selected",
-          "payload": "{ lng: Number, lat: Number, address: String }",
-          "description": "用户选择位置后触发，返回坐标和地址"
-        }
-      ],
-      "slots": []
-    },
-    {
-      "file": "ConfirmDialog.vue",
-      "responsibility": "通用确认对话框，包含标题、消息、确认和取消按钮，支持异步加载状态",
-      "reusedBy": [
-        "OnsiteDispatchDialog.vue",
-        "NavigationView.vue",
-        "OnsiteExceptionAlert.vue"
-      ],
-      "props": [
-        {
-          "name": "visible",
-          "type": "Boolean",
           "required": true,
-          "default": "false",
-          "description": "对话框是否可见"
+          "default": "null",
+          "description": "当前要展示的数据对象"
         },
         {
-          "name": "title",
-          "type": "String",
+          "name": "fields",
+          "type": "Array",
           "required": false,
-          "default": "确认操作",
-          "description": "对话框标题"
-        },
-        {
-          "name": "message",
-          "type": "String",
-          "required": false,
-          "default": "确定要执行此操作吗？",
-          "description": "确认消息文本"
-        },
-        {
-          "name": "confirmText",
-          "type": "String",
-          "required": false,
-          "default": "确认",
-          "description": "确认按钮文字"
-        },
-        {
-          "name": "cancelText",
-          "type": "String",
-          "required": false,
-          "default": "取消",
-          "description": "取消按钮文字"
+          "default": "[]",
+          "description": "字段列表，每项包含 key、label、type（如text/image/tag）"
         },
         {
           "name": "loading",
           "type": "Boolean",
           "required": false,
           "default": "false",
-          "description": "确认按钮是否显示加载状态"
+          "description": "是否正在加载详情"
         }
       ],
       "events": [
         {
-          "name": "confirm",
-          "payload": "",
-          "description": "用户点击确认按钮时触发"
-        },
-        {
-          "name": "cancel",
-          "payload": "",
-          "description": "用户点击取消或关闭对话框时触发"
+          "name": "action",
+          "payload": "String",
+          "description": "卡片内操作按钮点击时触发，返回操作名称"
         }
       ],
-      "slots": []
+      "slots": [
+        {
+          "name": "header",
+          "description": "卡片头部自定义内容"
+        },
+        {
+          "name": "default",
+          "description": "卡片主体自定义内容，可替换字段列表"
+        },
+        {
+          "name": "footer",
+          "description": "卡片底部自定义内容"
+        }
+      ]
     },
     {
-      "file": "MediaUploader.vue",
-      "responsibility": "媒体文件上传组件，支持照片/视频选择、预览、删除，可限制文件类型和数量",
+      "file": "FilterBar.vue",
+      "responsibility": "通用筛选栏组件，提供时间范围、下拉选择、切换按钮等多种筛选控件组合。",
       "reusedBy": [
-        "SiteFeedbackView.vue",
-        "ReleaseManagementPanel.vue"
+        "VehicleDispatchView.vue",
+        "ManagerReportsView.vue"
       ],
       "props": [
         {
-          "name": "accept",
-          "type": "String",
-          "required": false,
-          "default": "image/*",
-          "description": "允许的文件类型，如'image/*','video/*'"
+          "name": "filters",
+          "type": "Array",
+          "required": true,
+          "default": "[]",
+          "description": "筛选配置数组，每项包含 type、label、options、value等"
         },
         {
-          "name": "multiple",
+          "name": "compact",
           "type": "Boolean",
           "required": false,
-          "default": "true",
-          "description": "是否允许多选"
+          "default": "false",
+          "description": "是否紧凑模式，用于空间较小的场景"
+        }
+      ],
+      "events": [
+        {
+          "name": "filter-change",
+          "payload": "Object",
+          "description": "任何筛选条件变化时触发，返回当前所有筛选值组成的对象"
         },
         {
-          "name": "maxCount",
-          "type": "Number",
-          "required": false,
-          "default": "9",
-          "description": "最多可上传文件数量"
-        },
+          "name": "search",
+          "payload": "Object",
+          "description": "点击搜索/确认按钮时触发，返回当前筛选值快照"
+        }
+      ],
+      "slots": [
         {
-          "name": "maxSize",
-          "type": "Number",
-          "required": false,
-          "default": "10485760",
-          "description": "单个文件大小上限（字节），默认10MB"
+          "name": "default",
+          "description": "自定义筛选控件区域"
+        }
+      ]
+    },
+    {
+      "file": "OperationBar.vue",
+      "responsibility": "通用操作按钮栏组件，根据配置展示不同操作按钮，支持确认弹窗等交互。",
+      "reusedBy": [
+        "VehicleDispatchView.vue",
+        "DriverTaskView.vue",
+        "GateCheckView.vue"
+      ],
+      "props": [
+        {
+          "name": "actions",
+          "type": "Array",
+          "required": true,
+          "default": "[]",
+          "description": "按钮配置数组，每项包含 label、key、type（primary/danger/default）、confirmText"
         },
         {
           "name": "disabled",
           "type": "Boolean",
           "required": false,
           "default": "false",
-          "description": "是否禁用上传"
+          "description": "禁用所有按钮，用于加载态"
         }
       ],
       "events": [
         {
-          "name": "files-selected",
-          "payload": "files: File[]",
-          "description": "用户选择文件后触发（尚未上传），传递文件列表"
-        },
-        {
-          "name": "file-removed",
-          "payload": "file: File",
-          "description": "用户删除已选文件时触发"
+          "name": "action-click",
+          "payload": "String",
+          "description": "点击任意操作按钮时触发，返回该按钮的key"
         }
       ],
       "slots": [
         {
-          "name": "trigger",
-          "description": "自定义上传触发区域（默认是一个加号图标按钮）"
+          "name": "default",
+          "description": "自定义按钮区域"
+        }
+      ]
+    },
+    {
+      "file": "KpiCard.vue",
+      "responsibility": "关键指标卡片组件，展示数值、趋势箭头、单位，支持点击下钻。",
+      "reusedBy": [
+        "ManagerReportsView.vue"
+      ],
+      "props": [
+        {
+          "name": "label",
+          "type": "String",
+          "required": true,
+          "default": "",
+          "description": "指标名称"
+        },
+        {
+          "name": "value",
+          "type": "Number",
+          "required": true,
+          "default": "0",
+          "description": "指标数值"
+        },
+        {
+          "name": "unit",
+          "type": "String",
+          "required": false,
+          "default": "",
+          "description": "数值单位"
+        },
+        {
+          "name": "trend",
+          "type": "Object",
+          "required": false,
+          "default": "{}",
+          "description": "趋势数据，包含 direction('up'/'down')和 percentage"
+        },
+        {
+          "name": "loading",
+          "type": "Boolean",
+          "required": false,
+          "default": "false",
+          "description": "加载中状态"
+        }
+      ],
+      "events": [
+        {
+          "name": "click",
+          "payload": "null",
+          "description": "点击卡片时触发，用于下钻查看详情"
+        }
+      ],
+      "slots": [
+        {
+          "name": "default",
+          "description": "自定义卡片内容，可替代默认的数值显示"
+        }
+      ]
+    },
+    {
+      "file": "AlertPanel.vue",
+      "responsibility": "通用告警面板组件，展示告警事件列表，支持分类、紧急程度标记和快速操作。",
+      "reusedBy": [
+        "VehicleDispatchView.vue"
+      ],
+      "props": [
+        {
+          "name": "alerts",
+          "type": "Array",
+          "required": true,
+          "default": "[]",
+          "description": "告警数据数组，每项包含 time、vehicle、type、status、severity等"
+        },
+        {
+          "name": "loading",
+          "type": "Boolean",
+          "required": false,
+          "default": "false",
+          "description": "加载状态"
+        },
+        {
+          "name": "emptyText",
+          "type": "String",
+          "required": false,
+          "default": "暂无告警",
+          "description": "空状态提示"
+        }
+      ],
+      "events": [
+        {
+          "name": "alert-click",
+          "payload": "Object",
+          "description": "点击单个告警条目时触发，返回该告警对象"
+        },
+        {
+          "name": "action",
+          "payload": "Object",
+          "description": "告警条目内操作按钮点击时触发，返回 {alert, action}"
+        }
+      ],
+      "slots": [
+        {
+          "name": "default",
+          "description": "自定义告警列表内容"
         }
       ]
     }
@@ -1258,239 +586,232 @@
   "mockDataFiles": [
     {
       "file": "mockDispatch.js",
-      "content": "模拟派车调度相关接口数据，包括调度工作台、用车申请列表、审批用车申请、下发派车任务等",
+      "content": "车辆调度视图使用的车辆列表与状态数据",
       "usedBy": [
-        "DispatchMapView.vue",
-        "OnsiteVehicleFilter.vue",
-        "OnsiteDispatchDialog.vue",
-        "OnsiteExceptionAlert.vue"
+        "VehicleDispatchView.vue"
       ],
       "schema": [
         {
           "field": "id",
           "type": "string",
-          "description": "业务对象标识"
+          "description": "车辆唯一标识"
         },
         {
-          "field": "applicant",
+          "field": "plate",
           "type": "string",
-          "description": "申请人姓名"
+          "description": "车牌号"
         },
         {
           "field": "status",
           "type": "string",
-          "description": "审批状态：pending/approved/rejected"
+          "description": "车辆状态：空闲、排队、任务中、异常"
+        },
+        {
+          "field": "latitude",
+          "type": "number",
+          "description": "纬度"
+        },
+        {
+          "field": "longitude",
+          "type": "number",
+          "description": "经度"
+        },
+        {
+          "field": "driver",
+          "type": "string",
+          "description": "司机姓名"
         },
         {
           "field": "vehicleType",
           "type": "string",
-          "description": "所需车辆类型"
+          "description": "车辆类型：生产车、物流车、外协车、临时车"
         },
         {
-          "field": "priority",
-          "type": "string",
-          "description": "优先级：high/medium/low"
-        },
-        {
-          "field": "applicationId",
-          "type": "string",
-          "description": "用车申请唯一标识"
-        },
-        {
-          "field": "selectedVehicle",
-          "type": "string",
-          "description": "派车车辆ID"
-        },
-        {
-          "field": "dispatchRemark",
-          "type": "string",
-          "description": "派车额外说明"
+          "field": "distance",
+          "type": "number",
+          "description": "距离（公里）"
         }
       ]
     },
     {
       "file": "mockTasks.js",
-      "content": "模拟任务管理相关接口数据，包括查询任务列表、更新任务状态",
+      "content": "司机任务视图使用的任务列表、任务详情、导航与反馈数据",
       "usedBy": [
-        "TaskListView.vue",
-        "TaskDetailView.vue"
+        "DriverTaskView.vue"
       ],
       "schema": [
         {
           "field": "taskId",
           "type": "string",
-          "description": "任务ID"
+          "description": "任务唯一标识"
+        },
+        {
+          "field": "workPointName",
+          "type": "string",
+          "description": "作业点名称"
         },
         {
           "field": "status",
           "type": "string",
-          "description": "任务状态：dispatched/cancelled/abnormal/redispatched"
+          "description": "任务状态：待接单、进行中、已完成"
         },
         {
-          "field": "reason",
+          "field": "plannedArrivalTime",
           "type": "string",
-          "description": "状态变更原因"
+          "description": "计划到达时间"
         },
         {
-          "field": "newVehiclePlate",
+          "field": "estimatedArrivalTime",
           "type": "string",
-          "description": "重新派车时的车牌号"
+          "description": "预计到达时间（导航返回）"
         },
         {
-          "field": "newDriverName",
+          "field": "distance",
           "type": "string",
-          "description": "重新派车时的司机姓名"
+          "description": "导航距离"
         },
         {
-          "field": "applicant",
+          "field": "feedbackId",
           "type": "string",
-          "description": "申请人"
-        },
-        {
-          "field": "applyTime",
-          "type": "string",
-          "description": "申请时间"
+          "description": "现场反馈提交后的反馈ID"
         }
       ]
     },
     {
       "file": "mockAlerts.js",
-      "content": "模拟异常告警相关接口数据，包括查询异常告警列表、处理异常告警",
+      "content": "告警列表与告警处理数据，可被调度视图和报表视图引用",
       "usedBy": [
-        "AlertPanel.vue",
-        "OnsiteExceptionAlert.vue"
+        "VehicleDispatchView.vue",
+        "ManagerReportsView.vue"
       ],
       "schema": [
         {
-          "field": "id",
+          "field": "alertId",
           "type": "string",
-          "description": "告警ID"
+          "description": "告警唯一标识"
         },
         {
-          "field": "exceptionType",
+          "field": "alertType",
           "type": "string",
-          "description": "异常类型：排队超时/重复派车/车辆故障/位置偏移"
+          "description": "告警类型：超速、禁入区域、异常停留、未授权入场"
         },
         {
-          "field": "exceptionDescription",
+          "field": "vehicle",
           "type": "string",
-          "description": "异常描述"
+          "description": "关联车辆车牌号"
         },
         {
-          "field": "vehiclePlate",
+          "field": "time",
           "type": "string",
-          "description": "车辆牌照"
-        },
-        {
-          "field": "driverName",
-          "type": "string",
-          "description": "司机姓名"
+          "description": "告警发生时间"
         },
         {
           "field": "status",
           "type": "string",
-          "description": "状态：待处理/处理中/已处理"
+          "description": "告警状态：待处理、已确认、已解除、已上报"
         },
         {
-          "field": "handlerName",
+          "field": "location",
           "type": "string",
-          "description": "处理人"
+          "description": "告警发生位置描述"
+        },
+        {
+          "field": "description",
+          "type": "string",
+          "description": "告警详情描述"
         }
       ]
     },
     {
-      "file": "mockStatistics.js",
-      "content": "模拟统计分析相关接口数据，包括统计分析概览、导出报表、费用分析、数据下钻",
+      "file": "mockGateCheck.js",
+      "content": "门岗核验视图使用的入场核验、放行操作与放行记录数据",
       "usedBy": [
-        "StatisticsAnalysisView.vue",
-        "ReportExportView.vue",
-        "ResourceAllocationView.vue"
+        "GateCheckView.vue"
       ],
       "schema": [
         {
-          "field": "reportType",
+          "field": "plateNumber",
           "type": "string",
-          "description": "报表类型：vehicleUtilization/taskCompletionRate等"
-        },
-        {
-          "field": "timeRange",
-          "type": "object",
-          "description": "时间范围，含startDate和endDate，格式yyyy-MM-dd"
-        },
-        {
-          "field": "region",
-          "type": "string",
-          "description": "作业区域编码"
+          "description": "车牌号"
         },
         {
           "field": "vehicleType",
           "type": "string",
-          "description": "车辆类型编码"
+          "description": "车辆类型"
         },
         {
-          "field": "totalCost",
-          "type": "number",
-          "description": "总费用"
+          "field": "entryAllowed",
+          "type": "boolean",
+          "description": "是否允许入场"
         },
         {
-          "field": "count",
-          "type": "integer",
-          "description": "记录总数"
+          "field": "entryTime",
+          "type": "string",
+          "description": "入场时间"
         },
         {
-          "field": "charts",
-          "type": "array",
-          "description": "图表数据数组"
+          "field": "releaseStatus",
+          "type": "string",
+          "description": "放行状态：已入场、异常"
         },
         {
-          "field": "indicators",
-          "type": "object",
-          "description": "关键指标对象"
+          "field": "inspector",
+          "type": "string",
+          "description": "核验人员"
+        },
+        {
+          "field": "appointmentId",
+          "type": "string",
+          "description": "预约编号"
         }
       ]
     },
     {
-      "file": "mockDriver.js",
-      "content": "模拟司机端相关接口数据，包括查询司机任务列表、查询导航路线",
+      "file": "mockReports.js",
+      "content": "管理报表视图使用的运营报表、导出与资源配置优化数据",
       "usedBy": [
-        "NavigationView.vue",
-        "SiteFeedbackView.vue"
+        "ManagerReportsView.vue"
       ],
       "schema": [
         {
-          "field": "currentPosition",
+          "field": "date",
           "type": "string",
-          "description": "当前GPS坐标，格式'经度,纬度'"
+          "description": "统计日期"
         },
         {
-          "field": "destination",
-          "type": "string",
-          "description": "目的作业点标识或地址"
-        },
-        {
-          "field": "routeType",
-          "type": "string",
-          "description": "导航方式：driving/walking"
-        },
-        {
-          "field": "voiceGuide",
-          "type": "boolean",
-          "description": "是否开启语音播报"
-        },
-        {
-          "field": "routeList",
-          "type": "array",
-          "description": "路线列表，每条含routeId/distance/estimatedTime/polyline"
-        },
-        {
-          "field": "totalDistance",
+          "field": "vehicleUtilizationRate",
           "type": "number",
-          "description": "总距离（米）"
+          "description": "车辆利用率"
         },
         {
-          "field": "estimatedTime",
+          "field": "taskCompletionRate",
           "type": "number",
-          "description": "预估时间（秒）"
+          "description": "任务完成率"
+        },
+        {
+          "field": "emptyDrivingRate",
+          "type": "number",
+          "description": "空驶率"
+        },
+        {
+          "field": "outsourceVehicleCount",
+          "type": "number",
+          "description": "外协车辆使用次数"
+        },
+        {
+          "field": "abnormalEntryCount",
+          "type": "number",
+          "description": "异常入场次数"
+        },
+        {
+          "field": "exportFormat",
+          "type": "string",
+          "description": "导出文件格式：excel或pdf"
+        },
+        {
+          "field": "downloadUrl",
+          "type": "string",
+          "description": "导出文件下载地址"
         }
       ]
     }
@@ -1521,22 +842,22 @@
     {
       "step": 1,
       "title": "生成 Mock 数据和枚举常量",
-      "prompt": "请根据以下车辆管理系统的原型设计，生成所有必要的 Mock 数据文件和枚举常量定义。要求：\n\n1. 枚举常量：\n   - 车辆状态枚举：IDLE('空闲'), QUEUING('排队'), ON_TASK('任务中'), ABNORMAL('异常')\n   - 任务状态枚举：DISPATCHED('已派发'), ACCEPTED('已接单'), ARRIVED('已到达'), LOADING('装卸中'), COMPLETED('已完成'), CANCELLED('已取消')\n   - 车辆类型枚举：FORKLIFT('叉车'), TRACTOR('牵引车'), AGV('AGV')\n   - 告警类型枚举：SPEEDING('超速'), FORBIDDEN_ZONE('禁入区域'), EXPIRED_CERT('证照过期'), ABNORMAL_STAY('异常停留'), UNAUTHORIZED_ENTRY('未授权入场')\n   - 优先级枚举：HIGH('高'), MEDIUM('中'), LOW('低')\n\n2. Mock 数据文件（使用 mockjs 或简单 JSON 对象）：\n   - mockDispatch.js：提供调度相关接口的模拟数据，包括所有车辆列表（至少20辆，覆盖不同状态和类型）、用车申请列表（待处理）、异常告警列表（含不同异常类型）。数据字段需包含 id、plate、type、status、location（lng/lat）、driverName、priority、applicationId、dispatchRemark 等。\n   - mockTasks.js：提供司机任务列表详情，至少10条任务，包含字段 taskId、status、reason、newVehiclePlate、newDriverName、applicant、applyTime、作业点信息、生产资料关联数据。\n   - mockAlerts.js：提供告警数据，至少15条，包含 id、exceptionType、exceptionDescription、vehiclePlate、driverName、status（待处理/处理中/已处理）、handlerName、alertTime。\n   - mockStatistics.js：提供统计分析数据，包含不同 timeRange 下的图表数据（柱状图、折线图、饼图原始数据）、关键指标对象（利用率、完成率、平均等待时长等）、外协车辆费用明细。\n\n3. 所有 Mock 数据需与页面 API 接口路径对应（如 /api/siteDispatch/map、/api/siteDispatch/vehicles、/api/dispatch/applications、/api/siteDispatch/dispatch、/api/driver/tasks、/api/mobile/tasks/{id}、/api/siteDispatch/alerts、/api/alerts/{id}/handle）。\n\n4. 文件结构：在 src/mock/ 目录下创建上述文件和枚举常量文件 constants.js。\n\n5. 验收标准：\n   - 枚举常量清晰可导出，所有状态值在组件中可直接引用。\n   - Mock 数据能独立运行（无后端依赖），使用 Promise 模拟异步返回，延迟 200-500ms。\n   - 数据覆盖所有 UI 状态（loading/empty/error/success），例如车辆列表为空、告警为空等边界情况至少有对应 mock 分支。\n   - 每个 Mock 数据文件需提供 export 的异步函数（如 fetchVehicles(filters)、fetchAlerts()），接受查询参数并返回模拟响应。"
+      "prompt": "你是一个 Vue 3 + TypeScript 前端工程师。请根据以下原型设计文件，生成全部 Mock 数据和枚举常量。\n\n**技术栈要求**：\n- 使用 TypeScript 定义所有类型接口和枚举。\n- Mock 数据使用 MirageJS 或直接导出静态 JSON 数组，参考文件路径放在 `src/mock/` 目录下。\n- 枚举常量放在 `src/enums/` 目录下，导出 const enum 或普通 enum。\n\n**需生成的文件列表**：\n1. `src/mock/mockDispatch.ts`：车辆调度视图使用的车辆列表与状态数据，包含字段：id, plate, status, latitude, longitude, driver, vehicleType, distance。需随机生成 20-30 条数据。\n2. `src/mock/mockTasks.ts`：司机任务视图使用的任务列表、任务详情、导航与反馈数据，包含字段：taskId, workPointName, status, plannedArrivalTime, estimatedArrivalTime, distance, feedbackId。生成 10-15 条。\n3. `src/mock/mockAlerts.ts`：告警列表与告警处理数据，包含字段：alertId, alertType, vehicle, time, status, location, description。生成 5-10 条，涵盖超速、禁入区域、异常停留、未授权入场四种类型。\n4. `src/mock/mockGateCheck.ts`：门岗核验视图使用的入场核验、放行操作与放行记录数据，包含字段：plateNumber, vehicleType, entryAllowed, entryTime, releaseStatus, inspector, appointmentId。生成 8-12 条。\n5. `src/enums/vehicleEnums.ts`：定义车辆状态枚举（VehicleStatus: IDLE, QUEUING, ON_TASK, ABNORMAL），车辆类型枚举（VehicleType: PRODUCTION, LOGISTICS, OUTSOURCED, TEMPORARY），任务状态枚举（TaskStatus: PENDING_ACCEPT, IN_PROGRESS, COMPLETED），告警类型枚举（AlertType: SPEEDING, RESTRICTED_AREA, ABNORMAL_STAY, UNAUTHORIZED_ENTRY），告警状态枚举（AlertStatus: PENDING, CONFIRMED, RESOLVED, REPORTED），放行状态枚举（ReleaseStatus: ENTERED, ABNORMAL, PENDING）。\n\n**验收标准**：\n- 所有枚举值使用字符串常量，如 `IDLE = 'IDLE'`。\n- Mock 数据文件导出一个 `getMockData()` 函数，返回对应类型的数组。\n- 类型定义导出为 interface 或 type，放在 `src/types/` 目录下（如 `src/types/vehicle.ts`、`src/types/task.ts`、`src/types/alert.ts`、`src/types/gate.ts`）。\n- 文件内容应包含完整的注释和 JSDoc 说明。\n\n请仅输出要求生成的文件完整代码，不需要其他解释。"
     },
     {
       "step": 2,
       "title": "生成通用组件",
-      "prompt": "请根据车辆管理系统原型设计，生成以下 5 个通用组件。要求每个组件独立可复用，使用 Vue 3 + TypeScript + Composition API，样式使用 scoped CSS。组件需放在 src/components/common/ 目录下。\n\n1. VehicleInfoCard.vue\n   - 职责：通用车辆信息卡片，展示车牌、类型、状态、当前位置、距离等摘要信息，支持选中和点击交互。\n   - Props：vehicle: Object (必填，含 plate, type, status, location, distance)，selectable: Boolean (默认false)，selected: Boolean (默认false)，highlight: Boolean (默认false)\n   - Events：click -> 传出 vehicle，select-change -> 传出 {vehicle, selected}\n   - 样式：默认白色圆角卡片，阴影；高亮时边框变为蓝色；选中时左侧显示蓝色条。状态区域使用 StatusBadge 组件。\n   - 验收标准：可以独立渲染车辆摘要，点击和选中功能正常，能与其他页面联动。\n\n2. StatusBadge.vue\n   - 职责：通用状态标签，显示状态文本及对应颜色（空闲-绿色，排队-橙色，任务中-蓝色，异常-红色，已到达-紫色，已完成-灰色等），支持不同尺寸。\n   - Props：status: String (必填)，size: String (small/medium/large，默认medium)，customColor: String (可选)\n   - 使用圆角小标签样式，颜色映射内置，不支持自定义时自动根据 status 取值。\n   - 验收标准：传入不同 status 显示正确颜色和文本；尺寸改变字体和 padding 合适。\n\n3. TaskCard.vue\n   - 职责：任务摘要卡片，展示任务编号、状态、作业点、截止时间等。\n   - Props：task: Object (必填，含 id, title, status, location, deadline, assignee)，compact: Boolean (默认false，紧凑模式时隐藏部分字段)\n   - Events：click -> 传出 task，longpress -> 传出 task（使用 @longpress 自定义指令或 touch 事件）\n   - Slots：default 用于插入额外操作按钮。\n   - 验收标准：紧凑模式下卡片高度降低，信息精简；长按触发事件；默认 slot 可扩展。\n\n4. AlertItem.vue\n   - 职责：告警条目组件，显示告警类型图标、时间、车辆/人员、详情，并带有确认、解除、上报按钮。\n   - Props：alert: Object (必填，含 type, time, source, description, severity)，actions: Array (默认['confirm','resolve']，可选'confirm','resolve','report')\n   - Events：action -> 传出 {action, alert}\n   - 根据 severity 显示不同颜色（error-红，warning-黄，info-蓝）。\n   - 验收标准：告警条目可折叠/展开详情；按钮点击触发 action 事件；不同 severity 风格不同。\n\n5. PagedList.vue\n   - 职责：通用分页列表容器，内置 loading、empty、error 状态，支持自定义列表项渲染。\n   - Props：data: Array (必填)，loading: Boolean (默认false)，emptyText: String (默认'暂无数据')，total: Number (默认0)，pageSize: Number (默认10)\n   - Events：page-change -> 传出 page: Number\n   - Slots：item（作用域插槽绑定 item, index），empty（空状态定制内容）\n   - 验收标准：loading 时显示骨架屏（3个脉冲灰色块）；empty 时显示空状态插画+提示文字；error 状态由外部控制，容器内可传入 error 标记；分页控件在底部。"
+      "prompt": "你是一个 Vue 3 + TypeScript 前端工程师。请根据以下原型设计文件，生成所有通用组件。\n\n**技术栈要求**：\n- 使用 Vue 3 Composition API + TypeScript + Element Plus。\n- 组件文件放在 `src/components/common/` 目录下。\n- 每个组件包含完整的 .vue 文件（模板、脚本、样式），样式使用 scoped。\n- 组件应支持 props、emits、slots，符合原设计中的接口定义。\n\n**需生成的组件列表**：\n1. `src/components/common/MapView.vue`：通用地图组件，支持显示标记点、路线、告警标记，提供缩放拖动、点击标记交互。使用 Leaflet 实现。props：markers（Array，必填）、routes（Array，可选）、alerts（Array，可选）、center（Object，可选，默认 {lng:0, lat:0}）、zoom（Number，可选，默认12）。emits：marker-click（返回标记数据对象）、map-click（返回经纬度）。slots：default（自定义覆盖层）。要求：标记点根据vehicleType显示不同图标，告警标记使用红色闪烁图标。\n2. `src/components/common/DataList.vue`：通用数据列表/表格组件，支持列配置、排序、筛选、分页，适应不同数据展示需求。使用 Element Plus el-table 封装。props：columns（Array，必填，每项含 key、label、sortable、filterable）、data（Array，必填）、pagination（Object，可选，默认 {pageSize:20, total:0}）、loading（Boolean，可选，默认 false）、emptyText（String，可选，默认 '暂无数据'）。emits：row-click（返回行数据）、sort-change（返回 {key, order}）、page-change（返回页码）。slots：default（可替代默认表格内容）。\n3. `src/components/common/DetailCard.vue`：通用详情卡片组件，展示选定对象的详细信息，支持字段列表、图片预览等。props：item（Object，必填）、fields（Array，可选，每项含 key、label、type，type 支持 text/image/tag）、loading（Boolean，可选）。emits：action（返回操作名称，如 'edit'、'delete'）。slots：header、default、footer。\n4. `src/components/common/FilterBar.vue`：通用筛选栏组件，提供时间范围、下拉选择、切换按钮等多种筛选控件组合。props：filters（Array，必填，每项含 type、label、options、value）、compact（Boolean，可选，默认 false）。emits：filter-change（返回当前所有筛选值对象）、search（返回筛选值快照）。slots：default（自定义筛选控件）。\n5. `src/components/common/OperationBar.vue`：通用操作按钮栏组件，根据配置展示不同操作按钮，支持确认弹窗等交互。props：actions（Array，必填，每项含 label、key、type（primary/danger/default）、confirmText）、disabled（Boolean，可选）。emits：action-click（返回按钮 key）。slots：default（自定义按钮区域）。\n\n**验收标准**：\n- 所有组件均使用 defineProps、defineEmits、defineSlots（如需要），类型严格定义。\n- 地图组件需引入 Leaflet 并正确初始化，确保基础功能可运行。\n- 组件应提供默认样式，且通过 props 可定制。\n- 每个组件文件包含详细的 JSDoc 注释。\n\n请仅输出每个组件的完整代码，每个文件以 ```vue 包裹，并标明文件路径。"
     },
     {
       "step": 3,
       "title": "生成页面（按优先级 P0→P1→P2）",
-      "prompt": "请根据车辆管理系统原型设计，生成所有页面组件（Vue 3 + TypeScript + Composition API，使用 Element Plus UI 库）。页面文件放在 src/views/ 目录下，按功能分组子目录。需要依次实现所有 P0 和 P1 优先级的页面，P2 暂不要求。\n\nP0 页面（必做）：\n1. DispatchMapView.vue（调度指挥-地图看板）\n   - 使用高德地图 JS API 或百度地图，在地图上实时展示车辆标记（圆形图标按类型着色），支持缩放（≥15级显示车牌简写）、点击查看详情。\n   - 顶部状态栏显示车辆统计卡片（空闲/排队/任务中/异常数量，点击可过滤地图）。\n   - 底部车辆预览面板显示最近5辆车摘要，使用 VehicleInfoCard 组件。\n   - 支持地图加载、空视野、错误等 UI 状态（使用全屏遮罩提示）。\n   - 集成 API：/api/siteDispatch/map（获取车辆位置）、/api/siteDispatch/vehicles（筛选）。\n   - 验收标准：地图渲染正确；车辆标记根据状态着色；点击标记弹出气泡并联动底部面板；状态过滤功能正常；错误重试可用。\n\n2. TaskListView.vue（任务执行-任务列表）\n   - 司机视角：展示个人任务列表，每项使用 TaskCard 组件，支持筛选（状态、日期）和排序。\n   - 下拉刷新、上拉加载更多（使用分页组件 PagedList）。\n   - 点击任务跳转到 TaskDetailView（通过路由传参 taskId）。\n   - 集成 API：/api/driver/tasks。\n   - 验收标准：列表分页正确；下拉刷新触发 API；空列表显示空状态；点击可跳转详情。\n\nP1 页面（必做）：\n3. OnsiteVehicleFilter.vue（调度指挥-车辆筛选）\n   - 顶部筛选条件区：车辆类型下拉、状态多选按钮组、作业区域树形选择、距离范围滑块。\n   - 结果列表区使用 VehicleInfoCard 组件（带复选框），支持多选后派车。\n   - 底部操作栏有重置和选定派车按钮。\n   - 集成 API：/api/siteDispatch/vehicles。\n   - 验收标准：筛选条件联动结果列表即时刷新；距离排序正确；选中车辆后“选定派车”按钮激活并打开派车对话框。\n\n4. OnsiteDispatchDialog.vue（调度指挥-任务下发，弹窗形式）\n   - 弹窗展示已选车辆、用车申请下拉选择、作业点输入（支持地图选点）、优先级单选，预计到达时间自动计算。\n   - 点击“下发任务”二次确认后调用 POST /api/siteDispatch/dispatch。\n   - 处理 loading/error/success 状态。\n   - 验收标准：弹窗正确接收车辆ID；表单验证必填项；提交成功后关闭并显示通知。\n\n5. OnsiteExceptionAlert.vue（调度指挥-异常告警）\n   - 使用 AlertItem 组件展示实时告警，支持按类型过滤、时间排序。\n   - 调度员可处理告警（确认、解决），调用 PUT /api/alerts/{id}/handle。\n   - 定时刷新（每30秒）。\n   - 验收标准：告警列表显示正常；操作按钮触发 API；处理成功后告警状态更新。\n\n6. TaskDetailView.vue（任务执行-任务详情）\n   - 展示任务完整信息：作业点位置（小地图）、车辆司机、物资清单、时间线。\n   - 集成 API：/api/mobile/tasks/{id}。\n   - 验收标准：从列表页进入加载正确数据；显示地图标记。\n\n7. NavigationView.vue（任务执行-导航到作业点）\n   - 地图显示路径，实时更新位置，显示预计到达时间和剩余距离。\n   - 开始导航、结束导航、重新规划按钮。\n   - 到达目的地后自动弹出确认到达对话框并跳转到 SiteFeedbackView。\n   - 验收标准：使用地图 SDK 导航功能（模拟即可）；到达判定合理。\n\n8. SiteFeedbackView.vue（任务执行-到达确认与反馈）\n   - 司机确认到达，上传现场照片（拍照或相册），填写备注。\n   - 提交后调用 API 更新任务状态。\n   - 验收标准：照片上传功能正常；提交后返回任务列表并刷新。\n\n9. EntryCheckPanel.vue（出入管理-核验面板）\n   - 支持扫描车牌（模拟输入）或预约二维码，自动核验有效性及派车关联。\n   - 显示核验结果（通过/拒绝），可手动放行或拒绝。\n   - 验收标准：输入车牌后调用 Mock 核验逻辑并展示结果。\n\n10. ReleaseManagementPanel.vue（出入管理-放行管理）\n    - 显示待放行车辆列表，点击放行或拒绝，记录放行时间。\n    - 调用 API 更新任务状态。\n    - 验收标准：放行操作后列表更新。\n\n11. AlertPanel.vue（出入管理-告警处理）\n    - 类似 OnsiteExceptionAlert，但针对门岗告警（未授权入场、证照过期等）。\n    - 使用 AlertItem 组件，可确认、解除、上报。\n    - 验收标准：与 OnsiteExceptionAlert 类似，但数据源不同。\n\n12. ReleaseRecordQueryView.vue（出入管理-放行记录查询）\n    - 按时间、车牌、车辆类型检索放行记录，使用 PagedList 展示。\n    - 支持导出（模拟下载）。\n    - 验收标准：筛选条件生效，分页正常。\n\n13. StatisticsAnalysisView.vue（运营分析-统计分析）\n    - 图表展示车辆利用率、完成率、等待时长、空驶率等，使用 ECharts 或 Chart.js。\n    - 支持时间范围筛选、区域/车辆类型下钻。\n    - 集成 API：/api/statistics/overview 等。\n    - 验收标准：图表渲染正确；筛选器联动图表更新。\n\n14. ReportExportView.vue（运营分析-报表导出）\n    - 选择报表类型、时间范围、格式（Excel/PDF），点击导出按钮下载。\n    - 验收标准：导出按钮触发下载流程。\n\n15. ResourceAllocationView.vue（运营分析-资源配置建议）\n    - 基于历史数据展示车辆利用趋势图，提供优化建议文本。\n    - 外协车辆费用管理表格。\n    - 验收标准：图表+表格展示正常。\n\n所有页面需包含完整的 UI 状态处理（loading、empty、error、success）以及路由跳转的交互。使用 mock 数据，确保无后端运行时能演示。"
+      "prompt": "你是一个 Vue 3 + TypeScript 前端工程师。请根据以下原型设计文件，生成所有 P0 优先级页面组件。当前项目全部页面均为 P0 优先级，请依次生成。\n\n**技术栈要求**：\n- 使用 Vue 3 Composition API + TypeScript + Element Plus + Leaflet（地图）。\n- 页面文件放在 `src/views/` 目录下。\n- 每个页面引用 src/components/common/ 下的通用组件，以及 src/mock/ 下的 Mock 数据（开发阶段直接导入使用）。\n- 页面应有完整的布局、状态管理（使用 reactive/ref）、交互逻辑。\n- 使用 Vue Router 的 useRouter 和 useRoute 进行导航。\n\n**需生成的页面文件（按顺序）**：\n1. `src/views/dispatch/VehicleDispatchView.vue`：车辆调度看板（P0）。\n   - 使用 FilterBar 组件（筛选条件：区域、车辆类型、任务优先级）、MapView 组件（显示车辆实时位置、状态标记、作业区域边界、异常告警标记）、DataList 组件（车辆状态列表和任务请求列表）、DetailCard 组件（点击车辆显示详情）、OperationBar 组件（派车操作）。\n   - 状态管理：维护车辆列表、任务请求列表、告警列表、地图标记、选中车辆等。\n   - 交互：点击车辆图标弹出卡片，长按任务请求拖拽至车辆图标完成派车（简化实现：点击任务后弹出车辆选择对话框），点击告警条目地图定位并弹出处理弹窗。\n   - 使用 Mock 数据 mockDispatch、mockAlerts。\n\n2. `src/views/task/DriverTaskView.vue`：司机任务管理（P0）。\n   - 使用 DataList 组件（任务列表）、MapView 组件（导航区域）、DetailCard 组件（任务详情）、OperationBar 组件（接收任务、到达确认、提交完成按钮）。\n   - 状态管理：任务列表、选中任务、导航路线、当前状态（noTask/taskPending/taskAccepted/taskArrived）。\n   - 交互：点击任务展开详情并显示导航预览；点击接收任务按钮确认接单；点击到达确认自动定位打卡并上传位置；点击拍照提交完成，调用摄像头（模拟为上传图片）。\n   - 使用 Mock 数据 mockTasks。\n\n3. `src/views/gate/GateCheckView.vue`：门岗核验（P0）。\n   - 使用 DataList 组件（待入场车辆列表）、DetailCard 组件（车辆详情/核验区）、OperationBar 组件（授权放行、登记异常、刷新列表）。\n   - 状态管理：待入场车辆列表、选中车辆、核验结果、异常登记表单。\n   - 交互：点击列表车辆加载详情；点击授权放行弹出确认弹窗，确认后更新放行状态；点击登记异常弹出异常登记表单（异常类型、备注、拍照），提交后车辆状态标记为异常。\n   - 使用 Mock 数据 mockGateCheck。\n\n4. `src/views/reports/ManagerReportsView.vue`：综合报表（P0）。\n   - 使用 FilterBar 组件（时间范围、车辆分组、指标类型切换）、DataList 组件（表格详情区）、图表展示（使用 ECharts 或 Chart.js 展示折线图、柱状图、饼图）。\n   - 布局：顶部筛选栏、核心指标卡片区（使用卡片组件或 Element Plus el-card，展示总车辆数、月均里程、维修成本占比、车辆利用率，含趋势箭头）、报表图表区、底部操作栏（导出、保存快照、生成决策建议报告）。\n   - 状态管理：筛选条件、图表数据、表格数据、加载状态等。\n   - 交互：筛选变更后异步刷新所有区域；图表悬浮查看数据点；导出按钮触发弹窗并下载；生成报告按钮调用接口（Mock 实现）。\n   - 可使用 mockAlerts 和自身 Mock 报表数据（在页面内定义）。\n\n**验收标准**：\n- 每个页面是一个独立的 .vue 单文件组件，包含 template、script setup、style scoped。\n- 所有交互逻辑完整，且与原型描述一致。\n- 页面在开发环境直接导入 Mock 数据运行，无需后端。\n- 使用 Vue 路由的 name、path 等属性，但不需要在此文件中定义路由。\n- 每个文件包含详细注释。\n\n请输出所有页面文件完整代码，每个文件以 ```vue 包裹并标明文件路径。"
     },
     {
       "step": 4,
       "title": "生成路由配置和 API 调用层",
-      "prompt": "请根据车辆管理系统原型设计，生成以下两个核心模块：\n\n1. 路由配置（src/router/index.ts）\n   - 使用 Vue Router 4，定义所有页面的路由规则。要求：\n   - 顶部导航分组（调度指挥、任务执行、出入管理、运营分析），每组有一个默认路由（重定向到该组第一个页面）。\n   - 路由路径与组件对应关系如下：\n     - /dispatch/map-view -> DispatchMapView.vue (默认)\n     - /dispatch/vehicle-filter -> OnsiteVehicleFilter.vue\n     - /dispatch/dispatch-dialog -> OnsiteDispatchDialog.vue（作为弹窗，不单独路由，需在父页面动态打开，但预留路由入口便于调试）\n     - /dispatch/exception-alert -> OnsiteExceptionAlert.vue\n     - /task/task-list -> TaskListView.vue (默认)\n     - /task/task-detail/:taskId -> TaskDetailView.vue\n     - /task/navigation/:taskId -> NavigationView.vue\n     - /task/site-feedback/:taskId -> SiteFeedbackView.vue\n     - /entry/check-panel -> EntryCheckPanel.vue (默认)\n     - /entry/release-management -> ReleaseManagementPanel.vue\n     - /entry/alert-panel -> AlertPanel.vue\n     - /entry/release-record-query -> ReleaseRecordQueryView.vue\n     - /analysis/statistics -> StatisticsAnalysisView.vue (默认)\n     - /analysis/report-export -> ReportExportView.vue\n     - /analysis/resource-allocation -> ResourceAllocationView.vue\n   - 使用懒加载（import.meta.glob 或 () => import）。\n   - 导航守卫：无特殊要求。\n   - 验收标准：路由配置正确，按组分组，命名路由清晰。\n\n2. API 调用层（src/api/ 目录）\n   - 使用 axios 实例，统一配置 baseURL（默认为空，后续可改环境变量），请求拦截器加入 token（模拟从 localStorage 获取），响应拦截器统一处理错误（401 跳转登录，其他提示错误信息）。\n   - 为每个页面（或功能模块）创建独立的 API 模块文件：\n     - dispatchApi.ts：包含 fetchMapData(), fetchVehicles(filters), fetchApplications(), dispatchTask(data), fetchAlerts(), handleAlert(id, action)\n     - taskApi.ts：包含 fetchDriverTasks(params), fetchTaskDetail(taskId), updateTaskStatus(taskId, data)\n     - entryApi.ts：包含 checkVehicle(plate), approveEntry(recordId), rejectEntry(recordId), fetchEntryRecords(params), fetchEntryAlerts(), handleEntryAlert(id, action)\n     - statisticsApi.ts：包含 fetchOverview(params), fetchReport(reportType, params), exportReport(reportType, format, params), fetchResourceSuggestion(params)\n   - 所有 API 函数返回 Promise，在开发环境自动切换到 mock 数据（通过检查环境变量 VITE_USE_MOCK 或直接导入 mock 文件）。\n   - 验收标准：API 模块正确导出函数，参数类型定义完善（使用接口），调用时返回正确形态的数据。需要提供一份简单的类型声明文件（src/types/api.ts）定义所有请求和响应类型。"
+      "prompt": "你是一个 Vue 3 + TypeScript 前端工程师。请根据以下原型设计文件，生成 Vue Router 路由配置和统一的 API 调用层（封装 Axios）。\n\n**技术栈要求**：\n- 使用 Vue Router 4 + TypeScript。\n- 使用 Axios 进行 API 调用，封装在 `src/api/` 目录下，每个业务模块一个文件。\n- 路由配置文件为 `src/router/index.ts`，使用懒加载（`() => import('@/views/...')`）。\n- 环境变量通过 `import.meta.env.VITE_API_BASE_URL` 配置基础路径。\n\n**需生成的文件列表**：\n1. `src/router/index.ts`：路由配置。\n   - 导入 createRouter、createWebHistory。\n   - 定义路由数组，包含如下路由（所有路由组件已创建，路径见下方）：\n     - 调度指挥组：\n       - path: '/dispatch/vehicle-dispatch', component: VehicleDispatchView, name: 'VehicleDispatch', meta: { title: '车辆调度看板', icon: '📡', group: '调度指挥' }，默认路由。\n     - 任务执行组：\n       - path: '/task/driver-task', component: DriverTaskView, name: 'DriverTask', meta: { title: '司机任务管理', icon: '📋', group: '任务执行' }，默认路由。\n     - 场地管理组：\n       - path: '/gate/gate-check', component: GateCheckView, name: 'GateCheck', meta: { title: '门岗核验', icon: '🚧', group: '场地管理' }，默认路由。\n     - 报表分析组：\n       - path: '/reports/manager-reports', component: ManagerReportsView, name: 'ManagerReports', meta: { title: '综合报表', icon: '📊', group: '报表分析' }，默认路由。\n   - 添加一个根路径重定向到 '/dispatch/vehicle-dispatch'。\n   - 导出 router 实例。\n\n2. `src/api/dispatch.ts`：调度模块 API。\n   - 封装 Axios 实例，请求基础路径为 `${baseURL}/api/siteDispatch`。\n   - 函数：\n     - `getMapData()`：GET /map，返回实时位置、状态、告警。\n     - `getVehicles(params: FilterParams)`：GET /vehicles，返回车辆列表。\n     - `getApplications()`：GET /applications，返回待处理用车申请。\n     - `dispatchTask(data: DispatchTaskData)`：POST /dispatch，提交派车。\n     - `getAlerts()`：GET /alerts，返回告警列表。\n     - `handleAlert(id: string, data: HandleAlertData)`：PUT /alerts/{id}/handle，处理告警。\n\n3. `src/api/task.ts`：任务模块 API。\n   - 函数：\n     - `getTasks(params: TaskQueryParams)`：GET /driver/tasks，获取司机个人任务。\n     - `getTaskDetail(id: string)`：GET /mobile/tasks/{id}，获取任务详情。\n     - `acceptTask(id: string)`：POST /mobile/tasks/{id}/accept，接收任务。\n     - `confirmArrival(id: string, location: {lat, lng})`：POST /mobile/tasks/{id}/arrival，确认到达。\n     - `submitCompletion(id: string, formData: FormData)`：POST /mobile/tasks/{id}/complete，提交完成（包含照片）。\n\n4. `src/api/gate.ts`：门岗模块 API。\n   - 函数：\n     - `getEntryList()`：GET /gate/entries，获取待入场车辆列表。\n     - `authorizeEntry(id: string)`：POST /gate/entries/{id}/authorize，授权放行。\n     - `reportAbnormal(id: string, data: AbnormalReport)`：POST /gate/entries/{id}/abnormal，登记异常。\n\n5. `src/api/report.ts`：报表模块 API。\n   - 函数：\n     - `getKpiData(params: ReportParams)`：GET /reports/kpi，获取核心指标。\n     - `getChartData(params: ReportParams)`：GET /reports/chart，获取图表数据。\n     - `getTableData(params: ReportParams)`：GET /reports/table，获取表格数据。\n     - `exportReport(params: ReportParams, format: 'xlsx'|'pdf')`：GET /reports/export，导出文件（返回 Blob）。\n     - `generateReport(params: ReportParams)`：POST /reports/generate，生成决策建议报告。\n\n6. `src/api/request.ts`：Axios 实例与拦截器。\n   - 创建 Axios 实例，设置 baseURL 从环境变量读取，超时 10s。\n   - 请求拦截器：添加 Authorization header（从 localStorage 获取 token，当前 Mock 阶段可固定）。\n   - 响应拦截器：处理 401 跳转登录、统一错误弹窗。\n   - 导出 request 方法。\n\n**验收标准**：\n- 路由配置使用常量路由，默认页面正确。\n- 所有 API 函数返回 Promise，类型定义完整。\n- API 路径与原型 apiMapping 一致。\n- 使用 TypeScript 接口定义请求参数和返回值类型（在 `src/types/api.ts` 或各模块内定义）。\n- 文件结构清晰，注释完整。\n\n请仅输出所有文件完整代码，每个文件以相应扩展名包裹（如 `// src/router/index.ts` 内容），并标明文件路径。"
     }
   ],
   "pageApiMapping": [
@@ -1754,36 +1075,113 @@
           "usage": "加载外协车辆费用汇总和明细，为费用管理提供参考"
         }
       ]
+    },
+    {
+      "page": "VehicleDispatchView.vue",
+      "apis": [
+        {
+          "method": "GET",
+          "path": "/api/vehicles",
+          "usage": "页面加载时获取所有车辆位置、状态及作业区域信息，用于地图和列表展示"
+        },
+        {
+          "method": "GET",
+          "path": "/api/tasks",
+          "usage": "页面加载时获取待派任务列表，支持按优先级、区域等筛选，供调度员选择派车"
+        },
+        {
+          "method": "GET",
+          "path": "/api/alerts",
+          "usage": "页面加载时获取实时告警列表，用于在地图上或列表中展示超速、禁入等异常"
+        },
+        {
+          "method": "POST",
+          "path": "/api/tasks/dispatch",
+          "usage": "调度员选择车辆并确认派车时，为任务分配车辆并生成调度指令"
+        }
+      ]
+    },
+    {
+      "page": "DriverTaskView.vue",
+      "apis": [
+        {
+          "method": "GET",
+          "path": "/api/tasks",
+          "usage": "司机打开应用时获取个人任务列表，按状态筛选待执行任务"
+        },
+        {
+          "method": "GET",
+          "path": "/api/tasks/{taskId}",
+          "usage": "司机点击某任务时获取详细作业点、物资等信息，用于导航和作业准备"
+        },
+        {
+          "method": "POST",
+          "path": "/api/navigation/route",
+          "usage": "司机开始导航时，根据当前位置和任务目的地计算最优路径及预计到达时间"
+        },
+        {
+          "method": "POST",
+          "path": "/api/tasks/submit",
+          "usage": "司机到达作业点并拍照后，提交任务完成确认，更新任务状态"
+        }
+      ]
+    },
+    {
+      "page": "GateCheckView.vue",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/api/verifications/check",
+          "usage": "门岗输入车牌或扫描二维码时，核验车辆预约有效性及关联派车任务，返回入场许可结果"
+        },
+        {
+          "method": "POST",
+          "path": "/api/releases",
+          "usage": "核验通过后门岗点击放行，记录入场时间并更新任务状态"
+        },
+        {
+          "method": "POST",
+          "path": "/api/alerts/{id}/process",
+          "usage": "门岗处理异常车辆告警（如黑名单、未预约），进行确认、解除或上报操作"
+        },
+        {
+          "method": "GET",
+          "path": "/api/release-records",
+          "usage": "门岗查看历史放行记录用于核对或查询异常入场记录"
+        }
+      ]
+    },
+    {
+      "page": "ManagerReportsView.vue",
+      "apis": [
+        {
+          "method": "GET",
+          "path": "/api/reports/vehicle-operations",
+          "usage": "页面加载时获取车辆利用率、任务完成率、空驶率等运营统计数据"
+        },
+        {
+          "method": "GET",
+          "path": "/api/resource-allocation",
+          "usage": "页面加载时获取资源配置优化建议，包括车辆使用统计和趋势图表"
+        },
+        {
+          "method": "POST",
+          "path": "/api/reports/export",
+          "usage": "管理人员点击导出按钮，根据选择的格式和指标生成报表文件并下载"
+        }
+      ]
     }
   ],
   "navigationRoutes": [
     {
       "group": "调度指挥",
-      "icon": "🚗",
+      "icon": "📡",
       "routes": [
         {
-          "path": "/dispatch/map-view",
-          "component": "DispatchMapView.vue",
-          "title": "地图看板",
+          "path": "/dispatch/vehicle-dispatch",
+          "component": "VehicleDispatchView.vue",
+          "title": "车辆调度看板",
           "default": true
-        },
-        {
-          "path": "/dispatch/vehicle-filter",
-          "component": "OnsiteVehicleFilter.vue",
-          "title": "车辆筛选",
-          "default": false
-        },
-        {
-          "path": "/dispatch/dispatch-dialog",
-          "component": "OnsiteDispatchDialog.vue",
-          "title": "任务下发",
-          "default": false
-        },
-        {
-          "path": "/dispatch/exception-alert",
-          "component": "OnsiteExceptionAlert.vue",
-          "title": "异常告警",
-          "default": false
         }
       ]
     },
@@ -1792,82 +1190,34 @@
       "icon": "📋",
       "routes": [
         {
-          "path": "/task/task-list",
-          "component": "TaskListView.vue",
-          "title": "任务列表",
+          "path": "/task/driver-task",
+          "component": "DriverTaskView.vue",
+          "title": "司机任务管理",
           "default": true
-        },
-        {
-          "path": "/task/task-detail",
-          "component": "TaskDetailView.vue",
-          "title": "任务详情",
-          "default": false
-        },
-        {
-          "path": "/task/navigation",
-          "component": "NavigationView.vue",
-          "title": "导航到作业点",
-          "default": false
-        },
-        {
-          "path": "/task/site-feedback",
-          "component": "SiteFeedbackView.vue",
-          "title": "到达确认与反馈",
-          "default": false
         }
       ]
     },
     {
-      "group": "出入管理",
+      "group": "场地管理",
       "icon": "🚧",
       "routes": [
         {
-          "path": "/entry/check-panel",
-          "component": "EntryCheckPanel.vue",
-          "title": "核验面板",
+          "path": "/gate/gate-check",
+          "component": "GateCheckView.vue",
+          "title": "门岗核验",
           "default": true
-        },
-        {
-          "path": "/entry/release-management",
-          "component": "ReleaseManagementPanel.vue",
-          "title": "放行管理",
-          "default": false
-        },
-        {
-          "path": "/entry/alert-panel",
-          "component": "AlertPanel.vue",
-          "title": "告警处理",
-          "default": false
-        },
-        {
-          "path": "/entry/release-record-query",
-          "component": "ReleaseRecordQueryView.vue",
-          "title": "放行记录查询",
-          "default": false
         }
       ]
     },
     {
-      "group": "运营分析",
+      "group": "报表分析",
       "icon": "📊",
       "routes": [
         {
-          "path": "/analysis/statistics",
-          "component": "StatisticsAnalysisView.vue",
-          "title": "统计分析",
+          "path": "/reports/manager-reports",
+          "component": "ManagerReportsView.vue",
+          "title": "综合报表",
           "default": true
-        },
-        {
-          "path": "/analysis/report-export",
-          "component": "ReportExportView.vue",
-          "title": "报表导出",
-          "default": false
-        },
-        {
-          "path": "/analysis/resource-allocation",
-          "component": "ResourceAllocationView.vue",
-          "title": "资源配置建议",
-          "default": false
         }
       ]
     }
@@ -1895,7 +1245,7 @@
         "description": "查看统计分析报表，优化车辆资源配置，管理外协车辆费用"
       }
     ],
-    "scenarioSummary": "调度员现场调度：调度员通过地图看板实时查看车辆位置、状态和任务信息，根据作业需求进行智能派车、任务下发和异常处理"
+    "scenarioSummary": "调度员现场调度派车与异常处理：调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。"
   },
   "projectStructure": {
     "description": "基于 Vue3 + Vite 的前端项目目录结构",
@@ -1983,4503 +1333,4020 @@
     "vueConvention": "单文件组件 .vue，Options API 或 Composition API（推荐 <script setup>）"
   },
   "pageDesign": {
-    "scenario": {
-      "key": "scenario-1782887819107-0",
-      "name": "调度员现场调度",
-      "priority": "P0",
-      "description": "调度员通过地图看板实时查看车辆位置、状态和任务信息，根据作业需求进行智能派车、任务下发和异常处理",
-      "workflow": [
-        "查看车辆实时状态与位置地图",
-        "筛选空闲车辆与排队车辆",
-        "选择最佳车辆并派发任务",
-        "下发任务指令至司机移动端",
-        "监控任务执行过程",
-        "处理调度异常"
-      ],
-      "pageMapping": {
-        "role": "调度员",
-        "page": "DispatchMapView.vue",
-        "modules": [
-          "地图监控模块",
-          "任务派发模块",
-          "异常处理模块",
-          "车辆状态筛选模块"
-        ]
-      }
-    },
-    "currentScenarioKey": "scenario-1782887819107-0",
-    "selectedPageKey": "scenario-1782887819107-0-page-1",
-    "page": {
-      "key": "scenario-1782887819107-0-page-1",
-      "priority": "P0",
-      "type": "工作台页",
-      "name": "现场调度地图监控",
-      "vueFile": "DispatchMapView.vue",
-      "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
-      "features": [
-        "实时车辆位置标注与状态颜色区分",
-        "点击车辆弹出详情窗口：车牌",
-        "司机",
-        "任务",
-        "状态",
-        "地图图层切换：作业区域",
-        "禁入区域",
-        "排队区域",
-        "车辆轨迹回放（可选）"
-      ],
-      "featureText": "实时车辆位置标注与状态颜色区分、点击车辆弹出详情窗口：车牌、司机、任务、状态、地图图层切换：作业区域、禁入区域、排队区域、车辆轨迹回放（可选）",
-      "sections": [
-        "地图主区域",
-        "车辆状态筛选与任务派发控制面板",
-        "异常告警通知区域"
-      ]
-    },
-    "currentPage": {
-      "key": "scenario-1782887819107-0-page-1",
-      "priority": "P0",
-      "type": "工作台页",
-      "name": "现场调度地图监控",
-      "vueFile": "DispatchMapView.vue",
-      "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
-      "features": [
-        "实时车辆位置标注与状态颜色区分",
-        "点击车辆弹出详情窗口：车牌",
-        "司机",
-        "任务",
-        "状态",
-        "地图图层切换：作业区域",
-        "禁入区域",
-        "排队区域",
-        "车辆轨迹回放（可选）"
-      ],
-      "featureText": "实时车辆位置标注与状态颜色区分、点击车辆弹出详情窗口：车牌、司机、任务、状态、地图图层切换：作业区域、禁入区域、排队区域、车辆轨迹回放（可选）",
-      "sections": [
-        "地图主区域",
-        "车辆状态筛选与任务派发控制面板",
-        "异常告警通知区域"
-      ]
-    },
-    "currentPageSections": [
-      "地图主区域",
-      "车辆状态筛选与任务派发控制面板",
-      "异常告警通知区域"
-    ],
-    "pageDesign": {
-      "pages": [
-        {
-          "key": "scenario-1782887819107-0-page-1",
-          "priority": "P0",
-          "type": "工作台页",
-          "name": "现场调度地图监控",
-          "vueFile": "DispatchMapView.vue",
-          "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
-          "features": [
-            "实时车辆位置标注与状态颜色区分",
-            "点击车辆弹出详情窗口：车牌",
-            "司机",
-            "任务",
-            "状态",
-            "地图图层切换：作业区域",
-            "禁入区域",
-            "排队区域",
-            "车辆轨迹回放（可选）"
-          ],
-          "featureText": "实时车辆位置标注与状态颜色区分、点击车辆弹出详情窗口：车牌、司机、任务、状态、地图图层切换：作业区域、禁入区域、排队区域、车辆轨迹回放（可选）",
-          "sections": [
-            "地图主区域",
-            "车辆状态筛选与任务派发控制面板",
-            "异常告警通知区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "key": "scenario-1782887819107-0-page-2",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "现场车辆快速筛选",
-          "vueFile": "OnsiteVehicleFilter.vue",
-          "goal": "支持按车辆类型、状态（空闲/排队/任务中）、作业区域、距离远近等条件筛选车辆，便于调度员快速定位合适车辆",
-          "features": [
-            "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）",
-            "状态",
-            "区域",
-            "筛选结果在地图上高亮显示",
-            "列表视图展示筛选结果",
-            "支持排序",
-            "一键重置筛选条件"
-          ],
-          "featureText": "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）、状态、区域、筛选结果在地图上高亮显示、列表视图展示筛选结果，支持排序、一键重置筛选条件",
-          "sections": [
-            "筛选条件面板",
-            "筛选结果展示区（地图/列表）",
-            "快捷操作栏"
-          ],
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "key": "scenario-1782887819107-0-page-3",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "现场派车",
-          "vueFile": "OnsiteDispatchDialog.vue",
-          "goal": "调度员为选中的车辆分配任务，支持选择用车申请、输入作业点、选择优先级，并一键下发至司机移动端",
-          "features": [
-            "显示待派发的用车申请列表",
-            "选择目标车辆后",
-            "匹配任务并确认派发",
-            "支持紧急派车（跳过申请手动创建任务）",
-            "派发成功后推送通知至司机端",
-            "记录派发日志（操作人",
-            "时间",
-            "车辆",
-            "任务）"
-          ],
-          "featureText": "显示待派发的用车申请列表、选择目标车辆后，匹配任务并确认派发、支持紧急派车（跳过申请手动创建任务）、派发成功后推送通知至司机端、记录派发日志（操作人、时间、车辆、任务）",
-          "sections": [
-            "待派发用车申请列表",
-            "车辆选择与任务匹配",
-            "派发参数配置",
-            "派发操作与日志"
-          ],
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "key": "scenario-1782887819107-0-page-4",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "现场异常告警处理",
-          "vueFile": "OnsiteExceptionAlert.vue",
-          "goal": "实时接收车辆异常告警（超速、禁入区域、异常停留、未授权入场等），支持调度员查看详情、处理告警、标记解决",
-          "features": [
-            "异常告警列表实时刷新",
-            "显示告警类型",
-            "车辆",
-            "时间",
-            "位置",
-            "点击告警可在地图上定位车辆并查看详情",
-            "支持处理告警：确认",
-            "忽略",
-            "通知相关人员",
-            "告警历史记录查询与导出"
-          ],
-          "featureText": "异常告警列表实时刷新，显示告警类型、车辆、时间、位置、点击告警可在地图上定位车辆并查看详情、支持处理告警：确认、忽略、通知相关人员、告警历史记录查询与导出",
-          "sections": [
-            "告警实时列表区域",
-            "告警详情与处理区域",
-            "历史告警查询区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "key": "scenario-1782887819107-1-page-1",
-          "priority": "P0",
-          "type": "工作台页",
-          "name": "任务列表",
-          "vueFile": "TaskListView.vue",
-          "goal": "司机查看个人任务列表，接收新任务通知，筛选和查看不同状态的任务",
-          "features": [
-            "接收任务通知并显示未读标记",
-            "按状态（待接单",
-            "进行中",
-            "已完成）筛选任务",
-            "显示任务摘要信息（任务编号",
-            "作业点",
-            "要求时间）",
-            "支持下拉刷新和分页加载"
-          ],
-          "featureText": "接收任务通知并显示未读标记、按状态（待接单、进行中、已完成）筛选任务、显示任务摘要信息（任务编号、作业点、要求时间）、支持下拉刷新和分页加载",
-          "sections": [
-            "任务通知区域",
-            "任务状态筛选区域",
-            "任务列表展示区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "key": "scenario-1782887819107-1-page-2",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "任务详情",
-          "vueFile": "TaskDetailView.vue",
-          "goal": "展示任务的详细信息，包括作业点位置、任务要求、物资信息等",
-          "features": [
-            "展示作业点名称",
-            "地址",
-            "联系人信息",
-            "展示任务要求（车辆类型",
-            "物资种类",
-            "作业说明）",
-            "展示任务时间节点（计划到达时间",
-            "完成时间）",
-            "提供导航入口和联系调度员功能"
-          ],
-          "featureText": "展示作业点名称、地址、联系人信息、展示任务要求（车辆类型、物资种类、作业说明）、展示任务时间节点（计划到达时间、完成时间）、提供导航入口和联系调度员功能",
-          "sections": [
-            "任务基本信息区域",
-            "作业点信息区域",
-            "任务时间区域",
-            "操作区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "key": "scenario-1782887819107-1-page-3",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "导航与路径",
-          "vueFile": "NavigationView.vue",
-          "goal": "从司机当前位置导航至指定作业点，实时显示路径和预计到达时间",
-          "features": [
-            "获取司机当前位置并计算到作业点的最优路径",
-            "显示导航路线",
-            "距离和预计到达时间",
-            "支持语音导航和路线偏离提醒",
-            "到达作业点附近时自动触发到达确认提示"
-          ],
-          "featureText": "获取司机当前位置并计算到作业点的最优路径、显示导航路线、距离和预计到达时间、支持语音导航和路线偏离提醒、到达作业点附近时自动触发到达确认提示",
-          "sections": [
-            "地图显示区域",
-            "导航信息区域",
-            "操作与提示区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "key": "scenario-1782887819107-1-page-4",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "现场反馈",
-          "vueFile": "SiteFeedbackView.vue",
-          "goal": "司机在到达作业点后确认到达，并上传现场照片或备注信息",
-          "features": [
-            "点击'到达确认'并记录到达时间",
-            "现场拍照上传（支持多张照片）",
-            "添加文字备注或异常说明",
-            "反馈信息与任务关联并同步至调度端"
-          ],
-          "featureText": "点击'到达确认'并记录到达时间、现场拍照上传（支持多张照片）、添加文字备注或异常说明、反馈信息与任务关联并同步至调度端",
-          "sections": [
-            "到达确认区域",
-            "现场反馈与上传区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "key": "scenario-1782887819107-2-page-1",
-          "priority": "P1",
-          "type": "工作台页",
-          "name": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
-          "vueFile": "EntryCheckPanel.vue",
-          "goal": "支持通过扫描车牌或预约二维码，自动核验车辆预约有效性及派车任务关联，快速得出入场许可结果",
-          "features": [
-            "扫描车牌或预约二维码",
-            "自动核验预约有效性及任务关联",
-            "显示核验结果（放行/拒绝）",
-            "处理核验异常并引导手动操作"
-          ],
-          "featureText": "扫描车牌或预约二维码、自动核验预约有效性及任务关联、显示核验结果（放行/拒绝）、处理核验异常并引导手动操作",
-          "sections": [
-            "扫描输入区",
-            "核验结果展示区",
-            "异常处理区",
-            "操作记录区"
-          ],
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "key": "scenario-1782887819107-2-page-2",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "放行管理 - 管理车辆入场放行操作与记录",
-          "vueFile": "ReleaseManagementPanel.vue",
-          "goal": "根据核验结果执行放行或拒绝操作，记录放行时间、车辆信息，并更新相关任务状态",
-          "features": [
-            "手动确认放行或拒绝",
-            "记录入场时间与车辆信息",
-            "关联更新派车任务状态",
-            "支持批量放行操作"
-          ],
-          "featureText": "手动确认放行或拒绝、记录入场时间与车辆信息、关联更新派车任务状态、支持批量放行操作",
-          "sections": [
-            "放行操作区",
-            "车辆信息与记录区",
-            "批量放行区",
-            "任务状态关联区"
-          ],
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "key": "scenario-1782887819107-2-page-3",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "异常告警 - 处理入场违规与安全告警事件",
-          "vueFile": "AlertPanel.vue",
-          "goal": "实时处理未授权入场、证照过期、异常停留等告警，支持告警确认、解除与上报",
-          "features": [
-            "告警实时展示与分类",
-            "告警处理（确认/解除/上报）",
-            "告警历史查询"
-          ],
-          "featureText": "告警实时展示与分类、告警处理（确认/解除/上报）、告警历史查询",
-          "sections": [
-            "实时告警列表",
-            "告警处理面板",
-            "告警历史查询"
-          ],
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "key": "scenario-1782887819107-2-page-4",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "放行记录查询 - 追溯车辆入场放行历史数据",
-          "vueFile": "ReleaseRecordQueryView.vue",
-          "goal": "按时间、车牌、车辆类型等条件检索放行记录，查看核验详情，支持导出用于审计追溯",
-          "features": [
-            "多条件组合查询放行记录",
-            "查看核验详情与放行凭证",
-            "导出记录报表"
-          ],
-          "featureText": "多条件组合查询放行记录、查看核验详情与放行凭证、导出记录报表",
-          "sections": [
-            "查询条件区",
-            "数据列表区",
-            "详情查看区",
-            "导出操作区"
-          ],
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "key": "scenario-1782887819107-3-page-1",
-          "priority": "P1",
-          "type": "工作台页",
-          "name": "车辆运营报表分析",
-          "vueFile": "StatisticsAnalysisView.vue",
-          "goal": "提供车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等核心统计指标的图表展示与分析功能",
-          "features": [
-            "按时间范围筛选报表数据",
-            "展示车辆利用率趋势图",
-            "展示任务完成率与平均等待时长图表",
-            "展示空驶率与排队统计图表",
-            "展示外协车辆使用次数与异常记录列表",
-            "支持图表导出为图片或PDF"
-          ],
-          "featureText": "按时间范围筛选报表数据、展示车辆利用率趋势图、展示任务完成率与平均等待时长图表、展示空驶率与排队统计图表、展示外协车辆使用次数与异常记录列表、支持图表导出为图片或PDF",
-          "sections": [
-            "筛选区域",
-            "核心指标概览",
-            "统计分析图表",
-            "外协车辆与异常记录列表"
-          ],
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        },
-        {
-          "key": "scenario-1782887819107-3-page-2",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "报表数据导出",
-          "vueFile": "ReportExportView.vue",
-          "goal": "支持将统计分析结果导出为Excel、PDF等格式，便于管理人员存档、分发和进一步分析",
-          "features": [
-            "选择导出格式（Excel/PDF）",
-            "选择导出内容范围（全部报表/指定指标）",
-            "一键导出并下载文件",
-            "导出记录日志与审计追踪"
-          ],
-          "featureText": "选择导出格式（Excel/PDF）、选择导出内容范围（全部报表/指定指标）、一键导出并下载文件、导出记录日志与审计追踪",
-          "sections": [
-            "导出配置区域",
-            "导出操作区域",
-            "导出记录日志区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        },
-        {
-          "key": "scenario-1782887819107-3-page-3",
-          "priority": "P1",
-          "type": "辅助页",
-          "name": "资源配置优化建议",
-          "vueFile": "ResourceAllocationView.vue",
-          "goal": "基于历史数据与当前车辆使用情况，提供车辆资源配置优化建议和外协车辆费用管理参考",
-          "features": [
-            "分析车辆使用热点与瓶颈区域",
-            "推荐车辆增减数量与类型调整",
-            "展示外协车辆费用汇总与趋势",
-            "提供资源配置优化报告预览"
-          ],
-          "featureText": "分析车辆使用热点与瓶颈区域、推荐车辆增减数量与类型调整、展示外协车辆费用汇总与趋势、提供资源配置优化报告预览",
-          "sections": [
-            "筛选与时间范围区域",
-            "热点与瓶颈分析区域",
-            "资源配置推荐区域",
-            "外协费用汇总区域",
-            "优化报告预览区域"
-          ],
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        }
-      ],
-      "navigation": [
-        {
-          "label": "现场调度地图监控",
-          "target": "DispatchMapView.vue",
-          "default": true,
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "label": "现场车辆快速筛选",
-          "target": "OnsiteVehicleFilter.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "label": "现场派车",
-          "target": "OnsiteDispatchDialog.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "label": "现场异常告警处理",
-          "target": "OnsiteExceptionAlert.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-0",
-          "scenarioName": "调度员现场调度"
-        },
-        {
-          "label": "任务列表",
-          "target": "TaskListView.vue",
-          "default": true,
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "label": "任务详情",
-          "target": "TaskDetailView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "label": "导航与路径",
-          "target": "NavigationView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "label": "现场反馈",
-          "target": "SiteFeedbackView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-1",
-          "scenarioName": "司机任务执行"
-        },
-        {
-          "label": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
-          "target": "EntryCheckPanel.vue",
-          "default": true,
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "label": "放行管理 - 管理车辆入场放行操作与记录",
-          "target": "ReleaseManagementPanel.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "label": "异常告警 - 处理入场违规与安全告警事件",
-          "target": "AlertPanel.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "label": "放行记录查询 - 追溯车辆入场放行历史数据",
-          "target": "ReleaseRecordQueryView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-2",
-          "scenarioName": "门岗入场核验"
-        },
-        {
-          "label": "车辆运营报表分析",
-          "target": "StatisticsAnalysisView.vue",
-          "default": true,
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        },
-        {
-          "label": "报表数据导出",
-          "target": "ReportExportView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        },
-        {
-          "label": "资源配置优化建议",
-          "target": "ResourceAllocationView.vue",
-          "default": false,
-          "scenarioKey": "scenario-1782887819107-3",
-          "scenarioName": "管理人员报表分析"
-        }
-      ],
-      "fileStructure": {
-        "views": [
-          "DispatchMapView.vue",
-          "OnsiteVehicleFilter.vue",
-          "OnsiteDispatchDialog.vue",
-          "OnsiteExceptionAlert.vue",
-          "TaskListView.vue",
-          "TaskDetailView.vue",
-          "NavigationView.vue",
-          "SiteFeedbackView.vue",
-          "EntryCheckPanel.vue",
-          "ReleaseManagementPanel.vue",
-          "AlertPanel.vue",
-          "ReleaseRecordQueryView.vue",
-          "StatisticsAnalysisView.vue",
-          "ReportExportView.vue",
-          "ResourceAllocationView.vue"
-        ],
-        "components": [
-          "ScenarioHeader.vue",
-          "ScenarioFilterBar.vue",
-          "ScenarioDetailPanel.vue",
-          "StatusTag.vue",
-          "DataTable.vue"
-        ],
-        "data": [
-          "ScenarioMockData.js"
-        ]
-      }
-    },
-    "scenarioSummaries": [
+    "pages": [
       {
-        "key": "scenario-1782887819107-0",
-        "name": "调度员现场调度",
+        "key": "page-1",
         "priority": "P0",
-        "pageCount": 4,
-        "pages": [
-          {
-            "key": "scenario-1782887819107-0-page-1",
-            "priority": "P0",
-            "type": "工作台页",
-            "name": "现场调度地图监控",
-            "vueFile": "DispatchMapView.vue",
-            "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
-            "features": [
-              "实时车辆位置标注与状态颜色区分",
-              "点击车辆弹出详情窗口：车牌",
-              "司机",
-              "任务",
-              "状态",
-              "地图图层切换：作业区域",
-              "禁入区域",
-              "排队区域",
-              "车辆轨迹回放（可选）"
-            ],
-            "featureText": "实时车辆位置标注与状态颜色区分、点击车辆弹出详情窗口：车牌、司机、任务、状态、地图图层切换：作业区域、禁入区域、排队区域、车辆轨迹回放（可选）",
-            "sections": [
-              "地图主区域",
-              "车辆状态筛选与任务派发控制面板",
-              "异常告警通知区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场车辆快速筛选",
-            "vueFile": "OnsiteVehicleFilter.vue",
-            "goal": "支持按车辆类型、状态（空闲/排队/任务中）、作业区域、距离远近等条件筛选车辆，便于调度员快速定位合适车辆",
-            "features": [
-              "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）",
-              "状态",
-              "区域",
-              "筛选结果在地图上高亮显示",
-              "列表视图展示筛选结果",
-              "支持排序",
-              "一键重置筛选条件"
-            ],
-            "featureText": "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）、状态、区域、筛选结果在地图上高亮显示、列表视图展示筛选结果，支持排序、一键重置筛选条件",
-            "sections": [
-              "筛选条件面板",
-              "筛选结果展示区（地图/列表）",
-              "快捷操作栏"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场派车",
-            "vueFile": "OnsiteDispatchDialog.vue",
-            "goal": "调度员为选中的车辆分配任务，支持选择用车申请、输入作业点、选择优先级，并一键下发至司机移动端",
-            "features": [
-              "显示待派发的用车申请列表",
-              "选择目标车辆后",
-              "匹配任务并确认派发",
-              "支持紧急派车（跳过申请手动创建任务）",
-              "派发成功后推送通知至司机端",
-              "记录派发日志（操作人",
-              "时间",
-              "车辆",
-              "任务）"
-            ],
-            "featureText": "显示待派发的用车申请列表、选择目标车辆后，匹配任务并确认派发、支持紧急派车（跳过申请手动创建任务）、派发成功后推送通知至司机端、记录派发日志（操作人、时间、车辆、任务）",
-            "sections": [
-              "待派发用车申请列表",
-              "车辆选择与任务匹配",
-              "派发参数配置",
-              "派发操作与日志"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场异常告警处理",
-            "vueFile": "OnsiteExceptionAlert.vue",
-            "goal": "实时接收车辆异常告警（超速、禁入区域、异常停留、未授权入场等），支持调度员查看详情、处理告警、标记解决",
-            "features": [
-              "异常告警列表实时刷新",
-              "显示告警类型",
-              "车辆",
-              "时间",
-              "位置",
-              "点击告警可在地图上定位车辆并查看详情",
-              "支持处理告警：确认",
-              "忽略",
-              "通知相关人员",
-              "告警历史记录查询与导出"
-            ],
-            "featureText": "异常告警列表实时刷新，显示告警类型、车辆、时间、位置、点击告警可在地图上定位车辆并查看详情、支持处理告警：确认、忽略、通知相关人员、告警历史记录查询与导出",
-            "sections": [
-              "告警实时列表区域",
-              "告警详情与处理区域",
-              "历史告警查询区域"
-            ]
-          }
+        "type": "工作台页",
+        "name": "调度员现场调度派车与异常处理工作台",
+        "vueFile": "VehicleDispatchView.vue",
+        "goal": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+        "features": [
+          "车辆状态与调度总览地图",
+          "任务派发与分配操作",
+          "任务执行监控",
+          "异常告警处理"
+        ],
+        "sections": [
+          "地图总览区",
+          "任务派发区",
+          "任务监控区",
+          "告警处理区"
         ]
       },
       {
-        "key": "scenario-1782887819107-1",
-        "name": "司机任务执行",
+        "key": "page-1",
         "priority": "P0",
-        "pageCount": 4,
-        "pages": [
-          {
-            "key": "scenario-1782887819107-1-page-1",
-            "priority": "P0",
-            "type": "工作台页",
-            "name": "任务列表",
-            "vueFile": "TaskListView.vue",
-            "goal": "司机查看个人任务列表，接收新任务通知，筛选和查看不同状态的任务",
-            "features": [
-              "接收任务通知并显示未读标记",
-              "按状态（待接单",
-              "进行中",
-              "已完成）筛选任务",
-              "显示任务摘要信息（任务编号",
-              "作业点",
-              "要求时间）",
-              "支持下拉刷新和分页加载"
-            ],
-            "featureText": "接收任务通知并显示未读标记、按状态（待接单、进行中、已完成）筛选任务、显示任务摘要信息（任务编号、作业点、要求时间）、支持下拉刷新和分页加载",
-            "sections": [
-              "任务通知区域",
-              "任务状态筛选区域",
-              "任务列表展示区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "任务详情",
-            "vueFile": "TaskDetailView.vue",
-            "goal": "展示任务的详细信息，包括作业点位置、任务要求、物资信息等",
-            "features": [
-              "展示作业点名称",
-              "地址",
-              "联系人信息",
-              "展示任务要求（车辆类型",
-              "物资种类",
-              "作业说明）",
-              "展示任务时间节点（计划到达时间",
-              "完成时间）",
-              "提供导航入口和联系调度员功能"
-            ],
-            "featureText": "展示作业点名称、地址、联系人信息、展示任务要求（车辆类型、物资种类、作业说明）、展示任务时间节点（计划到达时间、完成时间）、提供导航入口和联系调度员功能",
-            "sections": [
-              "任务基本信息区域",
-              "作业点信息区域",
-              "任务时间区域",
-              "操作区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "导航与路径",
-            "vueFile": "NavigationView.vue",
-            "goal": "从司机当前位置导航至指定作业点，实时显示路径和预计到达时间",
-            "features": [
-              "获取司机当前位置并计算到作业点的最优路径",
-              "显示导航路线",
-              "距离和预计到达时间",
-              "支持语音导航和路线偏离提醒",
-              "到达作业点附近时自动触发到达确认提示"
-            ],
-            "featureText": "获取司机当前位置并计算到作业点的最优路径、显示导航路线、距离和预计到达时间、支持语音导航和路线偏离提醒、到达作业点附近时自动触发到达确认提示",
-            "sections": [
-              "地图显示区域",
-              "导航信息区域",
-              "操作与提示区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场反馈",
-            "vueFile": "SiteFeedbackView.vue",
-            "goal": "司机在到达作业点后确认到达，并上传现场照片或备注信息",
-            "features": [
-              "点击'到达确认'并记录到达时间",
-              "现场拍照上传（支持多张照片）",
-              "添加文字备注或异常说明",
-              "反馈信息与任务关联并同步至调度端"
-            ],
-            "featureText": "点击'到达确认'并记录到达时间、现场拍照上传（支持多张照片）、添加文字备注或异常说明、反馈信息与任务关联并同步至调度端",
-            "sections": [
-              "到达确认区域",
-              "现场反馈与上传区域"
-            ]
-          }
+        "type": "工作台页",
+        "name": "司机移动端任务接收与作业确认工作台",
+        "vueFile": "DriverTaskView.vue",
+        "goal": "司机在移动端集中接收调度任务、导航至作业点确认到达、拍照提交任务完成，实现任务执行全程操作。",
+        "features": [
+          "任务接收与详情查看",
+          "导航与到达确认",
+          "现场拍照与任务关闭"
+        ],
+        "sections": [
+          "顶部操作栏",
+          "任务列表区",
+          "作业详情与导航区",
+          "照片上传与任务提交区"
         ]
       },
       {
-        "key": "scenario-1782887819107-2",
-        "name": "门岗入场核验",
-        "priority": "P1",
-        "pageCount": 4,
-        "pages": [
-          {
-            "key": "scenario-1782887819107-2-page-1",
-            "priority": "P1",
-            "type": "工作台页",
-            "name": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
-            "vueFile": "EntryCheckPanel.vue",
-            "goal": "支持通过扫描车牌或预约二维码，自动核验车辆预约有效性及派车任务关联，快速得出入场许可结果",
-            "features": [
-              "扫描车牌或预约二维码",
-              "自动核验预约有效性及任务关联",
-              "显示核验结果（放行/拒绝）",
-              "处理核验异常并引导手动操作"
-            ],
-            "featureText": "扫描车牌或预约二维码、自动核验预约有效性及任务关联、显示核验结果（放行/拒绝）、处理核验异常并引导手动操作",
-            "sections": [
-              "扫描输入区",
-              "核验结果展示区",
-              "异常处理区",
-              "操作记录区"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "放行管理 - 管理车辆入场放行操作与记录",
-            "vueFile": "ReleaseManagementPanel.vue",
-            "goal": "根据核验结果执行放行或拒绝操作，记录放行时间、车辆信息，并更新相关任务状态",
-            "features": [
-              "手动确认放行或拒绝",
-              "记录入场时间与车辆信息",
-              "关联更新派车任务状态",
-              "支持批量放行操作"
-            ],
-            "featureText": "手动确认放行或拒绝、记录入场时间与车辆信息、关联更新派车任务状态、支持批量放行操作",
-            "sections": [
-              "放行操作区",
-              "车辆信息与记录区",
-              "批量放行区",
-              "任务状态关联区"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "异常告警 - 处理入场违规与安全告警事件",
-            "vueFile": "AlertPanel.vue",
-            "goal": "实时处理未授权入场、证照过期、异常停留等告警，支持告警确认、解除与上报",
-            "features": [
-              "告警实时展示与分类",
-              "告警处理（确认/解除/上报）",
-              "告警历史查询"
-            ],
-            "featureText": "告警实时展示与分类、告警处理（确认/解除/上报）、告警历史查询",
-            "sections": [
-              "实时告警列表",
-              "告警处理面板",
-              "告警历史查询"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "放行记录查询 - 追溯车辆入场放行历史数据",
-            "vueFile": "ReleaseRecordQueryView.vue",
-            "goal": "按时间、车牌、车辆类型等条件检索放行记录，查看核验详情，支持导出用于审计追溯",
-            "features": [
-              "多条件组合查询放行记录",
-              "查看核验详情与放行凭证",
-              "导出记录报表"
-            ],
-            "featureText": "多条件组合查询放行记录、查看核验详情与放行凭证、导出记录报表",
-            "sections": [
-              "查询条件区",
-              "数据列表区",
-              "详情查看区",
-              "导出操作区"
-            ]
-          }
+        "key": "page-1",
+        "priority": "P0",
+        "type": "工作台页",
+        "name": "门岗人员入场核验与放行管理工作台",
+        "vueFile": "GateCheckView.vue",
+        "goal": "门岗人员在一个界面内完成待入场车辆核验、人工授权确认、放行或异常登记，实现入场全流程管控",
+        "features": [
+          "待入场车辆核验列表",
+          "人工核验确认",
+          "放行与异常登记"
+        ],
+        "sections": [
+          "顶部筛选与状态栏",
+          "车辆核验列表区",
+          "核验详情与确认操作区",
+          "异常登记与告警区"
         ]
       },
       {
-        "key": "scenario-1782887819107-3",
-        "name": "管理人员报表分析",
-        "priority": "P1",
-        "pageCount": 3,
-        "pages": [
-          {
-            "key": "scenario-1782887819107-3-page-1",
-            "priority": "P1",
-            "type": "工作台页",
-            "name": "车辆运营报表分析",
-            "vueFile": "StatisticsAnalysisView.vue",
-            "goal": "提供车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等核心统计指标的图表展示与分析功能",
-            "features": [
-              "按时间范围筛选报表数据",
-              "展示车辆利用率趋势图",
-              "展示任务完成率与平均等待时长图表",
-              "展示空驶率与排队统计图表",
-              "展示外协车辆使用次数与异常记录列表",
-              "支持图表导出为图片或PDF"
-            ],
-            "featureText": "按时间范围筛选报表数据、展示车辆利用率趋势图、展示任务完成率与平均等待时长图表、展示空驶率与排队统计图表、展示外协车辆使用次数与异常记录列表、支持图表导出为图片或PDF",
-            "sections": [
-              "筛选区域",
-              "核心指标概览",
-              "统计分析图表",
-              "外协车辆与异常记录列表"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-3-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "报表数据导出",
-            "vueFile": "ReportExportView.vue",
-            "goal": "支持将统计分析结果导出为Excel、PDF等格式，便于管理人员存档、分发和进一步分析",
-            "features": [
-              "选择导出格式（Excel/PDF）",
-              "选择导出内容范围（全部报表/指定指标）",
-              "一键导出并下载文件",
-              "导出记录日志与审计追踪"
-            ],
-            "featureText": "选择导出格式（Excel/PDF）、选择导出内容范围（全部报表/指定指标）、一键导出并下载文件、导出记录日志与审计追踪",
-            "sections": [
-              "导出配置区域",
-              "导出操作区域",
-              "导出记录日志区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-3-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "资源配置优化建议",
-            "vueFile": "ResourceAllocationView.vue",
-            "goal": "基于历史数据与当前车辆使用情况，提供车辆资源配置优化建议和外协车辆费用管理参考",
-            "features": [
-              "分析车辆使用热点与瓶颈区域",
-              "推荐车辆增减数量与类型调整",
-              "展示外协车辆费用汇总与趋势",
-              "提供资源配置优化报告预览"
-            ],
-            "featureText": "分析车辆使用热点与瓶颈区域、推荐车辆增减数量与类型调整、展示外协车辆费用汇总与趋势、提供资源配置优化报告预览",
-            "sections": [
-              "筛选与时间范围区域",
-              "热点与瓶颈分析区域",
-              "资源配置推荐区域",
-              "外协费用汇总区域",
-              "优化报告预览区域"
-            ]
-          }
+        "key": "page-1",
+        "priority": "P0",
+        "type": "工作台页",
+        "name": "管理人员查看运营报表与资源优化工作台",
+        "vueFile": "ManagerReportsView.vue",
+        "goal": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
+        "features": [
+          "报表筛选与查询",
+          "指标图表展示",
+          "数据导出与决策建议"
+        ],
+        "sections": [
+          "报表筛选栏",
+          "图表与摘要展示区",
+          "决策建议区",
+          "导出操作区"
         ]
       }
     ],
-    "scenarioDesigns": {
-      "scenario-1782887819107-0": {
-        "pages": [
-          {
-            "key": "scenario-1782887819107-0-page-1",
-            "priority": "P0",
-            "type": "工作台页",
-            "name": "现场调度地图监控",
-            "vueFile": "DispatchMapView.vue",
-            "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
-            "features": [
-              "实时车辆位置标注与状态颜色区分",
-              "点击车辆弹出详情窗口：车牌",
-              "司机",
-              "任务",
-              "状态",
-              "地图图层切换：作业区域",
-              "禁入区域",
-              "排队区域",
-              "车辆轨迹回放（可选）"
-            ],
-            "featureText": "实时车辆位置标注与状态颜色区分、点击车辆弹出详情窗口：车牌、司机、任务、状态、地图图层切换：作业区域、禁入区域、排队区域、车辆轨迹回放（可选）",
-            "sections": [
-              "地图主区域",
-              "车辆状态筛选与任务派发控制面板",
-              "异常告警通知区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场车辆快速筛选",
-            "vueFile": "OnsiteVehicleFilter.vue",
-            "goal": "支持按车辆类型、状态（空闲/排队/任务中）、作业区域、距离远近等条件筛选车辆，便于调度员快速定位合适车辆",
-            "features": [
-              "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）",
-              "状态",
-              "区域",
-              "筛选结果在地图上高亮显示",
-              "列表视图展示筛选结果",
-              "支持排序",
-              "一键重置筛选条件"
-            ],
-            "featureText": "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）、状态、区域、筛选结果在地图上高亮显示、列表视图展示筛选结果，支持排序、一键重置筛选条件",
-            "sections": [
-              "筛选条件面板",
-              "筛选结果展示区（地图/列表）",
-              "快捷操作栏"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场派车",
-            "vueFile": "OnsiteDispatchDialog.vue",
-            "goal": "调度员为选中的车辆分配任务，支持选择用车申请、输入作业点、选择优先级，并一键下发至司机移动端",
-            "features": [
-              "显示待派发的用车申请列表",
-              "选择目标车辆后",
-              "匹配任务并确认派发",
-              "支持紧急派车（跳过申请手动创建任务）",
-              "派发成功后推送通知至司机端",
-              "记录派发日志（操作人",
-              "时间",
-              "车辆",
-              "任务）"
-            ],
-            "featureText": "显示待派发的用车申请列表、选择目标车辆后，匹配任务并确认派发、支持紧急派车（跳过申请手动创建任务）、派发成功后推送通知至司机端、记录派发日志（操作人、时间、车辆、任务）",
-            "sections": [
-              "待派发用车申请列表",
-              "车辆选择与任务匹配",
-              "派发参数配置",
-              "派发操作与日志"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-0-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场异常告警处理",
-            "vueFile": "OnsiteExceptionAlert.vue",
-            "goal": "实时接收车辆异常告警（超速、禁入区域、异常停留、未授权入场等），支持调度员查看详情、处理告警、标记解决",
-            "features": [
-              "异常告警列表实时刷新",
-              "显示告警类型",
-              "车辆",
-              "时间",
-              "位置",
-              "点击告警可在地图上定位车辆并查看详情",
-              "支持处理告警：确认",
-              "忽略",
-              "通知相关人员",
-              "告警历史记录查询与导出"
-            ],
-            "featureText": "异常告警列表实时刷新，显示告警类型、车辆、时间、位置、点击告警可在地图上定位车辆并查看详情、支持处理告警：确认、忽略、通知相关人员、告警历史记录查询与导出",
-            "sections": [
-              "告警实时列表区域",
-              "告警详情与处理区域",
-              "历史告警查询区域"
-            ]
-          }
-        ],
-        "navigation": [
-          {
-            "label": "现场调度地图监控",
-            "target": "DispatchMapView.vue",
-            "default": true
-          },
-          {
-            "label": "现场车辆快速筛选",
-            "target": "OnsiteVehicleFilter.vue",
-            "default": false
-          },
-          {
-            "label": "现场派车",
-            "target": "OnsiteDispatchDialog.vue",
-            "default": false
-          },
-          {
-            "label": "现场异常告警处理",
-            "target": "OnsiteExceptionAlert.vue",
-            "default": false
-          }
-        ],
-        "fileStructure": {
-          "views": [
-            "DispatchMapView.vue",
-            "OnsiteVehicleFilter.vue",
-            "OnsiteDispatchDialog.vue",
-            "OnsiteExceptionAlert.vue"
-          ],
-          "components": [
-            "ScenarioHeader.vue",
-            "ScenarioFilterBar.vue",
-            "ScenarioDetailPanel.vue",
-            "StatusTag.vue",
-            "DataTable.vue"
-          ],
-          "data": [
-            "ScenarioMockData.js"
-          ]
-        }
-      },
-      "scenario-1782887819107-1": {
-        "pages": [
-          {
-            "key": "scenario-1782887819107-1-page-1",
-            "priority": "P0",
-            "type": "工作台页",
-            "name": "任务列表",
-            "vueFile": "TaskListView.vue",
-            "goal": "司机查看个人任务列表，接收新任务通知，筛选和查看不同状态的任务",
-            "features": [
-              "接收任务通知并显示未读标记",
-              "按状态（待接单",
-              "进行中",
-              "已完成）筛选任务",
-              "显示任务摘要信息（任务编号",
-              "作业点",
-              "要求时间）",
-              "支持下拉刷新和分页加载"
-            ],
-            "featureText": "接收任务通知并显示未读标记、按状态（待接单、进行中、已完成）筛选任务、显示任务摘要信息（任务编号、作业点、要求时间）、支持下拉刷新和分页加载",
-            "sections": [
-              "任务通知区域",
-              "任务状态筛选区域",
-              "任务列表展示区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "任务详情",
-            "vueFile": "TaskDetailView.vue",
-            "goal": "展示任务的详细信息，包括作业点位置、任务要求、物资信息等",
-            "features": [
-              "展示作业点名称",
-              "地址",
-              "联系人信息",
-              "展示任务要求（车辆类型",
-              "物资种类",
-              "作业说明）",
-              "展示任务时间节点（计划到达时间",
-              "完成时间）",
-              "提供导航入口和联系调度员功能"
-            ],
-            "featureText": "展示作业点名称、地址、联系人信息、展示任务要求（车辆类型、物资种类、作业说明）、展示任务时间节点（计划到达时间、完成时间）、提供导航入口和联系调度员功能",
-            "sections": [
-              "任务基本信息区域",
-              "作业点信息区域",
-              "任务时间区域",
-              "操作区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "导航与路径",
-            "vueFile": "NavigationView.vue",
-            "goal": "从司机当前位置导航至指定作业点，实时显示路径和预计到达时间",
-            "features": [
-              "获取司机当前位置并计算到作业点的最优路径",
-              "显示导航路线",
-              "距离和预计到达时间",
-              "支持语音导航和路线偏离提醒",
-              "到达作业点附近时自动触发到达确认提示"
-            ],
-            "featureText": "获取司机当前位置并计算到作业点的最优路径、显示导航路线、距离和预计到达时间、支持语音导航和路线偏离提醒、到达作业点附近时自动触发到达确认提示",
-            "sections": [
-              "地图显示区域",
-              "导航信息区域",
-              "操作与提示区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-1-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "现场反馈",
-            "vueFile": "SiteFeedbackView.vue",
-            "goal": "司机在到达作业点后确认到达，并上传现场照片或备注信息",
-            "features": [
-              "点击'到达确认'并记录到达时间",
-              "现场拍照上传（支持多张照片）",
-              "添加文字备注或异常说明",
-              "反馈信息与任务关联并同步至调度端"
-            ],
-            "featureText": "点击'到达确认'并记录到达时间、现场拍照上传（支持多张照片）、添加文字备注或异常说明、反馈信息与任务关联并同步至调度端",
-            "sections": [
-              "到达确认区域",
-              "现场反馈与上传区域"
-            ]
-          }
-        ],
-        "navigation": [
-          {
-            "label": "任务列表",
-            "target": "TaskListView.vue",
-            "default": true
-          },
-          {
-            "label": "任务详情",
-            "target": "TaskDetailView.vue",
-            "default": false
-          },
-          {
-            "label": "导航与路径",
-            "target": "NavigationView.vue",
-            "default": false
-          },
-          {
-            "label": "现场反馈",
-            "target": "SiteFeedbackView.vue",
-            "default": false
-          }
-        ],
-        "fileStructure": {
-          "views": [
-            "TaskListView.vue",
-            "TaskDetailView.vue",
-            "NavigationView.vue",
-            "SiteFeedbackView.vue"
-          ],
-          "components": [
-            "ScenarioHeader.vue",
-            "ScenarioFilterBar.vue",
-            "ScenarioDetailPanel.vue",
-            "StatusTag.vue",
-            "DataTable.vue"
-          ],
-          "data": [
-            "ScenarioMockData.js"
-          ]
-        }
-      },
-      "scenario-1782887819107-2": {
-        "pages": [
-          {
-            "key": "scenario-1782887819107-2-page-1",
-            "priority": "P1",
-            "type": "工作台页",
-            "name": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
-            "vueFile": "EntryCheckPanel.vue",
-            "goal": "支持通过扫描车牌或预约二维码，自动核验车辆预约有效性及派车任务关联，快速得出入场许可结果",
-            "features": [
-              "扫描车牌或预约二维码",
-              "自动核验预约有效性及任务关联",
-              "显示核验结果（放行/拒绝）",
-              "处理核验异常并引导手动操作"
-            ],
-            "featureText": "扫描车牌或预约二维码、自动核验预约有效性及任务关联、显示核验结果（放行/拒绝）、处理核验异常并引导手动操作",
-            "sections": [
-              "扫描输入区",
-              "核验结果展示区",
-              "异常处理区",
-              "操作记录区"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "放行管理 - 管理车辆入场放行操作与记录",
-            "vueFile": "ReleaseManagementPanel.vue",
-            "goal": "根据核验结果执行放行或拒绝操作，记录放行时间、车辆信息，并更新相关任务状态",
-            "features": [
-              "手动确认放行或拒绝",
-              "记录入场时间与车辆信息",
-              "关联更新派车任务状态",
-              "支持批量放行操作"
-            ],
-            "featureText": "手动确认放行或拒绝、记录入场时间与车辆信息、关联更新派车任务状态、支持批量放行操作",
-            "sections": [
-              "放行操作区",
-              "车辆信息与记录区",
-              "批量放行区",
-              "任务状态关联区"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "异常告警 - 处理入场违规与安全告警事件",
-            "vueFile": "AlertPanel.vue",
-            "goal": "实时处理未授权入场、证照过期、异常停留等告警，支持告警确认、解除与上报",
-            "features": [
-              "告警实时展示与分类",
-              "告警处理（确认/解除/上报）",
-              "告警历史查询"
-            ],
-            "featureText": "告警实时展示与分类、告警处理（确认/解除/上报）、告警历史查询",
-            "sections": [
-              "实时告警列表",
-              "告警处理面板",
-              "告警历史查询"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-2-page-4",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "放行记录查询 - 追溯车辆入场放行历史数据",
-            "vueFile": "ReleaseRecordQueryView.vue",
-            "goal": "按时间、车牌、车辆类型等条件检索放行记录，查看核验详情，支持导出用于审计追溯",
-            "features": [
-              "多条件组合查询放行记录",
-              "查看核验详情与放行凭证",
-              "导出记录报表"
-            ],
-            "featureText": "多条件组合查询放行记录、查看核验详情与放行凭证、导出记录报表",
-            "sections": [
-              "查询条件区",
-              "数据列表区",
-              "详情查看区",
-              "导出操作区"
-            ]
-          }
-        ],
-        "navigation": [
-          {
-            "label": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
-            "target": "EntryCheckPanel.vue",
-            "default": true
-          },
-          {
-            "label": "放行管理 - 管理车辆入场放行操作与记录",
-            "target": "ReleaseManagementPanel.vue",
-            "default": false
-          },
-          {
-            "label": "异常告警 - 处理入场违规与安全告警事件",
-            "target": "AlertPanel.vue",
-            "default": false
-          },
-          {
-            "label": "放行记录查询 - 追溯车辆入场放行历史数据",
-            "target": "ReleaseRecordQueryView.vue",
-            "default": false
-          }
-        ],
-        "fileStructure": {
-          "views": [
-            "EntryCheckPanel.vue",
-            "ReleaseManagementPanel.vue",
-            "AlertPanel.vue",
-            "ReleaseRecordQueryView.vue"
-          ],
-          "components": [
-            "ScenarioHeader.vue",
-            "ScenarioFilterBar.vue",
-            "ScenarioDetailPanel.vue",
-            "StatusTag.vue",
-            "DataTable.vue"
-          ],
-          "data": [
-            "ScenarioMockData.js"
-          ]
-        }
-      },
-      "scenario-1782887819107-3": {
-        "pages": [
-          {
-            "key": "scenario-1782887819107-3-page-1",
-            "priority": "P1",
-            "type": "工作台页",
-            "name": "车辆运营报表分析",
-            "vueFile": "StatisticsAnalysisView.vue",
-            "goal": "提供车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等核心统计指标的图表展示与分析功能",
-            "features": [
-              "按时间范围筛选报表数据",
-              "展示车辆利用率趋势图",
-              "展示任务完成率与平均等待时长图表",
-              "展示空驶率与排队统计图表",
-              "展示外协车辆使用次数与异常记录列表",
-              "支持图表导出为图片或PDF"
-            ],
-            "featureText": "按时间范围筛选报表数据、展示车辆利用率趋势图、展示任务完成率与平均等待时长图表、展示空驶率与排队统计图表、展示外协车辆使用次数与异常记录列表、支持图表导出为图片或PDF",
-            "sections": [
-              "筛选区域",
-              "核心指标概览",
-              "统计分析图表",
-              "外协车辆与异常记录列表"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-3-page-2",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "报表数据导出",
-            "vueFile": "ReportExportView.vue",
-            "goal": "支持将统计分析结果导出为Excel、PDF等格式，便于管理人员存档、分发和进一步分析",
-            "features": [
-              "选择导出格式（Excel/PDF）",
-              "选择导出内容范围（全部报表/指定指标）",
-              "一键导出并下载文件",
-              "导出记录日志与审计追踪"
-            ],
-            "featureText": "选择导出格式（Excel/PDF）、选择导出内容范围（全部报表/指定指标）、一键导出并下载文件、导出记录日志与审计追踪",
-            "sections": [
-              "导出配置区域",
-              "导出操作区域",
-              "导出记录日志区域"
-            ]
-          },
-          {
-            "key": "scenario-1782887819107-3-page-3",
-            "priority": "P1",
-            "type": "辅助页",
-            "name": "资源配置优化建议",
-            "vueFile": "ResourceAllocationView.vue",
-            "goal": "基于历史数据与当前车辆使用情况，提供车辆资源配置优化建议和外协车辆费用管理参考",
-            "features": [
-              "分析车辆使用热点与瓶颈区域",
-              "推荐车辆增减数量与类型调整",
-              "展示外协车辆费用汇总与趋势",
-              "提供资源配置优化报告预览"
-            ],
-            "featureText": "分析车辆使用热点与瓶颈区域、推荐车辆增减数量与类型调整、展示外协车辆费用汇总与趋势、提供资源配置优化报告预览",
-            "sections": [
-              "筛选与时间范围区域",
-              "热点与瓶颈分析区域",
-              "资源配置推荐区域",
-              "外协费用汇总区域",
-              "优化报告预览区域"
-            ]
-          }
-        ],
-        "navigation": [
-          {
-            "label": "车辆运营报表分析",
-            "target": "StatisticsAnalysisView.vue",
-            "default": true
-          },
-          {
-            "label": "报表数据导出",
-            "target": "ReportExportView.vue",
-            "default": false
-          },
-          {
-            "label": "资源配置优化建议",
-            "target": "ResourceAllocationView.vue",
-            "default": false
-          }
-        ],
-        "fileStructure": {
-          "views": [
-            "StatisticsAnalysisView.vue",
-            "ReportExportView.vue",
-            "ResourceAllocationView.vue"
-          ],
-          "components": [
-            "ScenarioHeader.vue",
-            "ScenarioFilterBar.vue",
-            "ScenarioDetailPanel.vue",
-            "StatusTag.vue",
-            "DataTable.vue"
-          ],
-          "data": [
-            "ScenarioMockData.js"
-          ]
-        }
-      }
+    "fileStructure": {
+      "views": [
+        "VehicleDispatchView.vue"
+      ],
+      "components": [
+        "DispatchMap.vue",
+        "TaskList.vue",
+        "AlertList.vue",
+        "StatusTag.vue"
+      ],
+      "data": [
+        "scenarioMockData.js"
+      ]
     },
-    "sectionGenerationSource": "initial",
-    "savedAt": "2026-07-02T03:26:31.214Z"
+    "navigation": [
+      {
+        "label": "调度员现场调度派车与异常处理",
+        "target": "VehicleDispatchView.vue",
+        "default": true
+      },
+      {
+        "label": "司机移动端任务接收与作业确认",
+        "target": "DriverTaskView.vue",
+        "default": true
+      },
+      {
+        "label": "门岗核验放行",
+        "target": "GateCheckView.vue",
+        "default": true
+      },
+      {
+        "label": "运营报表与资源优化",
+        "target": "ManagerReportsView.vue",
+        "default": true
+      }
+    ]
   },
   "apiContract": {
-    "contracts": [
-      {
-        "key": "contract-scenario-1782831312544-0-page-1-0-query",
-        "method": "GET",
-        "name": "查询调度工作台数据",
-        "path": "/api/dispatch/dashboard",
-        "goal": "获取区域筛选、车辆状态概览、异常告警等聚合数据，用于工作台整体展示",
-        "trigger": "页面加载、区域筛选变更、状态概览区卡片点击",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
+    "generatedPagesByKey": {
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-1-0": {
+        "key": "scenario-1782887819107-0-scenario-1782887819107-0-page-1-0",
+        "name": "现场调度地图监控",
+        "vueFile": "DispatchMapView.vue",
+        "goal": "基于地图看板实时展示所有车辆的位置、状态（空闲、排队、任务中、异常）、作业区域，支持缩放、点击查看车辆详情",
+        "features": [
+          "实时车辆位置标注与状态颜色区分",
+          "点击车辆弹出详情窗口：车牌",
+          "司机",
+          "任务",
+          "状态",
+          "地图图层切换：作业区域",
+          "禁入区域",
+          "排队区域",
+          "车辆轨迹回放（可选）"
+        ],
+        "sections": [
+          "地图主区域",
+          "车辆状态筛选与任务派发控制面板",
+          "异常告警通知区域"
+        ],
+        "fields": [
           {
-            "name": "id",
-            "type": "string",
+            "name": "statusFilter",
+            "label": "车辆状态筛选",
+            "type": "select",
             "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-0-page-1-0-query",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "DISPATCH_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+            "description": "按车辆状态（空闲、排队、任务中、异常）筛选地图标记"
           },
           {
-            "code": "DISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
+            "name": "searchPlate",
+            "label": "搜索车牌",
+            "type": "text",
+            "required": false,
+            "description": "输入车牌号快速定位并高亮车辆"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "actions": [
+          {
+            "label": "点击车辆标记",
+            "trigger": "click",
+            "feedback": "弹出车辆详情窗口，显示车牌、司机、任务、状态信息"
+          },
+          {
+            "label": "缩放地图",
+            "trigger": "mousewheel/pinch",
+            "feedback": "地图缩放级别变化，标注大小和密度自适应"
+          },
+          {
+            "label": "切换图层",
+            "trigger": "click layer toggle button",
+            "feedback": "地图切换显示作业区域/禁入区域/排队区域图层"
+          },
+          {
+            "label": "派发任务",
+            "trigger": "click task dispatch button in panel",
+            "feedback": "打开任务派发弹窗，选择目标车辆和任务内容"
+          }
+        ],
+        "validations": [
+          "现场调度地图监控 的关键筛选或处理字段不能为空。",
+          "提交前校验状态流转是否合法，并给出明确错误提示。"
+        ],
+        "states": {
+          "empty": "地图区域显示提示信息：暂无车辆数据，请确认车辆在线或刷新",
+          "loading": "地图区域显示加载动画（旋转图标或进度条）",
+          "success": "地图正常显示车辆标注及图层",
+          "error": "地图区域显示错误提示：地图加载失败，请检查网络或刷新"
+        },
+        "generatedAt": "2026-07-02T07:29:42.222Z"
       },
-      {
-        "key": "contract-scenario-1782831312544-0-page-2-1-queryApplications",
-        "method": "GET",
-        "name": "查询用车申请列表",
-        "path": "/api/dispatch/applications",
-        "goal": "获取待审批的用车申请列表，支持筛选和排序",
-        "trigger": "页面加载、状态切换",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "page",
-            "type": "integer",
-            "required": false,
-            "description": "当前页码，默认1"
-          },
-          {
-            "name": "pageSize",
-            "type": "integer",
-            "required": false,
-            "description": "每页条数，默认20"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "required": false,
-            "description": "审批状态筛选，如 pending/approved/rejected"
-          },
-          {
-            "name": "keyword",
-            "type": "string",
-            "required": false,
-            "description": "申请单号或用车人模糊搜索"
-          },
-          {
-            "name": "sortBy",
-            "type": "string",
-            "required": false,
-            "description": "排序字段，如 applyTime/priority"
-          },
-          {
-            "name": "sortOrder",
-            "type": "string",
-            "required": false,
-            "description": "排序方向，asc/desc"
-          }
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-2-1": {
+        "key": "scenario-1782887819107-0-scenario-1782887819107-0-page-2-1",
+        "name": "现场车辆快速筛选",
+        "vueFile": "OnsiteVehicleFilter.vue",
+        "goal": "支持按车辆类型、状态（空闲/排队/任务中）、作业区域、距离远近等条件筛选车辆，便于调度员快速定位合适车辆",
+        "features": [
+          "多条件组合筛选：车辆类型（生产车/物流车/外协车/临时车）",
+          "状态",
+          "区域",
+          "筛选结果在地图上高亮显示",
+          "列表视图展示筛选结果",
+          "支持排序",
+          "一键重置筛选条件"
         ],
-        "successResponse": {
-          "success": true,
-          "message": "查询成功",
-          "data": {
-            "list": [
-              {
-                "id": "string",
-                "applicant": "string",
-                "applyTime": "string",
-                "status": "string",
-                "purpose": "string",
-                "region": "string",
-                "vehicleType": "string",
-                "priority": "string"
-              }
-            ],
-            "total": 0,
-            "page": 1,
-            "pageSize": 20
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "请求异常",
-          "data": null,
-          "error_code": 5001
-        },
-        "errorCodes": [
-          {
-            "code": "API_FAILED",
-            "meaning": "成功",
-            "frontendAdvice": "正常处理返回数据"
-          },
-          {
-            "code": 4001,
-            "meaning": "请求参数校验失败",
-            "frontendAdvice": "提示用户检查筛选条件"
-          },
-          {
-            "code": 5001,
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "显示错误提示，提供重试按钮"
-          },
-          {
-            "code": 5002,
-            "meaning": "数据库查询异常",
-            "frontendAdvice": "稍后重试，若持续失败联系管理员"
-          }
+        "sections": [
+          "筛选条件面板",
+          "筛选结果展示区（地图/列表）",
+          "快捷操作栏"
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-2-1-approve",
-        "method": "PUT",
-        "name": "审批用车申请",
-        "path": "/api/dispatch/applications/{id}/approve",
-        "goal": "对用车申请进行通过或驳回操作",
-        "trigger": "审核通过、审核驳回",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-0-page-2-1-approve",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "DISPATCH_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "DISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-2-1-dispatchTask",
-        "method": "POST",
-        "name": "下发派车任务",
-        "path": "/api/dispatch/tasks",
-        "goal": "将审批通过的申请与选定车辆绑定并下发任务给司机",
-        "trigger": "下发派车按钮点击",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "applicationId",
-            "type": "string",
-            "required": true,
-            "description": "用车申请的唯一标识，从已审批通过的列表中选取"
-          },
-          {
-            "name": "selectedVehicle",
-            "type": "string",
-            "required": true,
-            "description": "派车车辆ID，由智能推荐或手动选择确定"
-          },
-          {
-            "name": "priorityOverride",
-            "type": "string",
-            "required": false,
-            "description": "手动调整的任务优先级，可选值：high/medium/low"
-          },
-          {
-            "name": "dispatchRemark",
-            "type": "string",
-            "required": false,
-            "description": "派车额外说明信息，如作业点、注意事项"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "派车任务下发成功",
-          "data": {
-            "taskId": "任务ID",
-            "status": "dispatched"
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "派车任务下发失败",
-          "data": null,
-          "error_code": "DISPATCH_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DISPATCH_FAILED",
-            "meaning": "系统内部错误导致下发失败",
-            "frontendAdvice": "提示用户稍后重试，或联系管理员"
-          },
-          {
-            "code": "VEHICLE_UNAVAILABLE",
-            "meaning": "所选车辆已被其他任务占用或离线",
-            "frontendAdvice": "提示用户重新选择车辆，并刷新可用车辆列表"
-          },
-          {
-            "code": "APPLICATION_NOT_APPROVED",
-            "meaning": "用车申请未通过审核或状态异常",
-            "frontendAdvice": "提示用户检查申请状态，确保已通过审核"
-          },
-          {
-            "code": "PARAM_MISSING",
-            "meaning": "缺少必要参数（如未选择车辆或申请）",
-            "frontendAdvice": "提示用户补全必填项后再下发"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-3-2-queryTaskList",
-        "method": "GET",
-        "name": "查询任务列表",
-        "path": "/api/tasks",
-        "goal": "按条件查询任务列表，支持状态、区域、关键字筛选",
-        "trigger": "页面加载、筛选任务、刷新任务列表",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-0-page-3-2-queryTaskList",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "DISPATCH_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "DISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-3-2-updateTaskStatus",
-        "method": "PUT",
-        "name": "更新任务状态",
-        "path": "/api/tasks/{id}/status",
-        "goal": "取消任务、标记异常、重新派车等状态变更操作",
-        "trigger": "取消任务、标记异常、重新派车",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": true,
-            "description": "任务ID，路径参数"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "required": true,
-            "description": "目标状态：cancelled（取消）、abnormal（异常）、redispatched（重新派车）"
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "required": false,
-            "description": "状态变更原因，取消或标记异常时必填"
-          },
-          {
-            "name": "newVehiclePlate",
-            "type": "string",
-            "required": false,
-            "description": "重新派车时的新车牌号"
-          },
-          {
-            "name": "newDriverName",
-            "type": "string",
-            "required": false,
-            "description": "重新派车时的司机姓名"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "任务状态更新成功",
-          "data": {},
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "任务状态更新失败",
-          "data": null,
-          "error_code": "UPDATE_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "TASK_NOT_FOUND",
-            "meaning": "任务不存在",
-            "frontendAdvice": "提示用户任务已失效，建议刷新列表"
-          },
-          {
-            "code": "INVALID_STATUS_TRANSITION",
-            "meaning": "不允许的状态变更",
-            "frontendAdvice": "提示用户当前状态无法执行该操作，并提供可操作的状态列表"
-          },
-          {
-            "code": "MISSING_REASON",
-            "meaning": "缺少变更原因",
-            "frontendAdvice": "提示用户填写原因，聚焦到原因输入框"
-          },
-          {
-            "code": "VEHICLE_UNAVAILABLE",
-            "meaning": "所选车辆不可用",
-            "frontendAdvice": "提示用户选择其他车辆，并提供可用车辆列表"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-4-3-queryAlerts",
-        "method": "GET",
-        "name": "查询异常告警列表",
-        "path": "/api/alerts",
-        "goal": "获取异常告警记录，支持按类型、状态筛选",
-        "trigger": "页面加载、筛选",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "exceptionType",
-            "type": "string",
-            "required": false,
-            "description": "异常类型：排队超时、重复派车、车辆故障、位置偏移等"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "required": false,
-            "description": "异常状态：待处理、处理中、已处理"
-          },
-          {
-            "name": "vehiclePlate",
-            "type": "string",
-            "required": false,
-            "description": "车辆牌照"
-          },
-          {
-            "name": "driverName",
-            "type": "string",
-            "required": false,
-            "description": "司机姓名"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "查询成功",
-          "data": {
-            "list": [
-              {
-                "id": "string",
-                "exceptionType": "string",
-                "exceptionDescription": "string",
-                "vehiclePlate": "string",
-                "driverName": "string",
-                "handlerName": "string",
-                "actionType": "string",
-                "remark": "string",
-                "status": "string",
-                "createTime": "string",
-                "updateTime": "string"
-              }
-            ],
-            "total": 0,
-            "page": 1,
-            "pageSize": 20
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "请求失败",
-          "data": null,
-          "error_code": 50000
-        },
-        "errorCodes": [
-          {
-            "code": 40000,
-            "meaning": "请求参数错误",
-            "frontendAdvice": "检查筛选条件是否合法"
-          },
-          {
-            "code": 40100,
-            "meaning": "未授权",
-            "frontendAdvice": "请重新登录"
-          },
-          {
-            "code": 50000,
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "请稍后重试或联系管理员"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-0-page-4-3-handleAlert",
-        "method": "PUT",
-        "name": "处理异常告警",
-        "path": "/api/alerts/{id}/handle",
-        "goal": "确认处理异常，包括增派车辆、修改路线等操作",
-        "trigger": "处理异常、确认处理",
-        "resourceGroupKey": "dispatch",
-        "resourceGroupLabel": "调度管理",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-0-page-4-3-handleAlert",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "DISPATCH_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "DISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-1-page-1-0-queryStatistics",
-        "method": "GET",
-        "name": "查询统计分析数据",
-        "path": "/api/statistics/overview",
-        "goal": "按报表类型、时间范围、区域等获取统计图表与指标数据",
-        "trigger": "页面加载、切换报表、刷新数据",
-        "resourceGroupKey": "statistics",
-        "resourceGroupLabel": "统计分析",
-        "requestParams": [
-          {
-            "name": "reportType",
-            "type": "string",
-            "required": true,
-            "description": "报表类型，如 vehicleUtilization, taskCompletionRate 等"
-          },
-          {
-            "name": "timeRange",
-            "type": "object",
-            "required": true,
-            "description": "时间范围，包含 startDate 和 endDate 字段，格式 yyyy-MM-dd"
-          },
-          {
-            "name": "region",
-            "type": "string",
-            "required": false,
-            "description": "作业区域编码，为空时查询全部区域"
-          },
+        "fields": [
           {
             "name": "vehicleType",
-            "type": "string",
+            "label": "车辆类型",
+            "type": "select",
             "required": false,
-            "description": "车辆类型编码，为空时查询全部类型"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "操作成功",
-          "data": {
-            "charts": [],
-            "indicators": {}
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "请求失败",
-          "data": null,
-          "error_code": 400
-        },
-        "errorCodes": [
-          {
-            "code": 400,
-            "meaning": "请求参数错误或缺失必填参数",
-            "frontendAdvice": "检查表单输入是否完整，提示用户修正参数"
+            "description": "多选，选项：生产车、物流车、外协车、临时车"
           },
           {
-            "code": 403,
-            "meaning": "无权限访问该接口",
-            "frontendAdvice": "提示用户无权限，联系管理员赋权"
-          },
-          {
-            "code": 500,
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "显示系统异常提示，引导用户稍后重试或联系支持"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-1-page-1-0-exportReport",
-        "method": "POST",
-        "name": "导出统计报表",
-        "path": "/api/statistics/export",
-        "goal": "根据当前报表类型和时间范围导出文件",
-        "trigger": "导出报表",
-        "resourceGroupKey": "statistics",
-        "resourceGroupLabel": "统计分析",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
+            "name": "status",
+            "label": "车辆状态",
+            "type": "select",
             "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-1-page-1-0-exportReport",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "STATISTICS_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "STATISTICS_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+            "description": "单选，选项：空闲、排队、任务中"
           },
           {
-            "code": "STATISTICS_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
+            "name": "area",
+            "label": "作业区域",
+            "type": "select",
+            "required": false,
+            "description": "单选或级联选择，根据区域层级"
+          },
+          {
+            "name": "distance",
+            "label": "距离远近",
+            "type": "input",
+            "required": false,
+            "description": "数值输入，单位公里，支持范围筛选"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "actions": [
+          {
+            "label": "筛选",
+            "trigger": "点击筛选按钮",
+            "feedback": "触发条件查询，结果在地图高亮和列表显示"
+          },
+          {
+            "label": "重置",
+            "trigger": "点击重置按钮",
+            "feedback": "清空所有筛选条件，恢复地图和列表初始状态"
+          },
+          {
+            "label": "排序",
+            "trigger": "选择排序条件（如距离、状态）",
+            "feedback": "列表按所选条件重新排序"
+          },
+          {
+            "label": "查看详情",
+            "trigger": "点击列表项或地图标记",
+            "feedback": "弹出车辆详情弹窗或跳转至详情页"
+          }
+        ],
+        "validations": [
+          "筛选条件至少包含一项",
+          "距离输入必须为数字"
+        ],
+        "states": {
+          "empty": "无匹配车辆，显示空状态提示，引导重新设置条件",
+          "loading": "显示加载旋转图标或骨架屏",
+          "success": "地图和列表正常展示筛选结果",
+          "error": "查询失败时显示错误提示，提供重试按钮"
+        },
+        "generatedAt": "2026-07-02T07:30:36.953Z"
       },
-      {
-        "key": "contract-scenario-1782831312544-1-page-2-1-queryFeeAnalysis",
-        "method": "GET",
-        "name": "查询费用分析数据",
-        "path": "/api/statistics/fees",
-        "goal": "按时间范围、车辆类型等获取费用统计数据和明细记录",
-        "trigger": "查询、下钻",
-        "resourceGroupKey": "statistics",
-        "resourceGroupLabel": "统计分析",
-        "requestParams": [
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-3-2": {
+        "key": "scenario-1782887819107-0-scenario-1782887819107-0-page-3-2",
+        "name": "现场派车",
+        "vueFile": "OnsiteDispatchDialog.vue",
+        "goal": "调度员为选中的车辆分配任务，支持选择用车申请、输入作业点、选择优先级，并一键下发至司机移动端",
+        "features": [
+          "显示待派发的用车申请列表",
+          "选择目标车辆后",
+          "匹配任务并确认派发",
+          "支持紧急派车（跳过申请手动创建任务）",
+          "派发成功后推送通知至司机端",
+          "记录派发日志（操作人",
+          "时间",
+          "车辆",
+          "任务）"
+        ],
+        "sections": [
+          "待派发用车申请列表",
+          "车辆选择与任务匹配",
+          "派发参数配置",
+          "派发操作与日志"
+        ],
+        "fields": [
           {
-            "name": "startDate",
-            "type": "date",
+            "name": "selectedRequest",
+            "label": "用车申请",
+            "type": "select",
             "required": true,
-            "description": "统计时间范围的起始日期"
+            "description": "从待派发用车申请列表中选择一项任务，支持单选"
           },
           {
-            "name": "endDate",
-            "type": "date",
+            "name": "vehicleSelection",
+            "label": "选择车辆",
+            "type": "select",
             "required": true,
-            "description": "统计时间范围的结束日期"
+            "description": "当前已选中的车辆，显示车辆编号/车牌号"
           },
           {
-            "name": "vehicleType",
-            "type": "string",
-            "required": false,
-            "description": "按车辆类型筛选（如外协、临时等）"
-          },
-          {
-            "name": "vehiclePlate",
-            "type": "string",
-            "required": false,
-            "description": "按车牌号模糊搜索"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "success",
-          "data": {
-            "totalCost": 0,
-            "count": 0,
-            "records": []
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "请求失败，请稍后重试",
-          "data": null,
-          "error_code": 500
-        },
-        "errorCodes": [
-          {
-            "code": 400,
-            "meaning": "参数校验失败",
-            "frontendAdvice": "请检查输入参数是否符合要求后重试"
-          },
-          {
-            "code": 401,
-            "meaning": "未授权访问",
-            "frontendAdvice": "请重新登录后重试"
-          },
-          {
-            "code": 500,
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "请联系系统管理员或稍后重试"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-1-page-3-2-exportReport",
-        "method": "POST",
-        "name": "导出报表文件",
-        "path": "/api/statistics/export",
-        "goal": "按选择的报表类型、时间范围、格式导出文件",
-        "trigger": "导出按钮点击",
-        "resourceGroupKey": "statistics",
-        "resourceGroupLabel": "统计分析",
-        "requestParams": [
-          {
-            "name": "reportType",
-            "type": "String",
+            "name": "workPoint",
+            "label": "作业点",
+            "type": "text",
             "required": true,
-            "description": "选择要导出的报表类型，例如车辆利用率报表、任务完成率报表等。"
+            "description": "输入或选择具体作业地点"
           },
           {
-            "name": "timeRange",
-            "type": "String",
-            "required": true,
-            "description": "选择数据导出涵盖的时间范围，格式为起始日期,结束日期 (yyyy-MM-dd,yyyy-MM-dd)。"
-          },
-          {
-            "name": "exportFormat",
-            "type": "String",
-            "required": true,
-            "description": "选择导出文件格式，支持Excel或PDF。"
-          },
-          {
-            "name": "scope",
-            "type": "String",
+            "name": "priority",
+            "label": "优先级",
+            "type": "select",
             "required": false,
-            "description": "可选：全部数据、当前视图数据、所选下钻数据。"
+            "description": "任务优先级：高、中、低"
           },
           {
-            "name": "fileName",
-            "type": "String",
+            "name": "emergencyTask",
+            "label": "紧急派车（手动创建）",
+            "type": "checkbox",
             "required": false,
-            "description": "自定义导出文件的名称，留空则使用默认名称。"
+            "description": "勾选后跳过申请选择，手动输入任务详情"
           }
         ],
-        "successResponse": {
-          "success": true,
-          "message": "导出任务已提交",
-          "data": {
-            "taskId": "string",
-            "estimatedWaitTime": "number"
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "导出失败",
-          "data": null,
-          "error_code": 1001
-        },
-        "errorCodes": [
+        "actions": [
           {
-            "code": 1001,
-            "meaning": "参数校验失败，必填项缺失或格式错误",
-            "frontendAdvice": "请检查报表类型、时间范围、导出格式是否填写正确，时间范围不能超过90天。"
+            "label": "确认派发",
+            "trigger": "click",
+            "feedback": "提交派发请求，成功后弹出成功提示并关闭对话框；失败显示错误信息"
           },
           {
-            "code": 1002,
-            "meaning": "数据量过大，导出超时",
-            "frontendAdvice": "请缩小时间范围或选择更细粒度的导出范围后重试。"
-          },
-          {
-            "code": 1003,
-            "meaning": "系统内部异常",
-            "frontendAdvice": "请稍后重试或联系管理员。"
-          },
-          {
-            "code": 1004,
-            "meaning": "不支持的导出格式",
-            "frontendAdvice": "请选择Excel或PDF格式。"
+            "label": "取消",
+            "trigger": "click",
+            "feedback": "关闭对话框，不做任何保存"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "validations": [
+          "所选车辆必须为非空闲状态时不可派发",
+          "作业点不能为空",
+          "紧急派车时任务描述不能为空"
+        ],
+        "states": {
+          "empty": "无待派发用车申请时，显示空状态提示：当前暂无待派发任务",
+          "loading": "提交派发请求时，按钮显示加载中，并禁用操作",
+          "success": "派发成功后，显示成功通知并关闭对话框",
+          "error": "派发失败时，显示错误提示并保持对话框打开"
+        },
+        "generatedAt": "2026-07-02T07:30:56.764Z"
       },
-      {
-        "key": "contract-scenario-1782831312544-1-page-4-3-queryDrillDown",
-        "method": "GET",
-        "name": "查询数据下钻明细",
-        "path": "/api/statistics/drilldown",
-        "goal": "根据下钻条件获取明细数据，支持司机、车辆详情查看",
-        "trigger": "下钻至详情、查看司机/车辆详情",
-        "resourceGroupKey": "statistics",
-        "resourceGroupLabel": "统计分析",
-        "requestParams": [
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-4-3": {
+        "key": "scenario-1782887819107-0-scenario-1782887819107-0-page-4-3",
+        "name": "现场异常告警处理",
+        "vueFile": "OnsiteExceptionAlert.vue",
+        "goal": "实时接收车辆异常告警（超速、禁入区域、异常停留、未授权入场等），支持调度员查看详情、处理告警、标记解决",
+        "features": [
+          "异常告警列表实时刷新",
+          "显示告警类型",
+          "车辆",
+          "时间",
+          "位置",
+          "点击告警可在地图上定位车辆并查看详情",
+          "支持处理告警：确认",
+          "忽略",
+          "通知相关人员",
+          "告警历史记录查询与导出"
+        ],
+        "sections": [
+          "告警实时列表区域",
+          "告警详情与处理区域",
+          "历史告警查询区域"
+        ],
+        "fields": [
           {
-            "name": "id",
-            "type": "string",
+            "name": "alertTypeFilter",
+            "label": "告警类型",
+            "type": "select",
             "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-1-page-4-3-queryDrillDown",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "STATISTICS_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "STATISTICS_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+            "description": "用于筛选告警类型，选项包括超速、禁入区域、异常停留、未授权入场等"
           },
           {
-            "code": "STATISTICS_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-2-page-1-0-queryTaskList",
-        "method": "GET",
-        "name": "查询司机任务列表",
-        "path": "/api/driver/tasks",
-        "goal": "按状态、日期、关键字获取当前司机的任务列表",
-        "trigger": "搜索、查看历史任务",
-        "resourceGroupKey": "driver",
-        "resourceGroupLabel": "司机任务",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
+            "name": "vehicleFilter",
+            "label": "车辆",
+            "type": "text",
             "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "接口处理成功",
-          "data": {
-            "key": "contract-scenario-1782831312544-2-page-1-0-queryTaskList",
-            "records": [],
-            "summary": {}
-          },
-          "error_code": null
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "接口处理失败",
-          "data": null,
-          "error_code": "DRIVER_FAILED"
-        },
-        "errorCodes": [
-          {
-            "code": "DRIVER_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "DRIVER_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-2-page-2-1-queryNavigation",
-        "method": "GET",
-        "name": "查询导航路线",
-        "path": "/api/driver/navigation",
-        "goal": "根据当前任务获取推荐路线、距离、预计时间等信息",
-        "trigger": "开始导航、切换路线、刷新路线",
-        "resourceGroupKey": "driver",
-        "resourceGroupLabel": "司机任务",
-        "requestParams": [
-          {
-            "name": "currentPosition",
-            "type": "string",
-            "required": false,
-            "description": "当前GPS坐标，格式为'经度,纬度'，不传则服务端自动获取"
-          },
-          {
-            "name": "destination",
-            "type": "string",
-            "required": true,
-            "description": "目的作业点标识或地址，从任务中获取"
-          },
-          {
-            "name": "routeType",
-            "type": "string",
-            "required": true,
-            "description": "导航方式，枚举值：driving / walking，默认driving"
-          },
-          {
-            "name": "voiceGuide",
-            "type": "boolean",
-            "required": false,
-            "description": "是否开启语音播报（影响响应是否包含语音数据）"
-          }
-        ],
-        "successResponse": {
-          "success": true,
-          "message": "success",
-          "data": {
-            "routeList": [
-              {
-                "routeId": "string",
-                "distance": "number（单位:米）",
-                "estimatedTime": "number（单位:秒）",
-                "polyline": "string（路线编码）",
-                "voiceGuideEnabled": "boolean"
-              }
-            ],
-            "totalDistance": "number",
-            "estimatedTime": "number",
-            "currentPosition": "string",
-            "destination": "string"
-          },
-          "error_code": 0
-        },
-        "errorResponse": {
-          "success": false,
-          "message": "string",
-          "data": null,
-          "error_code": "number"
-        },
-        "errorCodes": [
-          {
-            "code": 1001,
-            "meaning": "定位权限未开启或无法获取GPS信号",
-            "frontendAdvice": "提示用户检查定位权限并确保GPS开启"
-          },
-          {
-            "code": 1002,
-            "meaning": "目的地不在系统作业点范围内",
-            "frontendAdvice": "提示用户确认作业点正确或联系调度"
-          },
-          {
-            "code": 1003,
-            "meaning": "网络连接失败",
-            "frontendAdvice": "提示用户检查网络连接后重试"
-          },
-          {
-            "code": 1004,
-            "meaning": "路线规划失败",
-            "frontendAdvice": "提示用户稍后重试或联系调度员"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-2-page-3-2-submitArrival",
-        "method": "POST",
-        "name": "提交到达确认",
-        "path": "/api/driver/arrival",
-        "goal": "上传现场照片、GPS位置，完成签到确认",
-        "trigger": "签到确认按钮点击",
-        "resourceGroupKey": "driver",
-        "resourceGroupLabel": "司机任务",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-2-page-3-2-submitArrival",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "DRIVER_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "DRIVER_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "DRIVER_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-2-page-4-3-submitTaskCompletion",
-        "method": "POST",
-        "name": "提交任务完成报告",
-        "path": "/api/driver/tasks/{id}/complete",
-        "goal": "填写装卸数量、作业结果、异常情况并关闭任务",
-        "trigger": "关闭任务、提交异常报告",
-        "resourceGroupKey": "driver",
-        "resourceGroupLabel": "司机任务",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": true,
-            "description": "任务ID，路径参数"
-          },
-          {
-            "name": "cargoQuantity",
-            "type": "number",
-            "required": true,
-            "description": "实际装卸数量"
-          },
-          {
-            "name": "operationResult",
-            "type": "string",
-            "required": true,
-            "description": "作业结果，取值：COMPLETED / ABNORMAL"
-          },
-          {
-            "name": "remarks",
-            "type": "string",
-            "required": false,
-            "description": "备注"
-          },
-          {
-            "name": "abnormalDescription",
-            "type": "string",
-            "required": false,
-            "description": "异常情况描述，当operationResult为ABNORMAL时必填"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "taskId": "string",
-            "completionTime": "string (ISO 8601)",
-            "status": "CLOSED"
-          },
-          "traceId": "string"
-        },
-        "errorResponse": {
-          "code": 40001,
-          "message": "任务状态不允许关闭",
-          "data": null,
-          "traceId": "string"
-        },
-        "errorCodes": [
-          {
-            "code": 40001,
-            "meaning": "任务状态错误，无法关闭",
-            "frontendAdvice": "提示用户任务状态已变更，请刷新后重试"
-          },
-          {
-            "code": 40002,
-            "meaning": "必填参数缺失",
-            "frontendAdvice": "检查表单必填项是否填写"
-          },
-          {
-            "code": 404,
-            "meaning": "任务不存在",
-            "frontendAdvice": "提示用户任务已被删除或ID错误"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-3-page-1-0-verifyEntry",
-        "method": "POST",
-        "name": "核验入场车辆",
-        "path": "/api/gate/entry/verify",
-        "goal": "通过车牌号或扫描码进行入场核验，返回核验结果",
-        "trigger": "扫描车牌、手动输入后核验",
-        "resourceGroupKey": "gate",
-        "resourceGroupLabel": "门岗核验",
-        "requestParams": [
-          {
-            "name": "plateNo",
-            "type": "string",
-            "required": false,
-            "description": "车牌号，与scanCode至少填写一个"
-          },
-          {
-            "name": "scanCode",
-            "type": "string",
-            "required": false,
-            "description": "入场二维码/条形码扫描码，与plateNo至少填写一个"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "vehicleInfo": {
-              "plateNo": "京A12345",
-              "vehicleType": "大型货车",
-              "driver": "张三",
-              "phone": "13800138000"
-            },
-            "permission": {
-              "allowed": true,
-              "validUntil": "2025-12-31 23:59:59",
-              "area": "生产区A"
-            }
-          },
-          "traceId": "trace-id-string"
-        },
-        "errorResponse": {
-          "code": 1001,
-          "message": "车辆未登记",
-          "data": null,
-          "traceId": "trace-id-string"
-        },
-        "errorCodes": [
-          {
-            "code": "VEHICLE_NOT_FOUND",
-            "meaning": "车辆在系统内未登记",
-            "frontendAdvice": "提示用户车辆未登记，引导联系门岗管理员"
-          },
-          {
-            "code": "VEHICLE_NO_ENTRY_PERMISSION",
-            "meaning": "车辆无入场权限或权限已过期",
-            "frontendAdvice": "提示无入场权限，展示原因和联系方式"
-          },
-          {
-            "code": "INVALID_SCAN_CODE",
-            "meaning": "扫描码无效或已过期",
-            "frontendAdvice": "提示重新扫描或手动输入车牌号"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-3-page-1-0-releaseVehicle",
-        "method": "POST",
-        "name": "放行车辆入场",
-        "path": "/api/gate/entry/release",
-        "goal": "记录放行操作，联动门禁抬杆",
-        "trigger": "放行按钮点击",
-        "resourceGroupKey": "gate",
-        "resourceGroupLabel": "门岗核验",
-        "requestParams": [
-          {
-            "name": "vehiclePlate",
-            "type": "string",
-            "required": true,
-            "description": "车牌号，例：京A12345"
-          },
-          {
-            "name": "driverName",
-            "type": "string",
-            "required": false,
-            "description": "司机姓名"
-          },
-          {
-            "name": "orderId",
-            "type": "string",
-            "required": false,
-            "description": "关联订单号，若为空则只做入场登记"
-          },
-          {
-            "name": "releaseOperator",
-            "type": "string",
-            "required": true,
-            "description": "放行操作人账号"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "releaseId": "REL20250321001",
-            "vehiclePlate": "京A12345",
-            "entryTime": "2025-03-21T10:30:00Z",
-            "gateId": "GATE-01"
-          },
-          "traceId": "trace-001"
-        },
-        "errorResponse": {
-          "code": -1,
-          "message": "操作失败",
-          "data": null,
-          "traceId": "trace-002"
-        },
-        "errorCodes": [
-          {
-            "code": "VEHICLE_NOT_FOUND",
-            "meaning": "车辆预约记录不存在或已过期",
-            "frontendAdvice": "提示用户确认预约信息或重新预约"
-          },
-          {
-            "code": "GATE_DEVICE_ERROR",
-            "meaning": "门禁设备响应超时或故障",
-            "frontendAdvice": "提示稍后重试，并记录设备异常"
-          },
-          {
-            "code": "PERMISSION_DENIED",
-            "meaning": "当前用户无该门岗的放行权限",
-            "frontendAdvice": "提示联系管理员分配权限"
-          },
-          {
-            "code": "RELEASE_LOCKED",
-            "meaning": "该车辆正在被其他操作员处理",
-            "frontendAdvice": "提示等待或联系当前操作员"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-3-page-2-1-verifyExit",
-        "method": "POST",
-        "name": "核验出场车辆",
-        "path": "/api/gate/exit/verify",
-        "goal": "通过扫描或输入车牌进行出场核验，返回车辆信息和任务状态",
-        "trigger": "扫描车牌/二维码、核验通过/不通过",
-        "resourceGroupKey": "gate",
-        "resourceGroupLabel": "门岗核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-3-page-2-1-verifyExit",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "GATE_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "GATE_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "GATE_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": "2026-07-01T14:58:12.502Z"
-      },
-      {
-        "key": "contract-scenario-1782831312544-3-page-3-2-handleException",
-        "method": "POST",
-        "name": "处理核验异常",
-        "path": "/api/gate/exception/handle",
-        "goal": "记录异常原因、处理结果和通知对象",
-        "trigger": "放行、拒绝、通知",
-        "resourceGroupKey": "gate",
-        "resourceGroupLabel": "门岗核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-3-page-3-2-handleException",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "GATE_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "GATE_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "GATE_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-3-page-4-3-queryLogs",
-        "method": "GET",
-        "name": "查询核验日志",
-        "path": "/api/gate/logs",
-        "goal": "按车牌、时间范围、结果、方向查询核验记录",
-        "trigger": "查询、重置、查看详情",
-        "resourceGroupKey": "gate",
-        "resourceGroupLabel": "门岗核验",
-        "requestParams": [
-          {
-            "name": "plateNumber",
-            "type": "string",
-            "required": false,
-            "description": "车牌号，支持模糊查询"
+            "description": "输入车牌号或车辆编号模糊筛选"
           },
           {
             "name": "startTime",
-            "type": "string",
+            "label": "开始时间",
+            "type": "date",
             "required": false,
-            "description": "开始时间，格式 yyyy-MM-dd HH:mm:ss"
+            "description": "历史告警查询的起始时间"
           },
           {
             "name": "endTime",
+            "label": "结束时间",
+            "type": "date",
+            "required": false,
+            "description": "历史告警查询的结束时间"
+          },
+          {
+            "name": "alertId",
+            "label": "告警ID",
+            "type": "text",
+            "required": false,
+            "description": "查看告警详情时显示的告警唯一标识"
+          },
+          {
+            "name": "alertTypeDetail",
+            "label": "告警类型",
+            "type": "text",
+            "required": false,
+            "description": "告警详情区域显示的告警分类"
+          },
+          {
+            "name": "vehicleDetail",
+            "label": "车辆",
+            "type": "text",
+            "required": false,
+            "description": "告警详情区域显示的车辆信息"
+          },
+          {
+            "name": "timeDetail",
+            "label": "告警时间",
+            "type": "text",
+            "required": false,
+            "description": "告警详情区域显示的告警发生时间"
+          },
+          {
+            "name": "locationDetail",
+            "label": "位置",
+            "type": "text",
+            "required": false,
+            "description": "告警详情区域显示的位置描述"
+          },
+          {
+            "name": "statusDetail",
+            "label": "状态",
+            "type": "text",
+            "required": false,
+            "description": "告警详情区域显示的当前处理状态（待处理/已确认/已忽略等）"
+          }
+        ],
+        "actions": [
+          {
+            "label": "确认告警",
+            "trigger": "点击告警详情或列表项中的确认按钮",
+            "feedback": "弹窗确认后，告警状态更新为已确认，实时列表刷新，显示成功提示"
+          },
+          {
+            "label": "忽略告警",
+            "trigger": "点击告警详情或列表项中的忽略按钮",
+            "feedback": "弹窗确认后，告警从实时列表移除，标记为已忽略，显示提示"
+          },
+          {
+            "label": "通知相关人员",
+            "trigger": "点击告警详情中的通知按钮",
+            "feedback": "弹出通知方式选择（短信/邮件/系统消息），选择后发送通知，显示发送成功提示"
+          },
+          {
+            "label": "查看详情",
+            "trigger": "点击告警列表中的某条告警",
+            "feedback": "在地图上定位该车辆并显示告警详情区域信息"
+          },
+          {
+            "label": "查询历史告警",
+            "trigger": "点击历史告警查询区域的查询按钮",
+            "feedback": "根据筛选条件展示历史告警列表，若查询中显示加载状态，结果为空显示空状态提示"
+          },
+          {
+            "label": "导出历史告警",
+            "trigger": "点击导出按钮",
+            "feedback": "生成导出任务，完成后下载文件或提示导出成功"
+          }
+        ],
+        "validations": [
+          "开始时间不能晚于结束时间",
+          "历史查询时开始时间和结束时间至少填写一个",
+          "通知相关人员时至少选择一个通知方式"
+        ],
+        "states": {
+          "empty": "当前无告警数据，请检查筛选条件或稍后刷新",
+          "loading": "正在加载告警信息，请稍候...",
+          "success": "操作已成功处理",
+          "error": "加载失败，请检查网络后重试"
+        },
+        "generatedAt": "2026-07-02T07:32:17.845Z"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-1-0": {
+        "key": "scenario-1782887819107-1-scenario-1782887819107-1-page-1-0",
+        "name": "任务列表",
+        "vueFile": "TaskListView.vue",
+        "goal": "司机查看个人任务列表，接收新任务通知，筛选和查看不同状态的任务",
+        "features": [
+          "接收任务通知并显示未读标记",
+          "按状态（待接单",
+          "进行中",
+          "已完成）筛选任务",
+          "显示任务摘要信息（任务编号",
+          "作业点",
+          "要求时间）",
+          "支持下拉刷新和分页加载"
+        ],
+        "sections": [
+          "任务通知区域",
+          "任务状态筛选区域",
+          "任务列表展示区域"
+        ],
+        "fields": [
+          {
+            "name": "taskId",
+            "label": "任务编号",
+            "type": "text",
+            "required": false,
+            "description": "任务唯一标识"
+          },
+          {
+            "name": "workPoint",
+            "label": "作业点",
+            "type": "text",
+            "required": false,
+            "description": "任务作业地点"
+          },
+          {
+            "name": "requiredTime",
+            "label": "要求时间",
+            "type": "datetime",
+            "required": false,
+            "description": "任务要求完成时间"
+          },
+          {
+            "name": "statusFilter",
+            "label": "状态筛选",
+            "type": "select",
+            "required": false,
+            "description": "按任务状态筛选：待接单、进行中、已完成"
+          }
+        ],
+        "actions": [
+          {
+            "label": "接收任务通知",
+            "trigger": "点击通知区域",
+            "feedback": "清除未读标记并刷新列表"
+          },
+          {
+            "label": "筛选任务",
+            "trigger": "选择状态筛选值",
+            "feedback": "触发列表更新，显示对应状态任务"
+          },
+          {
+            "label": "下拉刷新",
+            "trigger": "下拉手势",
+            "feedback": "重新加载列表数据"
+          },
+          {
+            "label": "分页加载",
+            "trigger": "滚动至列表底部",
+            "feedback": "加载更多任务"
+          }
+        ],
+        "validations": [
+          "任务列表 的关键筛选或处理字段不能为空。",
+          "提交前校验状态流转是否合法，并给出明确错误提示。"
+        ],
+        "states": {
+          "empty": "无任务时显示空状态提示和引导",
+          "loading": "加载中显示加载动画",
+          "success": "加载成功显示任务列表",
+          "error": "加载失败显示错误提示和重试按钮"
+        },
+        "generatedAt": "2026-07-02T07:32:52.324Z"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-2-1": {
+        "key": "scenario-1782887819107-1-scenario-1782887819107-1-page-2-1",
+        "name": "任务详情",
+        "vueFile": "TaskDetailView.vue",
+        "goal": "展示任务的详细信息，包括作业点位置、任务要求、物资信息等",
+        "features": [
+          "展示作业点名称",
+          "地址",
+          "联系人信息",
+          "展示任务要求（车辆类型",
+          "物资种类",
+          "作业说明）",
+          "展示任务时间节点（计划到达时间",
+          "完成时间）",
+          "提供导航入口和联系调度员功能"
+        ],
+        "sections": [
+          "任务基本信息区域",
+          "作业点信息区域",
+          "任务时间区域",
+          "操作区域"
+        ],
+        "fields": [
+          {
+            "name": "taskId",
+            "label": "任务编号",
+            "type": "text",
+            "required": false,
+            "description": "任务唯一标识，仅供查看"
+          },
+          {
+            "name": "taskStatus",
+            "label": "任务状态",
+            "type": "text",
+            "required": false,
+            "description": "当前任务执行状态，如待执行、进行中、已完成"
+          },
+          {
+            "name": "workPointName",
+            "label": "作业点名称",
+            "type": "text",
+            "required": false,
+            "description": "作业地点名称"
+          },
+          {
+            "name": "address",
+            "label": "地址",
+            "type": "text",
+            "required": false,
+            "description": "作业点详细地址"
+          },
+          {
+            "name": "contactPerson",
+            "label": "联系人",
+            "type": "text",
+            "required": false,
+            "description": "现场联系人姓名"
+          },
+          {
+            "name": "contactPhone",
+            "label": "联系电话",
+            "type": "phone",
+            "required": false,
+            "description": "现场联系人电话"
+          },
+          {
+            "name": "vehicleType",
+            "label": "车辆类型",
+            "type": "text",
+            "required": false,
+            "description": "所需车辆类型要求"
+          },
+          {
+            "name": "materialType",
+            "label": "物资种类",
+            "type": "text",
+            "required": false,
+            "description": "需携带的物资种类"
+          },
+          {
+            "name": "operationInstruction",
+            "label": "作业说明",
+            "type": "text",
+            "required": false,
+            "description": "具体作业要求说明"
+          },
+          {
+            "name": "plannedArrivalTime",
+            "label": "计划到达时间",
+            "type": "datetime",
+            "required": false,
+            "description": "计划到达作业点的时间"
+          },
+          {
+            "name": "plannedCompletionTime",
+            "label": "计划完成时间",
+            "type": "datetime",
+            "required": false,
+            "description": "计划完成作业的时间"
+          }
+        ],
+        "actions": [
+          {
+            "label": "导航",
+            "trigger": "点击",
+            "feedback": "打开第三方地图应用并传入作业点坐标地址"
+          },
+          {
+            "label": "联系调度员",
+            "trigger": "点击",
+            "feedback": "弹出调度员联系方式或直接拨打电话"
+          },
+          {
+            "label": "确认到达",
+            "trigger": "点击",
+            "feedback": "弹出确认框提示，确认后更新任务状态为已到达并记录时间"
+          },
+          {
+            "label": "完成任务",
+            "trigger": "点击",
+            "feedback": "弹出确认框提示，确认后更新任务状态为已完成并记录完成时间"
+          }
+        ],
+        "validations": [
+          "任务详情 的关键筛选或处理字段不能为空。",
+          "提交前校验状态流转是否合法，并给出明确错误提示。"
+        ],
+        "states": {
+          "empty": "页面无数据时，显示空状态提示：暂无任务详情信息",
+          "loading": "页面数据加载中，显示骨架屏或加载动画",
+          "success": "数据加载成功，正常展示所有字段和操作按钮",
+          "error": "数据加载失败，显示错误提示并提供重新加载操作"
+        },
+        "generatedAt": "2026-07-02T07:33:26.818Z"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-3-2": {
+        "key": "scenario-1782887819107-1-scenario-1782887819107-1-page-3-2",
+        "name": "导航与路径",
+        "vueFile": "NavigationView.vue",
+        "goal": "从司机当前位置导航至指定作业点，实时显示路径和预计到达时间",
+        "features": [
+          "获取司机当前位置并计算到作业点的最优路径",
+          "显示导航路线",
+          "距离和预计到达时间",
+          "支持语音导航和路线偏离提醒",
+          "到达作业点附近时自动触发到达确认提示"
+        ],
+        "sections": [
+          "地图显示区域",
+          "导航信息区域",
+          "操作与提示区域"
+        ],
+        "fields": [
+          {
+            "name": "currentPosition",
+            "label": "当前位置",
+            "type": "text",
+            "required": true,
+            "description": "自动获取的司机实时位置信息"
+          },
+          {
+            "name": "destination",
+            "label": "作业点",
+            "type": "text",
+            "required": true,
+            "description": "从任务派发中获取的指定作业点位置"
+          },
+          {
+            "name": "estimatedArrivalTime",
+            "label": "预计到达时间",
+            "type": "text",
+            "required": false,
+            "description": "系统计算的预计到达时间"
+          },
+          {
+            "name": "distance",
+            "label": "剩余距离",
+            "type": "text",
+            "required": false,
+            "description": "当前位置到目的地的剩余距离"
+          },
+          {
+            "name": "routeInfo",
+            "label": "导航路径",
+            "type": "text",
+            "required": false,
+            "description": "显示在地图上的最优路径信息"
+          }
+        ],
+        "actions": [
+          {
+            "label": "开始导航",
+            "trigger": "用户点击开始导航按钮",
+            "feedback": "地图切换到导航模式，开始语音播报指引"
+          },
+          {
+            "label": "结束导航",
+            "trigger": "用户点击结束导航按钮或到达后自动触发",
+            "feedback": "退出导航模式，清除路线，回到任务详情页"
+          },
+          {
+            "label": "切换语音播报",
+            "trigger": "用户点击语音开关",
+            "feedback": "开启或关闭语音导航提示"
+          },
+          {
+            "label": "路线偏离提醒",
+            "trigger": "检测到偏离原路线",
+            "feedback": "弹出偏离提醒提示框，重新计算路径或返回原路"
+          },
+          {
+            "label": "到达确认",
+            "trigger": "到达作业点附近（距离<50米）",
+            "feedback": "自动弹出到达确认弹窗，提示司机确认到达"
+          }
+        ],
+        "validations": [
+          "导航与路径 的关键筛选或处理字段不能为空。",
+          "提交前校验状态流转是否合法，并给出明确错误提示。"
+        ],
+        "states": {
+          "empty": {
+            "description": "未获取到导航起点或目的地的状态",
+            "ui": "地图显示默认位置，提示‘请确认任务作业点’"
+          },
+          "loading": {
+            "description": "正在计算路径或刷新位置",
+            "ui": "显示加载动画，路径待显示"
+          },
+          "success": {
+            "description": "路径计算成功，导航正常进行",
+            "ui": "地图显示完整路径，显示距离和ETA，语音正常播报"
+          },
+          "error": {
+            "description": "定位失败、路径计算失败或网络异常",
+            "ui": "显示错误提示，提供重试按钮或返回上一页操作"
+          }
+        },
+        "generatedAt": "2026-07-02T07:33:52.388Z"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-4-3": {
+        "key": "scenario-1782887819107-1-scenario-1782887819107-1-page-4-3",
+        "name": "现场反馈",
+        "vueFile": "SiteFeedbackView.vue",
+        "goal": "司机在到达作业点后确认到达，并上传现场照片或备注信息",
+        "features": [
+          "点击'到达确认'并记录到达时间",
+          "现场拍照上传（支持多张照片）",
+          "添加文字备注或异常说明",
+          "反馈信息与任务关联并同步至调度端"
+        ],
+        "sections": [
+          "到达确认区域",
+          "现场反馈与上传区域"
+        ],
+        "fields": [
+          {
+            "name": "photos",
+            "label": "现场照片",
+            "type": "file",
+            "required": false,
+            "description": "支持多张照片上传"
+          },
+          {
+            "name": "remark",
+            "label": "备注说明",
+            "type": "textarea",
+            "required": false,
+            "description": "添加文字备注或异常说明"
+          }
+        ],
+        "actions": [
+          {
+            "label": "到达确认",
+            "trigger": "click",
+            "feedback": "记录到达时间，界面显示确认状态"
+          },
+          {
+            "label": "提交反馈",
+            "trigger": "click",
+            "feedback": "上传照片和备注，同步至调度端，显示提交结果"
+          }
+        ],
+        "validations": [
+          "请至少上传一张照片或填写备注以便反馈"
+        ],
+        "states": {
+          "empty": "页面初始无数据，展示到达确认按钮和输入区域",
+          "loading": "正在提交反馈或确认到达，显示加载动画",
+          "success": "反馈提交成功，显示成功提示",
+          "error": "提交失败，显示错误信息，允许用户重试"
+        },
+        "generatedAt": "2026-07-02T07:34:23.231Z"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-1-0": {
+        "key": "scenario-1782887819107-2-scenario-1782887819107-2-page-1-0",
+        "name": "入场核验 - 支持扫描车牌或二维码，自动核验预约与任务关联",
+        "vueFile": "EntryCheckPanel.vue",
+        "goal": "支持通过扫描车牌或预约二维码，自动核验车辆预约有效性及派车任务关联，快速得出入场许可结果",
+        "features": [
+          "扫描车牌或预约二维码",
+          "自动核验预约有效性及任务关联",
+          "显示核验结果（放行/拒绝）",
+          "处理核验异常并引导手动操作"
+        ],
+        "sections": [
+          "扫描输入区",
+          "核验结果展示区",
+          "异常处理区",
+          "操作记录区"
+        ],
+        "fields": [
+          {
+            "name": "scanInput",
+            "label": "扫描输入",
+            "type": "text",
+            "required": true,
+            "description": "支持扫描车牌或预约二维码，或手动输入"
+          },
+          {
+            "name": "manualInput",
+            "label": "手动补录",
+            "type": "text",
+            "required": false,
+            "description": "当自动核验异常时，用于手动输入预约编号或车牌进行二次核验"
+          }
+        ],
+        "actions": [
+          {
+            "label": "扫描/识别",
+            "trigger": "点击扫描图标或自动调用相机",
+            "feedback": "识别车牌或二维码内容并填充scanInput字段，自动触发核验（若开启自动核验）"
+          },
+          {
+            "label": "核验",
+            "trigger": "点击核验按钮（或自动核验）",
+            "feedback": "根据scanInput内容查询预约及任务关联，更新verificationResult和页面状态"
+          },
+          {
+            "label": "异常处理",
+            "trigger": "点击异常处理区域的确认/重置按钮",
+            "feedback": "根据manualInput内容重新核验或登记无预约入场"
+          }
+        ],
+        "validations": [
+          "车牌号格式校验：支持常见车牌格式（如粤B12345）",
+          "预约二维码格式校验：应包含有效预约ID",
+          "非空校验：扫描输入不能为空"
+        ],
+        "states": {
+          "empty": "未输入扫描内容，扫描输入框为空，显示占位提示文字",
+          "loading": "正在核验中，显示加载动画，按钮禁用",
+          "success": "核验通过，显示绿色放行标识，允许入场，记录操作",
+          "error": "核验失败，显示红色拒绝标识，显示具体错误原因，展示异常处理区"
+        },
+        "generatedAt": "2026-07-02T07:35:17.603Z"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-2-1": {
+        "key": "scenario-1782887819107-2-scenario-1782887819107-2-page-2-1",
+        "name": "放行管理 - 管理车辆入场放行操作与记录",
+        "vueFile": "ReleaseManagementPanel.vue",
+        "goal": "根据核验结果执行放行或拒绝操作，记录放行时间、车辆信息，并更新相关任务状态",
+        "features": [
+          "手动确认放行或拒绝",
+          "记录入场时间与车辆信息",
+          "关联更新派车任务状态",
+          "支持批量放行操作"
+        ],
+        "sections": [
+          "放行操作区",
+          "车辆信息与记录区",
+          "批量放行区",
+          "任务状态关联区"
+        ],
+        "fields": [
+          {
+            "name": "vehiclePlate",
+            "label": "车牌号",
+            "type": "text",
+            "required": true,
+            "description": "核验车辆的车牌号，用于记录和关联任务"
+          },
+          {
+            "name": "entryTime",
+            "label": "入场时间",
+            "type": "datetime",
+            "required": true,
+            "description": "车辆实际入场时间，自动记录当前时间"
+          },
+          {
+            "name": "releaseOperator",
+            "label": "放行人",
+            "type": "text",
+            "required": false,
+            "description": "执行放行或拒绝操作的门岗人员"
+          },
+          {
+            "name": "releaseRemark",
+            "label": "放行备注",
+            "type": "textarea",
+            "required": false,
+            "description": "放行或拒绝时的备注信息"
+          },
+          {
+            "name": "batchSelection",
+            "label": "批量选择",
+            "type": "checkbox",
+            "required": false,
+            "description": "用于批量放行操作时选择多条记录"
+          }
+        ],
+        "actions": [
+          {
+            "label": "放行",
+            "trigger": "点击放行按钮",
+            "feedback": "弹出确认对话框，确认后执行放行操作，记录入场时间，更新任务状态为已入场"
+          },
+          {
+            "label": "拒绝",
+            "trigger": "点击拒绝按钮",
+            "feedback": "弹出确认对话框，确认后执行拒绝操作，记录拒绝原因，更新任务状态为拒绝入场"
+          },
+          {
+            "label": "批量放行",
+            "trigger": "点击批量放行按钮",
+            "feedback": "批量选中的车辆记录执行放行操作，显示进度提示，完成后更新多条任务状态"
+          }
+        ],
+        "validations": [
+          "放行前必须确认车辆核验结果为通过",
+          "拒绝操作需填写拒绝原因",
+          "批量放行至少选择一条记录"
+        ],
+        "states": {
+          "empty": {
+            "description": "未加载任何待处理放行记录时的状态",
+            "message": "暂无待放行车辆"
+          },
+          "loading": {
+            "description": "加载放行数据或执行放行操作时的状态",
+            "message": "正在处理，请稍候"
+          },
+          "success": {
+            "description": "放行操作成功完成后的状态",
+            "message": "放行成功，已记录入场信息"
+          },
+          "error": {
+            "description": "放行操作失败或数据加载异常时的状态",
+            "message": "操作失败，请重试"
+          }
+        },
+        "generatedAt": "2026-07-02T07:36:10.746Z"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-3-2": {
+        "key": "scenario-1782887819107-2-scenario-1782887819107-2-page-3-2",
+        "name": "异常告警 - 处理入场违规与安全告警事件",
+        "vueFile": "AlertPanel.vue",
+        "goal": "实时处理未授权入场、证照过期、异常停留等告警，支持告警确认、解除与上报",
+        "features": [
+          "告警实时展示与分类",
+          "告警处理（确认/解除/上报）",
+          "告警历史查询"
+        ],
+        "sections": [
+          "实时告警列表",
+          "告警处理面板",
+          "告警历史查询"
+        ],
+        "fields": [
+          {
+            "name": "keyword",
+            "label": "关键字",
+            "type": "text",
+            "required": false,
+            "description": "输入车牌号或告警描述进行查询"
+          },
+          {
+            "name": "handleRemark",
+            "label": "处理备注",
+            "type": "textarea",
+            "required": false,
+            "description": "填写告警处理的补充说明"
+          }
+        ],
+        "actions": [
+          {
+            "label": "确认告警",
+            "trigger": "click",
+            "feedback": "显示确认成功提示，更新告警状态为已确认"
+          },
+          {
+            "label": "解除告警",
+            "trigger": "click",
+            "feedback": "显示解除成功提示，更新告警状态为已解除"
+          },
+          {
+            "label": "上报告警",
+            "trigger": "click",
+            "feedback": "弹出上报表单，填写上报部门及说明后提交"
+          },
+          {
+            "label": "查询",
+            "trigger": "click",
+            "feedback": "根据输入的关键字刷新告警历史列表"
+          }
+        ],
+        "validations": [
+          "上报时必须填写上报部门",
+          "处理备注不超过200字"
+        ],
+        "states": {
+          "empty": "暂无告警数据",
+          "loading": "正在加载告警信息...",
+          "success": "操作成功",
+          "error": "操作失败，请重试"
+        },
+        "generatedAt": "2026-07-02T07:36:40.987Z"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-4-3": {
+        "key": "scenario-1782887819107-2-scenario-1782887819107-2-page-4-3",
+        "name": "放行记录查询 - 追溯车辆入场放行历史数据",
+        "vueFile": "ReleaseRecordQueryView.vue",
+        "goal": "按时间、车牌、车辆类型等条件检索放行记录，查看核验详情，支持导出用于审计追溯",
+        "features": [
+          "多条件组合查询放行记录",
+          "查看核验详情与放行凭证",
+          "导出记录报表"
+        ],
+        "sections": [
+          "查询条件区",
+          "数据列表区",
+          "详情查看区",
+          "导出操作区"
+        ],
+        "fields": [
+          {
+            "name": "startTime",
+            "label": "开始时间",
+            "type": "date",
+            "required": false,
+            "description": "查询放行记录的起始日期"
+          },
+          {
+            "name": "endTime",
+            "label": "结束时间",
+            "type": "date",
+            "required": false,
+            "description": "查询放行记录的结束日期"
+          },
+          {
+            "name": "plateNumber",
+            "label": "车牌号",
+            "type": "text",
+            "required": false,
+            "description": "输入完整或部分车牌号进行模糊匹配"
+          },
+          {
+            "name": "vehicleType",
+            "label": "车辆类型",
+            "type": "select",
+            "required": false,
+            "description": "按车辆类型筛选，如轿车、货车等"
+          },
+          {
+            "name": "releaseStatus",
+            "label": "放行状态",
+            "type": "select",
+            "required": false,
+            "description": "选择放行状态：成功、异常等"
+          }
+        ],
+        "actions": [
+          {
+            "label": "查询",
+            "trigger": "click",
+            "feedback": "根据条件检索放行记录，更新数据列表区，并处理查询状态（加载/空/错误）"
+          },
+          {
+            "label": "查看详情",
+            "trigger": "click",
+            "feedback": "弹窗或侧边栏展示该条记录的核验详情及放行凭证"
+          },
+          {
+            "label": "导出报表",
+            "trigger": "click",
+            "feedback": "将当前查询结果导出为Excel或CSV文件，供审计追溯"
+          }
+        ],
+        "validations": [
+          "开始时间不能晚于结束时间",
+          "车牌号需符合车牌格式（如：京A·12345）",
+          "时间范围跨度不超过90天"
+        ],
+        "states": {
+          "empty": "无匹配的放行记录，请调整查询条件",
+          "loading": "正在查询放行记录，请稍候...",
+          "success": "查询完成，共展示 N 条放行记录",
+          "error": "查询失败，请检查网络或联系管理员"
+        },
+        "generatedAt": "2026-07-02T07:37:19.315Z"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-1-0": {
+        "key": "scenario-1782887819107-3-scenario-1782887819107-3-page-1-0",
+        "name": "车辆运营报表分析",
+        "vueFile": "StatisticsAnalysisView.vue",
+        "goal": "提供车辆利用率、任务完成率、平均等待时长、空驶率、排队情况、外协车辆使用次数、异常入场记录等核心统计指标的图表展示与分析功能",
+        "features": [
+          "按时间范围筛选报表数据",
+          "展示车辆利用率趋势图",
+          "展示任务完成率与平均等待时长图表",
+          "展示空驶率与排队统计图表",
+          "展示外协车辆使用次数与异常记录列表",
+          "支持图表导出为图片或PDF"
+        ],
+        "sections": [
+          "筛选区域",
+          "核心指标概览",
+          "统计分析图表",
+          "外协车辆与异常记录列表"
+        ],
+        "fields": [
+          {
+            "name": "timeRange",
+            "label": "时间范围",
+            "type": "dateRangePicker",
+            "required": true,
+            "description": "选择报表统计的起止日期，支持自定义时间范围"
+          },
+          {
+            "name": "vehicleUtilization",
+            "label": "车辆利用率",
+            "type": "chart",
+            "required": false,
+            "description": "趋势图展示车辆利用率历史数据"
+          },
+          {
+            "name": "taskCompletionRate",
+            "label": "任务完成率",
+            "type": "chart",
+            "required": false,
+            "description": "图表展示任务完成率与平均等待时长关系"
+          },
+          {
+            "name": "emptyDrivingRate",
+            "label": "空驶率",
+            "type": "chart",
+            "required": false,
+            "description": "图表展示空驶率与排队统计"
+          },
+          {
+            "name": "outsourceVehicleUsage",
+            "label": "外协车辆使用次数",
+            "type": "list",
+            "required": false,
+            "description": "展示外协车辆使用次数与异常记录列表"
+          },
+          {
+            "name": "abnormalEntryRecords",
+            "label": "异常入场记录",
+            "type": "list",
+            "required": false,
+            "description": "展示异常入场记录明细"
+          }
+        ],
+        "actions": [
+          {
+            "label": "查询",
+            "trigger": "点击查询按钮",
+            "feedback": "根据所选时间范围重新加载所有图表与列表数据"
+          },
+          {
+            "label": "导出图表",
+            "trigger": "点击导出按钮",
+            "feedback": "将当前可见图表导出为图片或PDF格式，提供下载"
+          },
+          {
+            "label": "重置",
+            "trigger": "点击重置按钮",
+            "feedback": "清空时间范围选择，恢复到默认时间段（如近7天）"
+          }
+        ],
+        "validations": [
+          "时间范围必填，必须选择有效的起止日期",
+          "时间范围不得超过一年，避免数据过载"
+        ],
+        "states": {
+          "empty": {
+            "description": "无统计数据时显示提示信息，如“暂无数据”"
+          },
+          "loading": {
+            "description": "数据加载中显示加载动画或骨架屏"
+          },
+          "success": {
+            "description": "数据加载成功，正常展示图表与列表"
+          },
+          "error": {
+            "description": "数据加载失败时显示错误提示，提供重试按钮"
+          }
+        },
+        "generatedAt": "2026-07-02T07:37:36.730Z"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-2-1": {
+        "key": "scenario-1782887819107-3-scenario-1782887819107-3-page-2-1",
+        "name": "报表数据导出",
+        "vueFile": "ReportExportView.vue",
+        "goal": "支持将统计分析结果导出为Excel、PDF等格式，便于管理人员存档、分发和进一步分析",
+        "features": [
+          "选择导出格式（Excel/PDF）",
+          "选择导出内容范围（全部报表/指定指标）",
+          "一键导出并下载文件",
+          "导出记录日志与审计追踪"
+        ],
+        "sections": [
+          "导出配置区域",
+          "导出操作区域",
+          "导出记录日志区域"
+        ],
+        "fields": [
+          {
+            "name": "exportFormat",
+            "label": "导出格式",
+            "type": "select",
+            "required": true,
+            "description": "选择导出的文件格式，支持Excel和PDF"
+          },
+          {
+            "name": "exportScope",
+            "label": "导出范围",
+            "type": "radio",
+            "required": true,
+            "description": "选择导出全部报表还是指定指标"
+          },
+          {
+            "name": "selectedIndicators",
+            "label": "指定指标",
+            "type": "checkbox-group",
+            "required": false,
+            "description": "当导出范围为指定指标时，勾选需要导出的指标"
+          }
+        ],
+        "actions": [
+          {
+            "label": "导出",
+            "trigger": "点击导出按钮",
+            "feedback": "触发导出流程，根据选择格式和范围生成文件并下载，同时记录日志"
+          },
+          {
+            "label": "查看导出记录",
+            "trigger": "点击日志记录区域中的查看按钮",
+            "feedback": "展示历史导出记录详情"
+          }
+        ],
+        "validations": [
+          "必须选择导出格式",
+          "必须选择导出范围",
+          "如果选择指定指标，则必须至少勾选一个指标"
+        ],
+        "states": {
+          "empty": {},
+          "loading": {
+            "message": "正在导出，请稍候..."
+          },
+          "success": {
+            "message": "导出成功",
+            "detail": "文件已保存到本地"
+          },
+          "error": {
+            "message": "导出失败",
+            "detail": "请检查网络连接或联系管理员"
+          }
+        },
+        "generatedAt": "2026-07-02T07:38:05.907Z"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-3-2": {
+        "key": "scenario-1782887819107-3-scenario-1782887819107-3-page-3-2",
+        "name": "资源配置优化建议",
+        "vueFile": "ResourceAllocationView.vue",
+        "goal": "基于历史数据与当前车辆使用情况，提供车辆资源配置优化建议和外协车辆费用管理参考",
+        "features": [
+          "分析车辆使用热点与瓶颈区域",
+          "推荐车辆增减数量与类型调整",
+          "展示外协车辆费用汇总与趋势",
+          "提供资源配置优化报告预览"
+        ],
+        "sections": [
+          "筛选与时间范围区域",
+          "热点与瓶颈分析区域",
+          "资源配置推荐区域",
+          "外协费用汇总区域",
+          "优化报告预览区域"
+        ],
+        "fields": [
+          {
+            "name": "dateRange",
+            "label": "时间范围",
+            "type": "daterange",
+            "required": true,
+            "description": "选择要分析的时间段，用于过滤历史数据和趋势展示"
+          },
+          {
+            "name": "region",
+            "label": "区域",
+            "type": "select",
+            "required": false,
+            "description": "按区域筛选车辆使用数据，例如东部、西部等"
+          },
+          {
+            "name": "vehicleType",
+            "label": "车辆类型",
+            "type": "select",
+            "required": false,
+            "description": "按车辆类型筛选，如轿车、卡车、客车等"
+          }
+        ],
+        "actions": [
+          {
+            "label": "查询",
+            "trigger": "点击",
+            "feedback": "触发数据加载，更新各分析区域图表与列表"
+          },
+          {
+            "label": "预览报告",
+            "trigger": "点击",
+            "feedback": "弹出模态框或新页面显示优化报告预览内容"
+          },
+          {
+            "label": "导出报告",
+            "trigger": "点击",
+            "feedback": "触发下载文件（PDF或Excel），包含当前筛选条件下的完整报告"
+          }
+        ],
+        "validations": [
+          "日期范围必填",
+          "开始日期不能晚于结束日期"
+        ],
+        "states": {
+          "empty": "显示空状态提示文字，例如“请选择时间范围后查询”",
+          "loading": "各分析区域显示骨架屏或加载图标，禁用查询按钮并显示“加载中…”",
+          "success": "正常显示图表、列表与报告预览区域",
+          "error": "顶部出现错误提示条，文字为“数据请求失败，请重试”，查询按钮恢复可用"
+        },
+        "generatedAt": "2026-07-02T07:38:29.551Z"
+      },
+      "sc-1-page-1-0": {
+        "key": "sc-1-page-1-0",
+        "name": "调度员现场调度派车与异常处理工作台",
+        "vueFile": "VehicleDispatchView.vue",
+        "goal": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+        "features": [
+          "车辆状态与调度总览地图",
+          "任务派发与分配操作",
+          "任务执行监控",
+          "异常告警处理"
+        ],
+        "sections": [
+          "地图总览区",
+          "任务派发区",
+          "任务监控区",
+          "告警处理区"
+        ],
+        "fields": [
+          {
+            "name": "areaFilter",
+            "label": "作业区域",
+            "type": "select",
+            "required": false,
+            "description": "按作业区域筛选任务"
+          },
+          {
+            "name": "vehicleTypeFilter",
+            "label": "车辆类型",
+            "type": "select",
+            "required": false,
+            "description": "按车辆类型筛选"
+          },
+          {
+            "name": "priorityFilter",
+            "label": "任务优先级",
+            "type": "select",
+            "required": false,
+            "description": "按优先级筛选"
+          },
+          {
+            "name": "searchTask",
+            "label": "搜索任务",
+            "type": "text",
+            "required": false,
+            "description": "关键词搜索任务"
+          }
+        ],
+        "actions": [
+          {
+            "label": "派车分配",
+            "trigger": "点击任务卡片上的'派车'按钮",
+            "feedback": "弹出派车分配弹窗，选择车辆后确认"
+          },
+          {
+            "label": "查看详情",
+            "trigger": "点击任务卡片或地图标记",
+            "feedback": "显示任务详情侧边栏"
+          },
+          {
+            "label": "处理告警",
+            "trigger": "点击告警条目上的'处理'按钮",
+            "feedback": "弹窗展示处理选项，提交后更新告警状态"
+          },
+          {
+            "label": "刷新数据",
+            "trigger": "点击刷新按钮或手动下拉",
+            "feedback": "重新加载页面数据"
+          }
+        ],
+        "validations": [
+          "派车时需选择车辆且车辆状态可用",
+          "处理告警时必填处理意见"
+        ],
+        "states": {
+          "empty": {
+            "description": "无待办任务或告警，显示提示文案"
+          },
+          "loading": {
+            "description": "数据加载中，显示骨架屏或加载动画"
+          },
+          "success": {
+            "description": "数据加载成功，正常展示地图、任务列表及告警"
+          },
+          "error": {
+            "description": "网络或服务异常，显示错误提示及重试按钮"
+          }
+        },
+        "generatedAt": "2026-07-02T10:26:48.598Z"
+      },
+      "sc-2-page-1-0": {
+        "key": "sc-2-page-1-0",
+        "name": "司机移动端任务接收与作业确认工作台",
+        "vueFile": "DriverTaskView.vue",
+        "goal": "司机在移动端集中接收调度任务、导航至作业点确认到达、拍照提交任务完成，实现任务执行全程操作。",
+        "features": [
+          "任务接收与详情查看",
+          "导航与到达确认",
+          "现场拍照与任务关闭"
+        ],
+        "sections": [
+          "顶部操作栏",
+          "任务列表区",
+          "作业详情与导航区",
+          "照片上传与任务提交区"
+        ],
+        "fields": [
+          {
+            "name": "taskList",
+            "label": "任务列表",
+            "type": "list",
+            "required": false,
+            "description": "展示待接收或进行中的任务列表，包含任务编号、状态、作业地址等信息"
+          },
+          {
+            "name": "taskDetail",
+            "label": "任务详情",
+            "type": "object",
+            "required": false,
+            "description": "选中任务后展示详细信息，包括任务编号、作业地址、计划时间等"
+          },
+          {
+            "name": "photo",
+            "label": "现场照片",
+            "type": "file",
+            "required": true,
+            "description": "到达作业点后，必须拍照上传以确认任务完成"
+          },
+          {
+            "name": "remarks",
+            "label": "备注",
+            "type": "textarea",
+            "required": false,
+            "description": "可选的附加说明信息"
+          }
+        ],
+        "actions": [
+          {
+            "label": "刷新任务列表",
+            "trigger": "用户点击顶部操作栏的刷新按钮",
+            "feedback": "页面重新加载任务列表数据并更新界面"
+          },
+          {
+            "label": "导航",
+            "trigger": "用户点击任务详情中的导航按钮",
+            "feedback": "调起设备默认地图应用并规划到作业点的路线"
+          },
+          {
+            "label": "确认到达",
+            "trigger": "用户到达作业点后点击确认到达按钮",
+            "feedback": "记录到达时间并更新任务状态为‘已到达’"
+          },
+          {
+            "label": "拍照",
+            "trigger": "用户点击照片上传区的拍照按钮",
+            "feedback": "调起相机拍照并在界面中显示预览图"
+          },
+          {
+            "label": "提交任务",
+            "trigger": "用户点击提交按钮",
+            "feedback": "校验已拍照后提交任务，更新状态为‘已完成’，并返回任务列表"
+          }
+        ],
+        "validations": [
+          "必须上传至少一张现场照片",
+          "任务状态为‘已到达’后才能提交"
+        ],
+        "states": {
+          "empty": "任务列表为空时显示空状态提示‘暂无任务，请稍后刷新’",
+          "loading": "页面加载数据时显示加载动画或骨架屏",
+          "success": "操作成功时显示成功提示，如‘任务提交成功’并自动跳转",
+          "error": "操作失败时显示错误提示，如‘网络异常，请重试’"
+        },
+        "generatedAt": "2026-07-02T10:27:10.299Z"
+      },
+      "sc-3-page-1-0": {
+        "key": "sc-3-page-1-0",
+        "name": "门岗人员入场核验与放行管理工作台",
+        "vueFile": "GateCheckView.vue",
+        "goal": "门岗人员在一个界面内完成待入场车辆核验、人工授权确认、放行或异常登记，实现入场全流程管控",
+        "features": [
+          "待入场车辆核验列表",
+          "人工核验确认",
+          "放行与异常登记"
+        ],
+        "sections": [
+          "顶部筛选与状态栏",
+          "车辆核验列表区",
+          "核验详情与确认操作区",
+          "异常登记与告警区"
+        ],
+        "fields": [
+          {
+            "name": "plateNumber",
+            "label": "车牌号",
+            "type": "text",
+            "required": false,
+            "description": "用于筛选列表中的车辆"
+          },
+          {
+            "name": "arrivalTime",
+            "label": "入场时间范围",
+            "type": "date-range",
+            "required": false,
+            "description": "筛选指定时间段内的待入场车辆"
+          },
+          {
+            "name": "vehicleType",
+            "label": "车辆类型",
+            "type": "select",
+            "required": false,
+            "description": "按车辆类型筛选"
+          },
+          {
+            "name": "authorizationStatus",
+            "label": "授权状态",
+            "type": "select",
+            "required": false,
+            "description": "筛选已授权或未授权车辆"
+          },
+          {
+            "name": "inspectionResult",
+            "label": "核验结果",
+            "type": "select",
+            "required": true,
+            "description": "人工核验后选择：通过、不通过"
+          },
+          {
+            "name": "releaseAction",
+            "label": "放行操作",
+            "type": "button",
+            "required": false,
+            "description": "点击后执行放行"
+          },
+          {
+            "name": "exceptionType",
+            "label": "异常类型",
+            "type": "select",
+            "required": false,
+            "description": "登记异常时选择类型"
+          },
+          {
+            "name": "exceptionRemark",
+            "label": "异常备注",
+            "type": "textarea",
+            "required": false,
+            "description": "详细描述异常信息"
+          }
+        ],
+        "actions": [
+          {
+            "label": "核验确认",
+            "trigger": "点击核验详情区的确认按钮",
+            "feedback": "更新核验结果状态，并记录核验日志"
+          },
+          {
+            "label": "放行",
+            "trigger": "点击放行按钮",
+            "feedback": "触发道闸开启，车辆入场，列表移除该车辆"
+          },
+          {
+            "label": "异常登记",
+            "trigger": "点击异常登记按钮或填写异常表单",
+            "feedback": "保存异常记录，车辆挂起或标记特殊状态"
+          },
+          {
+            "label": "刷新列表",
+            "trigger": "手动下拉刷新或点击刷新按钮",
+            "feedback": "重新请求待入场车辆列表数据"
+          }
+        ],
+        "validations": [
+          "核验结果必须选择（通过/不通过）",
+          "异常登记时，异常类型与备注至少填一项",
+          "入场时间范围结束日期不能早于开始日期",
+          "车牌号格式校验（车牌正则）"
+        ],
+        "states": {
+          "empty": "无待入场车辆，显示空状态提示",
+          "loading": "加载车辆列表时显示加载中动画",
+          "success": "放行成功后显示短暂成功提示",
+          "error": "核验失败或网络异常时显示错误提示"
+        },
+        "generatedAt": "2026-07-02T10:27:36.870Z"
+      },
+      "sc-4-page-1-0": {
+        "key": "sc-4-page-1-0",
+        "name": "管理人员查看运营报表与资源优化工作台",
+        "vueFile": "ManagerReportsView.vue",
+        "goal": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
+        "features": [
+          "报表筛选与查询",
+          "指标图表展示",
+          "数据导出与决策建议"
+        ],
+        "sections": [
+          "报表筛选栏",
+          "图表与摘要展示区",
+          "决策建议区",
+          "导出操作区"
+        ],
+        "fields": [
+          {
+            "name": "startDate",
+            "label": "开始日期",
+            "type": "date",
+            "required": true,
+            "description": "选择报表统计的开始日期"
+          },
+          {
+            "name": "endDate",
+            "label": "结束日期",
+            "type": "date",
+            "required": true,
+            "description": "选择报表统计的结束日期"
+          },
+          {
+            "name": "metricType",
+            "label": "指标类型",
+            "type": "select",
+            "required": false,
+            "description": "选择要查看的指标，如运营效率、成本、收入等"
+          },
+          {
+            "name": "department",
+            "label": "部门",
+            "type": "select",
+            "required": false,
+            "description": "按部门筛选报表数据"
+          }
+        ],
+        "actions": [
+          {
+            "label": "查询",
+            "trigger": "click",
+            "feedback": "触发数据加载，图表区域显示loading状态并重新渲染"
+          },
+          {
+            "label": "导出决策建议",
+            "trigger": "click",
+            "feedback": "下载生成的决策建议PDF或Excel文件"
+          },
+          {
+            "label": "重置",
+            "trigger": "click",
+            "feedback": "清空所有筛选条件并恢复默认数据展示"
+          }
+        ],
+        "validations": [
+          "开始日期不能晚于结束日期",
+          "至少选择一个筛选条件"
+        ],
+        "states": {
+          "empty": {
+            "description": "无报表数据时展示空状态提示，如“暂无报表数据，请调整筛选条件”"
+          },
+          "loading": {
+            "description": "数据加载中，图表区域显示旋转加载动画"
+          },
+          "success": {
+            "description": "数据加载成功，正常展示图表和摘要信息"
+          },
+          "error": {
+            "description": "数据加载失败，显示错误提示及重试按钮"
+          }
+        },
+        "generatedAt": "2026-07-02T10:39:13.239Z"
+      }
+    },
+    "generatedApiByPageKey": {
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-1-0": {
+        "key": "api-scenario-1782887819107-0-scenario-1782887819107-0-page-1-0",
+        "method": "GET",
+        "name": "获取车辆列表",
+        "path": "/api/vehicles",
+        "goal": "获取所有车辆的位置、状态、作业区域等信息，用于地图展示",
+        "trigger": "页面加载时或状态筛选条件变化时",
+        "requestParams": [
+          {
+            "name": "statusFilter",
             "type": "string",
             "required": false,
-            "description": "结束时间，格式 yyyy-MM-dd HH:mm:ss"
+            "description": "车辆状态筛选：空闲、排队、任务中、异常"
           },
           {
-            "name": "result",
+            "name": "searchPlate",
             "type": "string",
             "required": false,
-            "description": "核验结果：pass/fail/unknown"
-          },
-          {
-            "name": "direction",
-            "type": "string",
-            "required": false,
-            "description": "方向：in/out"
-          },
-          {
-            "name": "page",
-            "type": "number",
-            "required": false,
-            "description": "当前页码，从1开始，默认1"
-          },
-          {
-            "name": "pageSize",
-            "type": "number",
-            "required": false,
-            "description": "每页条数，默认20"
+            "description": "车牌号模糊搜索"
           }
         ],
         "successResponse": {
           "code": 0,
           "message": "success",
           "data": {
-            "records": [
+            "vehicles": [
               {
                 "id": "string",
-                "plateNumber": "string",
-                "direction": "string",
-                "result": "string",
-                "time": "string",
-                "imageUrl": "string"
+                "plate": "string",
+                "status": "string",
+                "latitude": 0,
+                "longitude": 0,
+                "driver": "string",
+                "task": "string"
               }
-            ],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {
-              "totalPass": 0,
-              "totalFail": 0
-            }
+            ]
           },
-          "traceId": "uuid"
+          "traceId": "string"
         },
         "errorResponse": {
           "code": -1,
-          "message": "error",
-          "data": {
-            "error": {
-              "code": "VEHICLE_VALIDATION_FAILED",
-              "message": "车辆核验失败",
-              "details": []
-            }
-          },
-          "traceId": "uuid"
-        },
-        "errorCodes": [
-          {
-            "code": "VEHICLE_VALIDATION_FAILED",
-            "meaning": "车辆核验失败",
-            "frontendAdvice": "提示用户重试或联系管理员"
-          },
-          {
-            "code": "INVALID_PARAMETER",
-            "meaning": "请求参数不合法",
-            "frontendAdvice": "前端校验参数格式"
-          },
-          {
-            "code": "SYSTEM_ERROR",
-            "meaning": "系统内部错误",
-            "frontendAdvice": "显示错误页面并提供重试按钮"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-4-page-1-0-createReservation",
-        "method": "POST",
-        "name": "创建预约申请",
-        "path": "/api/reservation/applications",
-        "goal": "提交外协车辆入场预约申请，含车辆、司机、时间信息",
-        "trigger": "提交预约申请",
-        "resourceGroupKey": "reservation",
-        "resourceGroupLabel": "外协车辆预约",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-4-page-1-0-createReservation",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
+          "message": "error message",
           "data": null,
-          "error": {
-            "code": "RESERVATION_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
+          "traceId": "string"
         },
         "errorCodes": [
           {
-            "code": "RESERVATION_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+            "code": 1001,
+            "meaning": "参数校验失败",
+            "frontendAdvice": "检查查询参数是否正确"
           },
           {
-            "code": "RESERVATION_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
+            "code": 2001,
+            "meaning": "服务内部错误",
+            "frontendAdvice": "请稍后重试或联系管理员"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "sourcePageKey": "scenario-1782887819107-0-scenario-1782887819107-0-page-1-0"
       },
-      {
-        "key": "contract-scenario-1782831312544-4-page-2-1-queryAuthorization",
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-2-1": {
+        "key": "api-scenario-1782887819107-0-scenario-1782887819107-0-page-2-1",
         "method": "GET",
-        "name": "查询授权凭证",
-        "path": "/api/reservation/authorization/{id}",
-        "goal": "获取预约审批通过后生成的授权二维码和凭证信息",
-        "trigger": "查看预约详情、下载凭证",
-        "resourceGroupKey": "reservation",
-        "resourceGroupLabel": "外协车辆预约",
+        "name": "车辆列表查询",
+        "path": "/api/vehicles",
+        "goal": "根据筛选条件查询现场车辆列表，返回匹配的车辆信息，用于地图和列表展示",
+        "trigger": "用户点击“筛选”按钮或页面加载时",
         "requestParams": [
           {
-            "name": "id",
+            "name": "vehicleType",
             "type": "string",
             "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-4-page-2-1-queryAuthorization",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "RESERVATION_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "RESERVATION_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "RESERVATION_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-4-page-3-2-verifyEntry",
-        "method": "POST",
-        "name": "核验预约入场",
-        "path": "/api/reservation/entry/verify",
-        "goal": "通过授权码扫描或手动输入，核验并登记入场",
-        "trigger": "扫描入场授权码、确认登记",
-        "resourceGroupKey": "reservation",
-        "resourceGroupLabel": "外协车辆预约",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-4-page-3-2-verifyEntry",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "RESERVATION_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "RESERVATION_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "RESERVATION_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782831312544-4-page-4-3-verifyExit",
-        "method": "POST",
-        "name": "核验预约出场",
-        "path": "/api/reservation/exit/verify",
-        "goal": "核验出场车辆，更新预约状态为已核销",
-        "trigger": "扫描入场凭证、核验出场",
-        "resourceGroupKey": "reservation",
-        "resourceGroupLabel": "外协车辆预约",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782831312544-4-page-4-3-verifyExit",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "RESERVATION_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "RESERVATION_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "RESERVATION_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-0-page-1-0-queryMapData",
-        "method": "GET",
-        "name": "查询地图监控数据",
-        "path": "/api/siteDispatch/map",
-        "goal": "获取车辆实时位置、状态、告警等信息用于地图展示",
-        "trigger": "页面加载、筛选变更、切换图层",
-        "resourceGroupKey": "siteDispatch",
-        "resourceGroupLabel": "现场调度地图",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-0-page-1-0-queryMapData",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "SITEDISPATCH_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "SITEDISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "SITEDISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-0-page-2-1-queryVehicleList",
-        "method": "GET",
-        "name": "查询现场车辆列表",
-        "path": "/api/siteDispatch/vehicles",
-        "goal": "按类型、状态、区域、关键字筛选车辆列表",
-        "trigger": "应用筛选、重置、切换视图",
-        "resourceGroupKey": "siteDispatch",
-        "resourceGroupLabel": "现场调度地图",
-        "requestParams": [
-          {
-            "name": "type",
-            "type": "string",
-            "required": false,
-            "description": "车辆类型筛选"
+            "description": "多选，选项：生产车、物流车、外协车、临时车，多个逗号分隔"
           },
           {
             "name": "status",
             "type": "string",
             "required": false,
-            "description": "车辆状态筛选"
+            "description": "单选，选项：空闲、排队、任务中"
           },
           {
             "name": "area",
             "type": "string",
             "required": false,
-            "description": "区域筛选"
+            "description": "作业区域编码"
           },
           {
-            "name": "keyword",
-            "type": "string",
+            "name": "distance",
+            "type": "number",
             "required": false,
-            "description": "关键字搜索车辆"
+            "description": "距离范围上限，单位公里"
           },
           {
-            "name": "page",
-            "type": "integer",
+            "name": "distanceFrom",
+            "type": "number",
             "required": false,
-            "description": "当前页码，默认为1"
-          },
-          {
-            "name": "pageSize",
-            "type": "integer",
-            "required": false,
-            "description": "每页条数，默认为20"
+            "description": "距离范围下限"
           }
         ],
         "successResponse": {
           "code": 0,
-          "message": "success",
+          "message": "成功",
           "data": {
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
+            "vehicles": [
+              {
+                "id": "string",
+                "plateNumber": "string",
+                "vehicleType": "string",
+                "status": "string",
+                "latitude": "number",
+                "longitude": "number",
+                "distance": "number",
+                "area": "string",
+                "lastUpdateTime": "string"
+              }
+            ],
+            "total": 0
           },
           "traceId": "string"
         },
         "errorResponse": {
           "code": -1,
-          "message": "error message",
+          "message": "错误描述",
           "data": null,
-          "traceId": "string",
-          "error": {
-            "code": "VEHICLE_VALIDATION_FAILED",
-            "message": "具体的错误原因",
-            "details": []
-          }
+          "traceId": "string"
         },
         "errorCodes": [
           {
-            "code": "VEHICLE_VALIDATION_FAILED",
-            "meaning": "车辆参数校验失败",
-            "frontendAdvice": "显示具体字段错误提示"
+            "code": 4001,
+            "meaning": "参数校验失败",
+            "frontendAdvice": "检查筛选条件是否合法"
           },
           {
-            "code": "VEHICLE_NOT_FOUND",
-            "meaning": "车辆不存在",
-            "frontendAdvice": "提示用户重新选择"
-          },
-          {
-            "code": "VEHICLE_SYNC_FAILED",
-            "meaning": "车辆数据同步失败",
-            "frontendAdvice": "提供重试按钮"
-          },
-          {
-            "code": "500",
+            "code": 5000,
             "meaning": "服务器内部错误",
-            "frontendAdvice": "统一错误弹窗并提供重试"
+            "frontendAdvice": "显示错误提示，提供重试按钮"
+          },
+          {
+            "code": 1003,
+            "meaning": "无访问权限",
+            "frontendAdvice": "提示用户无权限"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "sourcePageKey": "scenario-1782887819107-0-scenario-1782887819107-0-page-2-1"
       },
-      {
-        "key": "contract-scenario-1782887819107-0-page-3-2-createDispatch",
-        "method": "POST",
-        "name": "创建现场派车任务",
-        "path": "/api/siteDispatch/dispatch",
-        "goal": "根据用车申请或紧急派车请求，指定车辆、作业点、优先级后创建并派发任务",
-        "trigger": "派发按钮点击",
-        "resourceGroupKey": "siteDispatch",
-        "resourceGroupLabel": "现场调度地图",
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-3-2": {
+        "key": "api-scenario-1782887819107-0-scenario-1782887819107-0-page-4-3",
+        "method": "GET",
+        "name": "查询告警列表",
+        "path": "/api/alerts",
+        "goal": "分页查询异常告警列表，支持按告警类型、时间范围、车辆搜索筛选",
+        "trigger": "页面加载时自动触发，或点击查询按钮时触发",
         "requestParams": [
           {
-            "name": "dispatchType",
-            "type": "string",
-            "required": true,
-            "description": "派车类型：APPLICATION（用车申请）或 EMERGENCY（紧急派车）"
-          },
-          {
-            "name": "applicationId",
+            "name": "alertTypeFilter",
             "type": "string",
             "required": false,
-            "description": "当 dispatchType=APPLICATION 时必填，关联的用车申请单ID"
+            "description": "告警类型筛选值，如 speeding、zone_entry"
           },
           {
-            "name": "vehicleId",
+            "name": "timeRangeFilter",
             "type": "string",
-            "required": true,
-            "description": "指定派发的车辆ID"
+            "required": false,
+            "description": "时间范围字符串，格式 'start,end' 如 '2025-01-01,2025-01-31'"
           },
           {
-            "name": "workPointId",
+            "name": "vehicleSearch",
             "type": "string",
-            "required": true,
-            "description": "作业点ID（即目的地）"
+            "required": false,
+            "description": "车牌号或车辆名称关键字"
           },
           {
-            "name": "priority",
+            "name": "page",
             "type": "integer",
             "required": true,
-            "description": "任务优先级：1-低，2-中，3-高，4-紧急"
+            "description": "当前页码，从1开始"
+          },
+          {
+            "name": "pageSize",
+            "type": "integer",
+            "required": true,
+            "description": "每页记录数"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "查询成功",
+          "data": {
+            "total": 0,
+            "list": [
+              {
+                "alertId": "string",
+                "vehiclePlate": "string",
+                "alertType": "string",
+                "alertTime": "string",
+                "status": "string",
+                "location": "string",
+                "description": "string"
+              }
+            ]
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 400,
+          "message": "参数错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "请求参数格式或值不合法",
+            "frontendAdvice": "检查筛选参数、分页参数是否符合要求"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "请稍后重试或联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-0-scenario-1782887819107-0-page-4-3"
+      },
+      "scenario-1782887819107-0-scenario-1782887819107-0-page-4-3": {
+        "key": "api-scenario-1782887819107-0-scenario-1782887819107-0-page-4-3",
+        "method": "GET",
+        "name": "查询告警列表",
+        "path": "/api/alerts",
+        "goal": "根据筛选条件获取实时告警或历史告警列表，支持分页和筛选",
+        "trigger": "页面加载时默认获取实时告警列表；点击查询历史告警按钮时根据筛选条件获取历史告警列表",
+        "requestParams": [
+          {
+            "name": "alertType",
+            "type": "string",
+            "required": false,
+            "description": "告警类型筛选，如超速、禁入区域、异常停留、未授权入场"
+          },
+          {
+            "name": "vehicle",
+            "type": "string",
+            "required": false,
+            "description": "车牌号或车辆编号模糊查询"
+          },
+          {
+            "name": "startTime",
+            "type": "string",
+            "required": false,
+            "description": "历史告警查询起始时间，格式 yyyy-MM-dd HH:mm:ss"
+          },
+          {
+            "name": "endTime",
+            "type": "string",
+            "required": false,
+            "description": "历史告警查询结束时间，格式 yyyy-MM-dd HH:mm:ss"
+          },
+          {
+            "name": "page",
+            "type": "integer",
+            "required": false,
+            "description": "页码，默认1"
+          },
+          {
+            "name": "pageSize",
+            "type": "integer",
+            "required": false,
+            "description": "每页条数，默认20"
+          },
+          {
+            "name": "history",
+            "type": "boolean",
+            "required": false,
+            "description": "是否查询历史告警，默认false表示实时告警"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "操作成功",
+          "data": {
+            "total": 0,
+            "records": [
+              {
+                "alertId": "string",
+                "alertType": "string",
+                "vehicle": "string",
+                "time": "string",
+                "location": "string",
+                "status": "string",
+                "description": "string"
+              }
+            ]
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 500,
+          "message": "服务器内部错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "请求参数错误，如开始时间晚于结束时间或格式错误",
+            "frontendAdvice": "检查筛选条件后重新提交"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "请稍后重试或联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-0-scenario-1782887819107-0-page-4-3"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-1-0": {
+        "key": "api-scenario-1782887819107-1-scenario-1782887819107-1-page-1-0",
+        "method": "GET",
+        "name": "获取任务列表",
+        "path": "/api/tasks",
+        "goal": "司机获取个人任务列表，支持按状态筛选和分页",
+        "trigger": "页面加载、筛选状态变化、下拉刷新、滚动到底部加载更多",
+        "requestParams": [
+          {
+            "name": "statusFilter",
+            "type": "string",
+            "required": false,
+            "description": "任务状态筛选：待接单、进行中、已完成"
+          },
+          {
+            "name": "pageNum",
+            "type": "integer",
+            "required": false,
+            "description": "页码，从1开始，默认1"
+          },
+          {
+            "name": "pageSize",
+            "type": "integer",
+            "required": false,
+            "description": "每页条数，默认10"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "成功",
+          "data": {
+            "tasks": [
+              {
+                "taskId": "string",
+                "workPoint": "string",
+                "requiredTime": "string",
+                "status": "string"
+              }
+            ],
+            "total": 0
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 500,
+          "message": "服务器内部错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "参数错误",
+            "frontendAdvice": "检查请求参数是否合法"
+          },
+          {
+            "code": 401,
+            "meaning": "未授权",
+            "frontendAdvice": "跳转登录页"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "提示用户稍后重试"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-1-scenario-1782887819107-1-page-1-0"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-2-1": {
+        "key": "api-scenario-1782887819107-1-scenario-1782887819107-1-page-2-1",
+        "method": "GET",
+        "name": "获取任务详情",
+        "path": "/api/tasks/{taskId}",
+        "goal": "获取指定任务的详细信息，包括作业点位置、任务要求、物资信息等",
+        "trigger": "进入页面时自动调用",
+        "requestParams": [
+          {
+            "name": "taskId",
+            "type": "string",
+            "required": true,
+            "description": "任务唯一标识，从路由参数或上级传入"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "成功",
+          "data": {
+            "taskId": "string",
+            "taskStatus": "string",
+            "workPointName": "string",
+            "address": "string",
+            "contactPerson": "string",
+            "contactPhone": "string",
+            "vehicleType": "string",
+            "materialType": "string",
+            "operationInstruction": "string",
+            "plannedArrivalTime": "string",
+            "plannedCompletionTime": "string"
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 500,
+          "message": "服务器内部错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": "1001",
+            "meaning": "任务不存在",
+            "frontendAdvice": "提示用户‘任务已删除或无效’，并返回上一页"
+          },
+          {
+            "code": "1002",
+            "meaning": "无权限访问",
+            "frontendAdvice": "提示用户‘无权查看该任务’，并跳转至列表页"
+          },
+          {
+            "code": "1003",
+            "meaning": "参数错误",
+            "frontendAdvice": "提示用户‘请求参数异常’，并记录日志"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-1-scenario-1782887819107-1-page-2-1"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-3-2": {
+        "key": "api-scenario-1782887819107-1-scenario-1782887819107-1-page-3-2",
+        "method": "POST",
+        "name": "获取导航路径",
+        "path": "/api/navigation/route",
+        "goal": "根据司机当前位置和目的地，计算并返回最优路径、预计到达时间和剩余距离",
+        "trigger": "用户点击开始导航按钮",
+        "requestParams": [
+          {
+            "name": "currentPosition",
+            "type": "string",
+            "required": true,
+            "description": "司机实时位置坐标（格式：纬度,经度）"
+          },
+          {
+            "name": "destination",
+            "type": "string",
+            "required": true,
+            "description": "作业点坐标（格式：纬度,经度）"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "成功",
+          "data": {
+            "estimatedArrivalTime": "string",
+            "distance": "string",
+            "routeInfo": "string"
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 500,
+          "message": "错误信息",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": "LOCATION_FAILED",
+            "meaning": "无法获取当前位置",
+            "frontendAdvice": "请检查定位权限或手动输入位置"
+          },
+          {
+            "code": "DESTINATION_INVALID",
+            "meaning": "目的地无效或无法到达",
+            "frontendAdvice": "请确认作业点是否正确"
+          },
+          {
+            "code": "ROUTE_CALCULATION_ERROR",
+            "meaning": "路径计算失败",
+            "frontendAdvice": "请稍后重试或联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-1-scenario-1782887819107-1-page-3-2"
+      },
+      "scenario-1782887819107-1-scenario-1782887819107-1-page-4-3": {
+        "key": "api-scenario-1782887819107-1-scenario-1782887819107-1-page-4-3",
+        "method": "POST",
+        "name": "提交现场反馈",
+        "path": "/api/tasks/feedback",
+        "goal": "司机提交到达现场后的反馈信息，包括照片和备注，同步至调度端",
+        "trigger": "用户点击“提交反馈”按钮",
+        "requestParams": [
+          {
+            "name": "photos",
+            "type": "array",
+            "required": false,
+            "description": "现场照片文件列表，支持多张，可选"
           },
           {
             "name": "remark",
             "type": "string",
             "required": false,
-            "description": "派车备注信息"
+            "description": "文字备注或异常说明，可选（但至少与photos填一项）"
           }
         ],
         "successResponse": {
-          "code": 0,
-          "message": "success",
+          "code": 200,
+          "message": "反馈提交成功",
           "data": {
-            "dispatchId": "string",
-            "dispatchStatus": "string",
-            "vehicleId": "string",
-            "vehiclePlate": "string",
-            "driverName": "string",
-            "workPointName": "string",
-            "priority": "integer",
-            "estimatedArrivalTime": "string",
-            "createdAt": "string"
+            "feedbackId": "string",
+            "submitTime": "string"
           },
           "traceId": "string"
         },
         "errorResponse": {
-          "code": "integer",
+          "code": 500,
+          "message": "服务器内部错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "请求参数校验失败（如未上传照片也未填写备注）",
+            "frontendAdvice": "提示用户至少上传一张照片或填写备注"
+          },
+          {
+            "code": 401,
+            "meaning": "用户未登录或token失效",
+            "frontendAdvice": "引导用户重新登录"
+          },
+          {
+            "code": 403,
+            "meaning": "无权限提交该任务反馈",
+            "frontendAdvice": "提示用户无操作权限，联系管理员"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器异常",
+            "frontendAdvice": "显示网络错误提示，允许用户重试"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-1-scenario-1782887819107-1-page-4-3"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-1-0": {
+        "key": "api-scenario-1782887819107-2-scenario-1782887819107-2-page-1-0",
+        "method": "POST",
+        "name": "入场核验",
+        "path": "/api/verifications/check",
+        "goal": "根据车牌或预约二维码核验车辆预约有效性及派车任务关联，返回入场许可结果",
+        "trigger": "用户点击核验按钮或自动核验触发",
+        "requestParams": [
+          {
+            "name": "scanInput",
+            "type": "string",
+            "required": true,
+            "description": "车牌号或预约二维码内容"
+          },
+          {
+            "name": "manualInput",
+            "type": "string",
+            "required": false,
+            "description": "二次核验时手动输入的预约编号或车牌"
+          }
+        ],
+        "successResponse": {
+          "code": "200",
+          "message": "核验通过",
+          "data": {
+            "permit": true,
+            "vehicleInfo": {
+              "plateNumber": "粤B12345",
+              "vehicleType": "轿车"
+            },
+            "appointment": {
+              "id": "AP20231001",
+              "status": "valid",
+              "taskId": "TASK20231001"
+            },
+            "task": {
+              "id": "TASK20231001",
+              "description": "供应商送货",
+              "status": "inProgress"
+            },
+            "entryAllowed": true,
+            "entryTime": "2023-10-01T10:00:00Z"
+          },
+          "traceId": "trace-xxx"
+        },
+        "errorResponse": {
+          "code": "400",
+          "message": "核验失败",
+          "data": {
+            "permit": false,
+            "reason": "预约已过期",
+            "suggestion": "请联系管理员更新预约信息"
+          },
+          "traceId": "trace-xxx"
+        },
+        "errorCodes": [
+          {
+            "code": "VER001",
+            "meaning": "车牌格式不合法",
+            "frontendAdvice": "提示用户检查车牌输入格式"
+          },
+          {
+            "code": "VER002",
+            "meaning": "预约二维码无效或已过期",
+            "frontendAdvice": "提示用户确认二维码有效性或手动输入预约编号"
+          },
+          {
+            "code": "VER003",
+            "meaning": "预约与任务关联不存在",
+            "frontendAdvice": "显示无关联任务，允许无预约入场登记"
+          },
+          {
+            "code": "VER004",
+            "meaning": "系统异常",
+            "frontendAdvice": "重试或联系IT支持"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-2-scenario-1782887819107-2-page-1-0"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-2-1": {
+        "key": "api-scenario-1782887819107-2-scenario-1782887819107-2-page-2-1",
+        "method": "POST",
+        "name": "放行车辆",
+        "path": "/api/releases",
+        "goal": "执行车辆放行操作，记录入场时间并更新任务状态为已入场",
+        "trigger": "用户点击放行按钮并确认后",
+        "requestParams": [
+          {
+            "name": "vehiclePlate",
+            "type": "string",
+            "required": true,
+            "description": "核验车辆的车牌号"
+          },
+          {
+            "name": "entryTime",
+            "type": "datetime",
+            "required": true,
+            "description": "车辆实际入场时间，默认为当前时间"
+          },
+          {
+            "name": "releaseOperator",
+            "type": "string",
+            "required": false,
+            "description": "执行放行操作的门岗人员"
+          },
+          {
+            "name": "releaseRemark",
+            "type": "string",
+            "required": false,
+            "description": "放行备注信息"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "放行成功",
+          "data": {
+            "releaseId": "UUID字符串",
+            "vehiclePlate": "车辆车牌号",
+            "entryTime": "2025-01-15T14:30:00",
+            "status": "已入场"
+          },
+          "traceId": "请求追踪ID"
+        },
+        "errorResponse": {
+          "code": 400,
+          "message": "参数错误",
+          "data": null,
+          "traceId": "请求追踪ID"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "请求参数缺失或格式错误",
+            "frontendAdvice": "检查车牌号和入场时间是否正确填写"
+          },
+          {
+            "code": 404,
+            "meaning": "车辆核验记录未找到",
+            "frontendAdvice": "请确认车辆已通过核验"
+          },
+          {
+            "code": 409,
+            "meaning": "车辆已存在放行记录",
+            "frontendAdvice": "该车辆已经放行，请刷新列表"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "请稍后重试，若持续失败请联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-2-scenario-1782887819107-2-page-2-1"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-3-2": {
+        "key": "api-scenario-1782887819107-2-scenario-1782887819107-2-page-3-2",
+        "method": "POST",
+        "name": "处理告警",
+        "path": "/api/alerts/{id}/process",
+        "goal": "对指定告警进行确认、解除或上报操作，更新告警状态并返回处理结果",
+        "trigger": "用户点击确认、解除或上报按钮时触发",
+        "requestParams": [
+          {
+            "name": "action",
+            "type": "string",
+            "required": true,
+            "description": "操作类型：confirm（确认）、dismiss（解除）、report（上报）"
+          },
+          {
+            "name": "handleRemark",
+            "type": "string",
+            "required": false,
+            "description": "处理备注，不超过200字"
+          },
+          {
+            "name": "reportDepartment",
+            "type": "string",
+            "required": false,
+            "description": "上报部门，当action=report时必填"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "操作成功",
+          "data": {
+            "alertId": "string",
+            "status": "string",
+            "handledAt": "datetime",
+            "handler": "string"
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 400,
+          "message": "操作失败",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 1001,
+            "meaning": "告警记录不存在",
+            "frontendAdvice": "提示用户告警可能已被删除，建议刷新列表"
+          },
+          {
+            "code": 2001,
+            "meaning": "参数校验失败（如缺少必填字段、备注超长）",
+            "frontendAdvice": "根据后端返回的具体字段错误信息，在前端对应输入框显示校验提示"
+          },
+          {
+            "code": 3001,
+            "meaning": "重复操作（告警已被处理）",
+            "frontendAdvice": "提示用户该告警已被处理，并刷新状态"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-2-scenario-1782887819107-2-page-3-2"
+      },
+      "scenario-1782887819107-2-scenario-1782887819107-2-page-4-3": {
+        "key": "api-scenario-1782887819107-2-scenario-1782887819107-2-page-4-3",
+        "method": "GET",
+        "name": "查询放行记录",
+        "path": "/api/release-records",
+        "goal": "按条件检索车辆入场放行历史记录",
+        "trigger": "用户点击查询按钮",
+        "requestParams": [
+          {
+            "name": "startTime",
+            "type": "string",
+            "required": false,
+            "description": "查询放行记录的起始日期，格式yyyy-MM-dd"
+          },
+          {
+            "name": "endTime",
+            "type": "string",
+            "required": false,
+            "description": "查询放行记录的结束日期，格式yyyy-MM-dd"
+          },
+          {
+            "name": "plateNumber",
+            "type": "string",
+            "required": false,
+            "description": "完整或部分车牌号，模糊匹配"
+          },
+          {
+            "name": "vehicleType",
+            "type": "string",
+            "required": false,
+            "description": "车辆类型，如轿车、货车"
+          },
+          {
+            "name": "releaseStatus",
+            "type": "string",
+            "required": false,
+            "description": "放行状态：success或异常"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "查询成功",
+          "data": {
+            "total": 0,
+            "records": [
+              {
+                "id": "string",
+                "plateNumber": "string",
+                "vehicleType": "string",
+                "releaseTime": "string",
+                "releaseStatus": "string",
+                "inspector": "string",
+                "remarks": "string"
+              }
+            ]
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 400,
+          "message": "请求参数错误",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "参数校验失败",
+            "frontendAdvice": "请检查查询条件是否符合要求"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "查询失败，请稍后重试或联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-2-scenario-1782887819107-2-page-4-3"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-1-0": {
+        "key": "api-scenario-1782887819107-3-scenario-1782887819107-3-page-1-0",
+        "method": "GET",
+        "name": "查询车辆运营报表数据",
+        "path": "/api/reports/vehicle-operations",
+        "goal": "根据时间范围获取车辆利用率、任务完成率、空驶率、外协车辆使用次数、异常入场记录等统计数据。",
+        "trigger": "用户点击查询按钮时调用；页面初始化时自动调用。",
+        "requestParams": [
+          {
+            "name": "timeRange",
+            "type": "string",
+            "required": true,
+            "description": "统计的起止日期，格式为yyyy-MM-dd~yyyy-MM-dd"
+          },
+          {
+            "name": "startDate",
+            "type": "string",
+            "required": false,
+            "description": "可拆分传入，格式yyyy-MM-dd"
+          },
+          {
+            "name": "endDate",
+            "type": "string",
+            "required": false,
+            "description": "可拆分传入，格式yyyy-MM-dd"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "成功",
+          "data": {
+            "vehicleUtilization": [
+              {
+                "date": "2025-01-01",
+                "rate": 0.85
+              }
+            ],
+            "taskCompletionRate": [
+              {
+                "date": "2025-01-01",
+                "rate": 0.92
+              }
+            ],
+            "emptyDrivingRate": [
+              {
+                "date": "2025-01-01",
+                "rate": 0.12
+              }
+            ],
+            "outsourceVehicleUsage": [
+              {
+                "date": "2025-01-01",
+                "count": 5
+              }
+            ],
+            "abnormalEntryRecords": [
+              {
+                "id": 1,
+                "vehicleNo": "粤B12345",
+                "entryTime": "2025-01-01 10:00",
+                "reason": "无预约"
+              }
+            ]
+          },
+          "traceId": "trace-xxxx"
+        },
+        "errorResponse": {
+          "code": 500,
+          "message": "服务器内部错误",
+          "data": null,
+          "traceId": "trace-xxxx"
+        },
+        "errorCodes": [
+          {
+            "code": 400,
+            "meaning": "请求参数错误，如时间范围格式不对或超出限制",
+            "frontendAdvice": "提示用户检查时间范围输入，确保格式正确且不超过一年。"
+          },
+          {
+            "code": 401,
+            "meaning": "用户未登录或无权限",
+            "frontendAdvice": "跳转登录页或提示用户重新登录。"
+          },
+          {
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "显示错误提示信息，并提供重试按钮。"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-3-scenario-1782887819107-3-page-1-0"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-2-1": {
+        "key": "api-scenario-1782887819107-3-scenario-1782887819107-3-page-2-1",
+        "method": "POST",
+        "name": "报表数据导出",
+        "path": "/api/reports/export",
+        "goal": "根据选择的格式、范围和指定指标，生成并返回报表文件下载链接或直接触发下载",
+        "trigger": "用户点击导出按钮后，前端校验通过时调用",
+        "requestParams": [
+          {
+            "name": "exportFormat",
+            "type": "string",
+            "required": true,
+            "description": "导出的文件格式，值为 'excel' 或 'pdf'"
+          },
+          {
+            "name": "exportScope",
+            "type": "string",
+            "required": true,
+            "description": "导出范围，值为 'all' 或 'selected'"
+          },
+          {
+            "name": "selectedIndicators",
+            "type": "array",
+            "required": false,
+            "description": "当 exportScope 为 'selected' 时，需指定指标名称列表"
+          }
+        ],
+        "successResponse": {
+          "code": 0,
+          "message": "导出成功",
+          "data": {
+            "downloadUrl": "http://example.com/reports/export/xxxxx.xlsx"
+          },
+          "traceId": "a1b2c3d4"
+        },
+        "errorResponse": {
+          "code": -1,
+          "message": "导出失败：参数校验错误或服务异常",
+          "data": null,
+          "traceId": "a1b2c3d4"
+        },
+        "errorCodes": [
+          {
+            "code": 40001,
+            "meaning": "参数缺失或不符合要求",
+            "frontendAdvice": "请检查导出格式、导出范围和指标选择是否完整"
+          },
+          {
+            "code": 50001,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "提示用户稍后重试，若持续失败请联系管理员"
+          }
+        ],
+        "sourcePageKey": "scenario-1782887819107-3-scenario-1782887819107-3-page-2-1"
+      },
+      "scenario-1782887819107-3-scenario-1782887819107-3-page-3-2": {
+        "key": "api-scenario-1782887819107-3-scenario-1782887819107-3-page-3-2",
+        "method": "GET",
+        "name": "获取资源配置优化建议",
+        "path": "/api/resource-allocation",
+        "goal": "根据时间范围、区域和车辆类型等筛选条件，获取资源配置优化建议数据，包含车辆使用统计、优化建议列表、趋势图表等",
+        "trigger": "用户点击查询按钮时",
+        "requestParams": [
+          {
+            "name": "dateRange",
+            "type": "string",
+            "required": true,
+            "description": "时间范围，格式为'开始日期,结束日期'，如'2023-01-01,2023-12-31'"
+          },
+          {
+            "name": "region",
+            "type": "string",
+            "required": false,
+            "description": "区域，如东部、西部等"
+          },
+          {
+            "name": "vehicleType",
+            "type": "string",
+            "required": false,
+            "description": "车辆类型，如轿车、卡车、客车等"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "成功",
+          "data": {
+            "summary": "优化建议综述",
+            "trendChart": "趋势图数据",
+            "allocationSuggestions": "资源配置建议列表",
+            "costManagement": "外协费用管理参考"
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 0,
           "message": "string",
           "data": null,
           "traceId": "string"
         },
         "errorCodes": [
           {
-            "code": "VEHICLE_NOT_FOUND",
-            "meaning": "指定的车辆不存在或已停用",
-            "frontendAdvice": "提示用户重新选择车辆，并刷新车辆列表"
+            "code": "400",
+            "meaning": "请求参数错误，如日期格式不正确或必填字段缺失",
+            "frontendAdvice": "检查输入参数，确保日期格式正确且必填字段已填写"
           },
           {
-            "code": "WORK_POINT_INVALID",
-            "meaning": "作业点无效或不在可调度范围内",
-            "frontendAdvice": "提示用户选择有效的作业点"
+            "code": "404",
+            "meaning": "没有找到对应数据",
+            "frontendAdvice": "提示用户当前筛选条件下没有数据，可尝试调整筛选条件"
           },
           {
-            "code": "PRIORITY_INVALID",
-            "meaning": "优先级数值不合法",
-            "frontendAdvice": "提示用户选择正确的优先级"
-          },
-          {
-            "code": "APPLICATION_NOT_FOUND",
-            "meaning": "关联的用车申请单不存在或已取消",
-            "frontendAdvice": "提示用户确认申请单状态，或转为紧急派车"
-          },
-          {
-            "code": "DISPATCH_FAILED",
-            "meaning": "派车创建失败，系统内部错误",
-            "frontendAdvice": "提示用户稍后重试，或者联系运维"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-0-page-4-3-queryAlerts",
-        "method": "GET",
-        "name": "查询现场异常告警",
-        "path": "/api/siteDispatch/alerts",
-        "goal": "按告警类型、状态、时间范围查询告警列表",
-        "trigger": "筛选、查询历史告警",
-        "resourceGroupKey": "siteDispatch",
-        "resourceGroupLabel": "现场调度地图",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-0-page-4-3-queryAlerts",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "SITEDISPATCH_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "SITEDISPATCH_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "SITEDISPATCH_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-1-page-1-0-queryTaskList",
-        "method": "GET",
-        "name": "查询司机任务列表(移动端)",
-        "path": "/api/mobile/tasks",
-        "goal": "按状态筛选获取任务列表，支持分页加载",
-        "trigger": "下拉刷新、分页加载、接收通知",
-        "resourceGroupKey": "taskList",
-        "resourceGroupLabel": "移动端任务",
-        "requestParams": [
-          {
-            "name": "page",
-            "type": "number",
-            "required": true,
-            "description": "当前页码，从1开始"
-          },
-          {
-            "name": "pageSize",
-            "type": "number",
-            "required": true,
-            "description": "每页条数"
-          },
-          {
-            "name": "status",
-            "type": "string",
-            "required": false,
-            "description": "任务状态筛选，可选值：WAITING / PROCESSING / COMPLETED / CANCELLED"
-          },
-          {
-            "name": "keyword",
-            "type": "string",
-            "required": false,
-            "description": "搜索关键词，匹配任务编号或目的地"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 100
-            },
-            "summary": {}
-          },
-          "traceId": "xxx-trace-id"
-        },
-        "errorResponse": {
-          "code": -1,
-          "message": "请求处理失败",
-          "data": null,
-          "traceId": "xxx-trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "TASK_NOT_FOUND",
-            "meaning": "任务不存在或已被删除",
-            "frontendAdvice": "提示用户任务已失效，建议刷新列表"
-          },
-          {
-            "code": "STATUS_INVALID",
-            "meaning": "传入的状态参数不合法",
-            "frontendAdvice": "前端应校验状态值，错误时提示用户重新筛选"
-          },
-          {
-            "code": "SERVER_ERROR",
+            "code": "500",
             "meaning": "服务器内部错误",
-            "frontendAdvice": "弹窗提示‘服务器繁忙，请稍后重试’，并提供重试按钮"
-          },
-          {
-            "code": "PARAM_MISSING",
-            "meaning": "缺少必填参数",
-            "frontendAdvice": "前端需要确保 page 和 pageSize 不为空，否则提示参数错误"
+            "frontendAdvice": "显示错误提示条，并允许用户重试"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "sourcePageKey": "scenario-1782887819107-3-scenario-1782887819107-3-page-3-2"
       },
-      {
-        "key": "contract-scenario-1782887819107-1-page-2-1-queryTaskDetail",
-        "method": "GET",
-        "name": "查询任务详情",
-        "path": "/api/mobile/tasks/{id}",
-        "goal": "获取任务完整信息，包括车辆、司机、作业点等",
-        "trigger": "点击任务项",
-        "resourceGroupKey": "taskList",
-        "resourceGroupLabel": "移动端任务",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-1-page-2-1-queryTaskDetail",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "TASKLIST_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "TASKLIST_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "TASKLIST_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-1-page-3-2-queryNavigation",
-        "method": "GET",
-        "name": "查询导航路径",
-        "path": "/api/mobile/navigation",
-        "goal": "根据当前位置和目标作业点获取路线、距离、预计时间",
-        "trigger": "开始导航、切换路线、刷新路线",
-        "resourceGroupKey": "taskList",
-        "resourceGroupLabel": "移动端任务",
-        "requestParams": [
-          {
-            "name": "latitude",
-            "type": "number",
-            "required": true,
-            "description": "当前位置纬度（WGS84）"
-          },
-          {
-            "name": "longitude",
-            "type": "number",
-            "required": true,
-            "description": "当前位置经度（WGS84）"
-          },
-          {
-            "name": "targetTaskId",
-            "type": "string",
-            "required": true,
-            "description": "目标作业任务 ID，用于定位目标点"
-          },
-          {
-            "name": "mode",
-            "type": "string",
-            "required": false,
-            "description": "导航模式，可选值：driving（默认）、walking"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "route": {
-              "waypoints": [
-                {
-                  "latitude": 22.543,
-                  "longitude": 113.943,
-                  "name": "当前位置"
-                },
-                {
-                  "latitude": 22.548,
-                  "longitude": 113.95,
-                  "name": "目标作业点A"
-                }
-              ],
-              "distance": 1200,
-              "estimatedTime": 480
-            }
-          },
-          "traceId": "generated-trace-id"
-        },
-        "errorResponse": {
-          "code": -1,
-          "message": "error",
-          "data": {
-            "error": {
-              "code": "NAVIGATION_FAILED",
-              "message": "无法计算导航路径",
-              "details": []
-            }
-          },
-          "traceId": "generated-trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "TASK_NOT_FOUND",
-            "meaning": "目标作业任务不存在或已被删除",
-            "frontendAdvice": "提示用户任务已失效，返回任务列表"
-          },
-          {
-            "code": "NAVIGATION_FAILED",
-            "meaning": "路线计算失败（如起点/终点无效、无通行路径）",
-            "frontendAdvice": "显示失败原因，建议用户检查位置或稍后重试"
-          },
-          {
-            "code": "VEHICLE_VALIDATION_FAILED",
-            "meaning": "当前车辆不符合导航条件（如未授权、未激活）",
-            "frontendAdvice": "引导用户联系管理员或切换到其他车辆"
-          },
-          {
-            "code": "INTERNAL_SERVER_ERROR",
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "提示网络异常，自动重试最多3次"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-1-page-4-3-submitFeedback",
+      "sc-1-page-1-0": {
+        "key": "api-sc-1-page-1-0",
         "method": "POST",
-        "name": "提交现场反馈",
-        "path": "/api/mobile/tasks/{id}/feedback",
-        "goal": "上传到达确认时间、照片和备注",
-        "trigger": "到达确认、提交反馈",
-        "resourceGroupKey": "taskList",
-        "resourceGroupLabel": "移动端任务",
+        "name": "派车分配",
+        "path": "/api/tasks/dispatch",
+        "goal": "为指定任务分配车辆并生成调度指令",
+        "trigger": "用户在弹窗中选择车辆后点击确认",
         "requestParams": [
           {
-            "name": "id",
+            "name": "taskId",
             "type": "string",
             "required": true,
-            "description": "任务ID（路径参数）"
+            "description": "任务ID"
           },
           {
-            "name": "arrivalTime",
+            "name": "vehicleId",
             "type": "string",
             "required": true,
-            "description": "到达确认时间，格式 yyyy-MM-dd HH:mm:ss"
-          },
-          {
-            "name": "photos",
-            "type": "array",
-            "required": false,
-            "description": "现场照片URL列表"
+            "description": "选择的车辆ID"
           },
           {
             "name": "remark",
             "type": "string",
             "required": false,
-            "description": "备注信息"
+            "description": "派车备注"
           }
         ],
         "successResponse": {
-          "code": 0,
-          "message": "success",
+          "code": 200,
+          "message": "派车成功",
           "data": {
-            "feedbackId": "生成的反馈记录ID"
+            "dispatchId": "string",
+            "taskId": "string",
+            "vehicleId": "string",
+            "status": "dispatched",
+            "estimatedArrivalTime": "string"
           },
-          "traceId": "请求链路追踪ID"
+          "traceId": "string"
         },
         "errorResponse": {
-          "code": 40001,
+          "code": 400,
+          "message": "参数错误或业务校验失败",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": "VEHICLE_NOT_AVAILABLE",
+            "meaning": "所选车辆当前不可用",
+            "frontendAdvice": "提示用户更换车辆"
+          },
+          {
+            "code": "TASK_ALREADY_DISPATCHED",
+            "meaning": "该任务已派车",
+            "frontendAdvice": "提示用户任务已处理"
+          },
+          {
+            "code": "INTERNAL_ERROR",
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "提示用户稍后重试"
+          }
+        ],
+        "sourcePageKey": "sc-1-page-1-0"
+      },
+      "sc-2-page-1-0": {
+        "key": "api-sc-2-page-1-0",
+        "method": "POST",
+        "name": "提交任务",
+        "path": "/api/tasks/submit",
+        "goal": "司机到达作业点拍照后，提交任务完成确认，更新任务状态为已完成",
+        "trigger": "用户点击提交按钮，且已校验至少上传一张照片",
+        "requestParams": [
+          {
+            "name": "taskId",
+            "type": "string",
+            "required": true,
+            "description": "任务唯一标识"
+          },
+          {
+            "name": "photo",
+            "type": "string",
+            "required": true,
+            "description": "现场照片的URL或文件标识（已通过拍照上传获取）"
+          },
+          {
+            "name": "remarks",
+            "type": "string",
+            "required": false,
+            "description": "附加备注信息"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "操作成功",
+          "data": {
+            "taskId": "string",
+            "status": "已完成",
+            "arrivedAt": "2025-04-08T10:30:00Z",
+            "completedAt": "2025-04-08T10:35:00Z"
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 400,
+          "message": "业务校验失败",
+          "data": null,
+          "traceId": "string"
+        },
+        "errorCodes": [
+          {
+            "code": 4001,
+            "meaning": "未上传现场照片",
+            "frontendAdvice": "提示用户必须拍照后才能提交"
+          },
+          {
+            "code": 4002,
+            "meaning": "任务状态不允许提交（未到达或已完成）",
+            "frontendAdvice": "提示用户当前任务状态不可提交，请确认到达后再试"
+          },
+          {
+            "code": 5000,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "提示用户网络异常，请稍后重试"
+          }
+        ],
+        "sourcePageKey": "sc-2-page-1-0"
+      },
+      "sc-3-page-1-0": {
+        "key": "api-sc-4-page-1-0",
+        "method": "POST",
+        "name": "查询报表",
+        "path": "/api/reports/query",
+        "goal": "根据用户选择的日期范围、指标和报表类型，获取运营报表数据与关键指标摘要",
+        "trigger": "点击查询按钮",
+        "requestParams": [
+          {
+            "name": "dateRange",
+            "type": "string",
+            "required": true,
+            "description": "报表统计的时间范围，格式如'2023-01-01,2023-01-31'"
+          },
+          {
+            "name": "metrics",
+            "type": "string",
+            "required": false,
+            "description": "需显示的指标列表，以逗号分隔，如'vehicleUtilization,avgDuration'"
+          },
+          {
+            "name": "reportType",
+            "type": "string",
+            "required": false,
+            "description": "报表类型，如'daily','weekly'"
+          }
+        ],
+        "successResponse": {
+          "code": 200,
+          "message": "查询成功",
+          "data": {
+            "reportData": {},
+            "summary": {},
+            "charts": []
+          },
+          "traceId": "string"
+        },
+        "errorResponse": {
+          "code": 400,
           "message": "请求参数错误",
-          "data": {
-            "error": {
-              "code": "PARAM_ERROR",
-              "message": "参数校验失败详情",
-              "details": []
-            }
-          },
-          "traceId": "请求链路追踪ID"
-        },
-        "errorCodes": [
-          {
-            "code": "PARAM_ERROR",
-            "meaning": "请求参数校验失败",
-            "frontendAdvice": "检查必填字段和格式，提示用户修正"
-          },
-          {
-            "code": "UPLOAD_FAILED",
-            "meaning": "文件上传失败",
-            "frontendAdvice": "请检查网络后重试"
-          },
-          {
-            "code": "TASK_NOT_FOUND",
-            "meaning": "任务不存在",
-            "frontendAdvice": "请刷新任务列表"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-2-page-1-0-verifyEntry",
-        "method": "POST",
-        "name": "核验入场（门岗移动端）",
-        "path": "/api/mobile/entry/verify",
-        "goal": "通过扫描车牌或二维码进行入场核验",
-        "trigger": "扫描车牌/二维码、手动核验",
-        "resourceGroupKey": "entryCheck",
-        "resourceGroupLabel": "移动端入场核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-2-page-1-0-verifyEntry",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
           "data": null,
-          "error": {
-            "code": "ENTRYCHECK_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
+          "traceId": "string"
         },
         "errorCodes": [
           {
-            "code": "ENTRYCHECK_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+            "code": "PARAM_MISSING",
+            "meaning": "必填参数缺失",
+            "frontendAdvice": "检查日期范围是否已填写"
           },
           {
-            "code": "ENTRYCHECK_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
+            "code": "INVALID_DATE_RANGE",
+            "meaning": "日期范围格式错误或无效",
+            "frontendAdvice": "请重新选择有效的日期范围"
+          },
+          {
+            "code": "DATA_NOT_FOUND",
+            "meaning": "所选条件下无报表数据",
+            "frontendAdvice": "显示空状态提示，建议调整查询条件"
+          },
+          {
+            "code": "INTERNAL_ERROR",
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "显示错误提示，并请稍后重试"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "sourcePageKey": "sc-4-page-1-0"
       },
-      {
-        "key": "contract-scenario-1782887819107-2-page-2-1-releaseVehicle",
-        "method": "POST",
-        "name": "放行车辆（门岗移动端）",
-        "path": "/api/mobile/entry/release",
-        "goal": "确认放行或拒绝入场，记录时间与备注",
-        "trigger": "确认放行、拒绝入场、批量放行",
-        "resourceGroupKey": "entryCheck",
-        "resourceGroupLabel": "移动端入场核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-2-page-2-1-releaseVehicle",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "ENTRYCHECK_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "ENTRYCHECK_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "ENTRYCHECK_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-2-page-3-2-queryAlerts",
+      "sc-4-page-1-0": {
+        "key": "api-sc-4-page-1-0",
         "method": "GET",
-        "name": "查询入场告警（门岗移动端）",
-        "path": "/api/mobile/entry/alerts",
-        "goal": "获取入场违规与安全告警列表",
-        "trigger": "筛选、查询历史告警",
-        "resourceGroupKey": "entryCheck",
-        "resourceGroupLabel": "移动端入场核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-2-page-3-2-queryAlerts",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "ENTRYCHECK_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "ENTRYCHECK_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "ENTRYCHECK_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-2-page-4-3-queryReleaseRecords",
-        "method": "GET",
-        "name": "查询放行记录",
-        "path": "/api/mobile/entry/releaseRecords",
-        "goal": "按时间、车牌、结果查询历史放行记录",
-        "trigger": "查询、重置、查看详情",
-        "resourceGroupKey": "entryCheck",
-        "resourceGroupLabel": "移动端入场核验",
-        "requestParams": [
-          {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-2-page-4-3-queryReleaseRecords",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "ENTRYCHECK_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
-          {
-            "code": "ENTRYCHECK_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "ENTRYCHECK_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-3-page-1-0-queryOperationReport",
-        "method": "GET",
-        "name": "查询车辆运营报表",
-        "path": "/api/report/operations",
-        "goal": "按日期范围获取车辆运营统计数据",
-        "trigger": "查询、查看详情",
-        "resourceGroupKey": "operationReport",
-        "resourceGroupLabel": "运营报表",
+        "name": "查询运营报表数据",
+        "path": "/api/reports/operational",
+        "goal": "根据筛选条件获取运营报表数据，用于展示图表和摘要信息",
+        "trigger": "用户点击“查询”按钮或页面初始化时自动触发",
         "requestParams": [
           {
             "name": "startDate",
             "type": "string",
             "required": true,
-            "description": "查询起始日期，格式 yyyy-MM-dd"
+            "description": "报表统计开始日期，格式 yyyy-MM-dd"
           },
           {
             "name": "endDate",
             "type": "string",
             "required": true,
-            "description": "查询结束日期，格式 yyyy-MM-dd"
+            "description": "报表统计结束日期，格式 yyyy-MM-dd"
           },
           {
-            "name": "page",
-            "type": "number",
+            "name": "metricType",
+            "type": "string",
             "required": false,
-            "description": "当前页码，从 1 开始，默认 1"
+            "description": "指标类型，如 OPERATION_EFFICIENCY, COST, REVENUE"
           },
           {
-            "name": "pageSize",
-            "type": "number",
+            "name": "department",
+            "type": "string",
             "required": false,
-            "description": "每页条数，默认 20"
+            "description": "部门ID或名称，用于筛选"
           }
         ],
         "successResponse": {
           "code": 0,
-          "message": "success",
+          "message": "成功",
           "data": {
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
+            "summary": {
+              "totalVehicles": 0,
+              "totalTrips": 0,
+              "avgEfficiency": 0
             },
-            "summary": {}
+            "charts": {
+              "trend": {
+                "labels": [],
+                "datasets": []
+              },
+              "distribution": {}
+            },
+            "suggestions": [
+              "建议1",
+              "建议2"
+            ]
           },
-          "traceId": "string"
-        },
-        "errorResponse": {
-          "code": 1000,
-          "message": "error message",
-          "data": {
-            "error": {
-              "code": "ERROR_CODE",
-              "message": "详细错误描述",
-              "details": []
-            }
-          },
-          "traceId": "string"
-        },
-        "errorCodes": [
-          {
-            "code": "INVALID_PARAMS",
-            "meaning": "请求参数校验失败",
-            "frontendAdvice": "检查必填参数是否符合格式要求"
-          },
-          {
-            "code": "SERVER_ERROR",
-            "meaning": "服务器内部错误",
-            "frontendAdvice": "稍后重试或联系管理员"
-          },
-          {
-            "code": "DATA_NOT_FOUND",
-            "meaning": "未找到匹配数据",
-            "frontendAdvice": "展示空状态，提示用户调整查询条件"
-          }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
-      },
-      {
-        "key": "contract-scenario-1782887819107-3-page-2-1-exportReport",
-        "method": "POST",
-        "name": "导出报表数据",
-        "path": "/api/report/export",
-        "goal": "按格式和范围导出报表文件",
-        "trigger": "导出、重置",
-        "resourceGroupKey": "operationReport",
-        "resourceGroupLabel": "运营报表",
-        "requestParams": [
-          {
-            "name": "exportFormat",
-            "type": "string",
-            "required": true,
-            "description": "导出文件格式，例如 xlsx、csv"
-          },
-          {
-            "name": "exportScope",
-            "type": "string",
-            "required": true,
-            "description": "导出范围，可选值：currentPage, all, selected"
-          },
-          {
-            "name": "selectedIds",
-            "type": "array",
-            "required": false,
-            "description": "当 exportScope 为 selected 时，需要传入选中记录的 ID 数组"
-          },
-          {
-            "name": "filters",
-            "type": "object",
-            "required": false,
-            "description": "当前报表的筛选条件，用于导出全部时保持与页面一致的筛选"
-          }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "fileUrl": "string",
-            "fileName": "string"
-          },
-          "traceId": "string"
+          "traceId": "uuid"
         },
         "errorResponse": {
           "code": -1,
-          "message": "导出失败",
-          "data": {
-            "error": {
-              "code": "EXPORT_ERROR",
-              "message": "具体错误原因",
-              "details": []
-            }
-          },
-          "traceId": "string"
+          "message": "系统错误",
+          "data": null,
+          "traceId": "uuid"
         },
         "errorCodes": [
           {
-            "code": "EXPORT_FORMAT_NOT_SUPPORTED",
-            "meaning": "不支持的导出格式",
-            "frontendAdvice": "提示用户选择支持的格式"
+            "code": 400,
+            "meaning": "请求参数校验失败，如日期格式错误或开始日期晚于结束日期",
+            "frontendAdvice": "提示用户修正参数，并高亮错误字段"
           },
           {
-            "code": "EXPORT_DATA_TOO_LARGE",
-            "meaning": "导出数据量过大",
-            "frontendAdvice": "提示用户缩小导出范围或分批导出"
+            "code": 403,
+            "meaning": "无权限访问该报表",
+            "frontendAdvice": "提示用户联系管理员"
           },
           {
-            "code": "EXPORT_SERVICE_ERROR",
-            "meaning": "导出服务异常",
-            "frontendAdvice": "提示用户稍后重试"
+            "code": 500,
+            "meaning": "服务器内部错误",
+            "frontendAdvice": "显示错误提示及重试按钮"
           }
         ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        "sourcePageKey": "sc-4-page-1-0"
+      }
+    },
+    "scenarioPageGroups": [
+      {
+        "key": "sc-1",
+        "name": "调度员现场调度派车与异常处理",
+        "priority": "P0",
+        "pages": [
+          {
+            "key": "sc-1-page-1-0",
+            "priority": "P0",
+            "type": "工作台页",
+            "name": "调度员现场调度派车与异常处理工作台",
+            "vueFile": "VehicleDispatchView.vue",
+            "goal": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+            "features": [
+              "车辆状态与调度总览地图",
+              "任务派发与分配操作",
+              "任务执行监控",
+              "异常告警处理"
+            ],
+            "sections": [
+              "地图总览区",
+              "任务派发区",
+              "任务监控区",
+              "告警处理区"
+            ],
+            "originalPageKey": "page-1",
+            "scenarioKey": "sc-1",
+            "scenarioName": "调度员现场调度派车与异常处理"
+          }
+        ]
       },
       {
-        "key": "contract-scenario-1782887819107-3-page-3-2-queryOptimizationAdvice",
-        "method": "GET",
-        "name": "查询资源配置优化建议",
-        "path": "/api/report/optimization",
-        "goal": "根据时间范围、车辆类型、区域获取热点图、推荐列表和费用汇总",
-        "trigger": "查询分析、预览优化报告",
-        "resourceGroupKey": "operationReport",
-        "resourceGroupLabel": "运营报表",
-        "requestParams": [
+        "key": "sc-2",
+        "name": "司机移动端任务接收与作业确认",
+        "priority": "P0",
+        "pages": [
           {
-            "name": "id",
-            "type": "string",
-            "required": false,
-            "description": "业务对象标识，按接口场景可选。"
+            "key": "sc-2-page-1-0",
+            "priority": "P0",
+            "type": "工作台页",
+            "name": "司机移动端任务接收与作业确认工作台",
+            "vueFile": "DriverTaskView.vue",
+            "goal": "司机在移动端集中接收调度任务、导航至作业点确认到达、拍照提交任务完成，实现任务执行全程操作。",
+            "features": [
+              "任务接收与详情查看",
+              "导航与到达确认",
+              "现场拍照与任务关闭"
+            ],
+            "sections": [
+              "顶部操作栏",
+              "任务列表区",
+              "作业详情与导航区",
+              "照片上传与任务提交区"
+            ],
+            "originalPageKey": "page-1",
+            "scenarioKey": "sc-2",
+            "scenarioName": "司机移动端任务接收与作业确认"
           }
-        ],
-        "successResponse": {
-          "code": 0,
-          "message": "success",
-          "data": {
-            "key": "contract-scenario-1782887819107-3-page-3-2-queryOptimizationAdvice",
-            "records": [],
-            "pagination": {
-              "page": 1,
-              "pageSize": 20,
-              "total": 0
-            },
-            "summary": {}
-          },
-          "traceId": "trace-id"
-        },
-        "errorResponse": {
-          "code": 500,
-          "message": "接口处理失败",
-          "data": null,
-          "error": {
-            "code": "OPERATIONREPORT_FAILED",
-            "message": "业务处理失败或状态流转不合法。",
-            "details": []
-          },
-          "traceId": "trace-id"
-        },
-        "errorCodes": [
+        ]
+      },
+      {
+        "key": "sc-3",
+        "name": "门岗人员入场核验与放行管理",
+        "priority": "P1",
+        "pages": [
           {
-            "code": "OPERATIONREPORT_VALIDATION_FAILED",
-            "meaning": "请求参数或状态流转不合法。",
-            "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
-          },
-          {
-            "code": "OPERATIONREPORT_SYNC_FAILED",
-            "meaning": "服务端保存或同步失败。",
-            "frontendAdvice": "展示失败原因并提供重试入口。"
+            "key": "sc-3-page-1-0",
+            "priority": "P0",
+            "type": "工作台页",
+            "name": "门岗人员入场核验与放行管理工作台",
+            "vueFile": "GateCheckView.vue",
+            "goal": "门岗人员在一个界面内完成待入场车辆核验、人工授权确认、放行或异常登记，实现入场全流程管控",
+            "features": [
+              "待入场车辆核验列表",
+              "人工核验确认",
+              "放行与异常登记"
+            ],
+            "sections": [
+              "顶部筛选与状态栏",
+              "车辆核验列表区",
+              "核验详情与确认操作区",
+              "异常登记与告警区"
+            ],
+            "originalPageKey": "page-1",
+            "scenarioKey": "sc-3",
+            "scenarioName": "门岗人员入场核验与放行管理"
           }
-        ],
-        "detailGenerated": true,
-        "detailStatus": "done",
-        "detailError": "",
-        "detailGeneratedAt": ""
+        ]
+      },
+      {
+        "key": "sc-4",
+        "name": "管理人员查看运营报表与资源优化",
+        "priority": "P1",
+        "pages": [
+          {
+            "key": "sc-4-page-1-0",
+            "priority": "P0",
+            "type": "工作台页",
+            "name": "管理人员查看运营报表与资源优化工作台",
+            "vueFile": "ManagerReportsView.vue",
+            "goal": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
+            "features": [
+              "报表筛选与查询",
+              "指标图表展示",
+              "数据导出与决策建议"
+            ],
+            "sections": [
+              "报表筛选栏",
+              "图表与摘要展示区",
+              "决策建议区",
+              "导出操作区"
+            ],
+            "originalPageKey": "page-1",
+            "scenarioKey": "sc-4",
+            "scenarioName": "管理人员查看运营报表与资源优化"
+          }
+        ]
       }
     ],
-    "selectedContract": {
-      "key": "contract-scenario-1782831312544-3-page-2-1-verifyExit",
-      "method": "POST",
-      "name": "核验出场车辆",
-      "path": "/api/gate/exit/verify",
-      "goal": "通过扫描或输入车牌进行出场核验，返回车辆信息和任务状态",
-      "trigger": "扫描车牌/二维码、核验通过/不通过",
-      "resourceGroupKey": "gate",
-      "resourceGroupLabel": "门岗核验",
+    "pageDesign": {
+      "roles": [
+        {
+          "id": "role-1782987090417-0",
+          "name": "调度员",
+          "focus": "负责用车申请审批、调度派车、任务下发、查看车辆状态地图、进行合理派车、处理异常情况",
+          "tagText": "现场调度、资源协调、异常闭环"
+        },
+        {
+          "id": "role-1782987090417-1",
+          "name": "司机",
+          "focus": "通过移动端查看任务、导航到作业点、上传现场照片、确认到达和完成任务",
+          "tagText": "任务接收、状态回传、异常反馈"
+        },
+        {
+          "id": "role-1782987090417-2",
+          "name": "门岗人员",
+          "focus": "根据车辆预约和派车任务自动核验是否允许入场",
+          "tagText": "入场核验、车辆放行、异常登记"
+        },
+        {
+          "id": "role-1782987090417-3",
+          "name": "管理人员",
+          "focus": "查看统计分析报表，优化车辆资源配置，管理外协车辆费用",
+          "tagText": "查看业务状态、处理待办事项、跟踪执行进展"
+        }
+      ],
+      "sourceRoles": [
+        {
+          "name": "调度员",
+          "focus": "负责用车申请审批、调度派车、任务下发、查看车辆状态地图、进行合理派车、处理异常情况",
+          "tags": [
+            "现场调度",
+            "资源协调",
+            "异常闭环"
+          ]
+        },
+        {
+          "name": "司机",
+          "focus": "通过移动端查看任务、导航到作业点、上传现场照片、确认到达和完成任务",
+          "tags": [
+            "任务接收",
+            "状态回传",
+            "异常反馈"
+          ]
+        },
+        {
+          "name": "门岗人员",
+          "focus": "根据车辆预约和派车任务自动核验是否允许入场",
+          "tags": [
+            "入场核验",
+            "车辆放行",
+            "异常登记"
+          ]
+        },
+        {
+          "name": "管理人员",
+          "focus": "查看统计分析报表，优化车辆资源配置，管理外协车辆费用",
+          "tags": [
+            "查看业务状态",
+            "处理待办事项",
+            "跟踪执行进展"
+          ]
+        }
+      ],
+      "scenarios": [
+        {
+          "key": "sc-1",
+          "name": "调度员现场调度派车与异常处理",
+          "priority": "P0",
+          "description": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+          "workflow": [
+            "查看调度看板与待派任务列表",
+            "分析车辆状态并执行派车操作",
+            "监控任务执行并处理异常告警"
+          ],
+          "pageMapping": {
+            "role": "调度员",
+            "page": "VehicleDispatchView.vue",
+            "modules": [
+              "调度总览地图",
+              "任务派发面板",
+              "异常告警处理"
+            ]
+          }
+        },
+        {
+          "key": "sc-2",
+          "name": "司机移动端任务接收与作业确认",
+          "priority": "P0",
+          "description": "司机通过手机APP接收调度下发的派车任务，获取导航信息前往作业点，到达后拍照上传并确认到达，完成装卸后提交任务关闭，实现任务执行全程闭环。",
+          "workflow": [
+            "接收任务并查看作业详情",
+            "导航至作业点并确认到达",
+            "上传现场照片并提交任务完成"
+          ],
+          "pageMapping": {
+            "role": "司机",
+            "page": "DriverTaskView.vue",
+            "modules": [
+              "任务列表",
+              "导航与作业确认",
+              "照片上传与任务提交"
+            ]
+          }
+        },
+        {
+          "key": "sc-3",
+          "name": "门岗人员入场核验与放行管理",
+          "priority": "P1",
+          "description": "门岗人员通过系统查看待入场车辆列表，自动比对车辆预约和派车任务授权，人工确认后放行，并登记异常车辆或未授权入场告警。",
+          "workflow": [
+            "查看入场核验列表与自动比对",
+            "人工确认车辆授权信息",
+            "放行通过或登记异常并触发告警"
+          ],
+          "pageMapping": {
+            "role": "门岗人员",
+            "page": "GateCheckView.vue",
+            "modules": [
+              "入场核验列表",
+              "自动核验结果展示",
+              "放行与异常登记"
+            ]
+          }
+        },
+        {
+          "key": "sc-4",
+          "name": "管理人员查看运营报表与资源优化",
+          "priority": "P1",
+          "description": "管理人员在报表中心查看车辆利用率、任务完成率、平均等待时长、空驶率等统计分析数据，分析外协车辆使用情况，辅助优化车辆资源配置和费用管理。",
+          "workflow": [
+            "选择报表周期和指标维度",
+            "查看图表与关键数据摘要",
+            "导出报表并制定优化决策"
+          ],
+          "pageMapping": {
+            "role": "管理人员",
+            "page": "ManagerReportsView.vue",
+            "modules": [
+              "报表筛选区",
+              "指标图表展示",
+              "数据导出与决策建议"
+            ]
+          }
+        }
+      ],
+      "availableScenarios": [
+        {
+          "key": "sc-1",
+          "name": "调度员现场调度派车与异常处理",
+          "priority": "P0",
+          "description": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+          "workflow": [
+            "查看调度看板与待派任务列表",
+            "分析车辆状态并执行派车操作",
+            "监控任务执行并处理异常告警"
+          ],
+          "pageMapping": {
+            "role": "调度员",
+            "page": "VehicleDispatchView.vue",
+            "modules": [
+              "调度总览地图",
+              "任务派发面板",
+              "异常告警处理"
+            ]
+          }
+        },
+        {
+          "key": "sc-2",
+          "name": "司机移动端任务接收与作业确认",
+          "priority": "P0",
+          "description": "司机通过手机APP接收调度下发的派车任务，获取导航信息前往作业点，到达后拍照上传并确认到达，完成装卸后提交任务关闭，实现任务执行全程闭环。",
+          "workflow": [
+            "接收任务并查看作业详情",
+            "导航至作业点并确认到达",
+            "上传现场照片并提交任务完成"
+          ],
+          "pageMapping": {
+            "role": "司机",
+            "page": "DriverTaskView.vue",
+            "modules": [
+              "任务列表",
+              "导航与作业确认",
+              "照片上传与任务提交"
+            ]
+          }
+        },
+        {
+          "key": "sc-3",
+          "name": "门岗人员入场核验与放行管理",
+          "priority": "P1",
+          "description": "门岗人员通过系统查看待入场车辆列表，自动比对车辆预约和派车任务授权，人工确认后放行，并登记异常车辆或未授权入场告警。",
+          "workflow": [
+            "查看入场核验列表与自动比对",
+            "人工确认车辆授权信息",
+            "放行通过或登记异常并触发告警"
+          ],
+          "pageMapping": {
+            "role": "门岗人员",
+            "page": "GateCheckView.vue",
+            "modules": [
+              "入场核验列表",
+              "自动核验结果展示",
+              "放行与异常登记"
+            ]
+          }
+        },
+        {
+          "key": "sc-4",
+          "name": "管理人员查看运营报表与资源优化",
+          "priority": "P1",
+          "description": "管理人员在报表中心查看车辆利用率、任务完成率、平均等待时长、空驶率等统计分析数据，分析外协车辆使用情况，辅助优化车辆资源配置和费用管理。",
+          "workflow": [
+            "选择报表周期和指标维度",
+            "查看图表与关键数据摘要",
+            "导出报表并制定优化决策"
+          ],
+          "pageMapping": {
+            "role": "管理人员",
+            "page": "ManagerReportsView.vue",
+            "modules": [
+              "报表筛选区",
+              "指标图表展示",
+              "数据导出与决策建议"
+            ]
+          }
+        }
+      ],
+      "selectedScenarioKey": "sc-4",
+      "modulesByScenarioKey": {
+        "sc-1": [
+          {
+            "key": "mod-1",
+            "priority": "P0",
+            "name": "车辆状态与调度总览地图",
+            "description": "提供车辆实时位置、状态（空闲/繁忙/排队/异常）的地图展示，整合待派任务标记，支持调度员快速掌握全局态势。",
+            "features": [
+              "在地图上标注所有车辆当前位置和状态颜色标记",
+              "显示待派任务请求的分布及优先级标识",
+              "支持地图缩放、平移、点击车辆查看详细状态信息",
+              "提供车辆筛选（类型、区域、状态）和快速定位功能"
+            ],
+            "pageSuggestion": "VehicleDispatchView.vue",
+            "apiSuggestion": "GET /api/dispatch/overview; GET /api/vehicle/status-map"
+          },
+          {
+            "key": "mod-2",
+            "priority": "P0",
+            "name": "任务派发与分配操作",
+            "description": "展示待派任务列表，支持按区域、车辆类型、优先级、距离等条件筛选，执行派车操作并生成任务下发。",
+            "features": [
+              "展示待派任务列表（含申请时间、作业区域、货物类型等）",
+              "支持根据车辆状态和距离推荐可用车辆",
+              "执行派车操作（选择车辆、分配司机、确认下发）",
+              "派车后自动更新车辆状态并推送任务给司机"
+            ],
+            "pageSuggestion": "TaskDispatchPanel.vue",
+            "apiSuggestion": "GET /api/dispatch/pending-tasks; POST /api/dispatch/assign"
+          },
+          {
+            "key": "mod-3",
+            "priority": "P1",
+            "name": "任务执行监控",
+            "description": "监控已派发任务的执行全过程，包括司机接单、到达、装卸、完成状态，以及任务异常（超时、偏离路线）的预警。",
+            "features": [
+              "展示在途任务列表及实时状态（待接单/已接单/途中/到达/完成）",
+              "查看每个任务的执行轨迹和时间节点",
+              "识别超时未接单或未到达任务并触发提醒",
+              "支持调度员手动干预（重新派车、取消任务等）"
+            ],
+            "pageSuggestion": "VehicleDispatchView.vue",
+            "apiSuggestion": "GET /api/dispatch/active-tasks; PUT /api/dispatch/task/{id}/intervene"
+          },
+          {
+            "key": "mod-4",
+            "priority": "P0",
+            "name": "异常告警处理",
+            "description": "集中展示车辆运行中的异常告警（超速、禁入区域、证照过期、异常停留等），支持快速定位告警车辆并执行处理操作。",
+            "features": [
+              "实时展示告警列表（类型、时间、车辆、位置）",
+              "点击告警可在地图上定位该车辆",
+              "支持处理告警（确认、忽略、通知司机、上报）",
+              "记录告警处理日志，统计告警类型分布"
+            ],
+            "pageSuggestion": "VehicleDispatchView.vue",
+            "apiSuggestion": "GET /api/alert/list; POST /api/alert/{id}/handle"
+          }
+        ],
+        "sc-2": [
+          {
+            "key": "mod-1",
+            "priority": "P0",
+            "name": "任务接收与详情查看",
+            "description": "司机接收调度下发的派车任务，查看任务详情包括作业点、时间要求、货物信息等。",
+            "features": [
+              "展示待接收与已接收任务列表",
+              "支持手动刷新与推送通知接收新任务",
+              "点击任务查看完整作业详情（地址、联系人、货物、备注）",
+              "接收任务并更新任务状态为已接受"
+            ],
+            "pageSuggestion": "DriverTaskView.vue",
+            "apiSuggestion": "GET /api/driver/tasks, POST /api/driver/tasks/{id}/accept"
+          },
+          {
+            "key": "mod-2",
+            "priority": "P0",
+            "name": "导航与到达确认",
+            "description": "司机根据任务作业点信息发起导航，到达现场后通过位置或手动确认到达。",
+            "features": [
+              "调用手机地图应用导航至作业点",
+              "显示作业点地址与联系电话便于沟通",
+              "到达后点击确认到达按钮，上传到达时间与位置信息",
+              "处理异常情况如无法到达、地点变更等上报功能"
+            ],
+            "pageSuggestion": "DriverTaskView.vue",
+            "apiSuggestion": "POST /api/driver/tasks/{id}/arrive, GET /api/driver/tasks/{id}/route"
+          },
+          {
+            "key": "mod-3",
+            "priority": "P0",
+            "name": "现场拍照与任务关闭",
+            "description": "司机在作业完成后拍摄现场照片（装卸前后或凭证），提交任务完成并关闭流程。",
+            "features": [
+              "拍摄或从相册选择装卸过程照片",
+              "上传多张照片并附带备注说明",
+              "确认任务完成并提交关闭，触发后续审批或结算流程",
+              "查看任务完成状态与历史记录"
+            ],
+            "pageSuggestion": "DriverTaskView.vue",
+            "apiSuggestion": "POST /api/driver/tasks/{id}/photos, POST /api/driver/tasks/{id}/complete"
+          }
+        ],
+        "sc-3": [
+          {
+            "key": "mod-1",
+            "priority": "P0",
+            "name": "待入场车辆核验列表",
+            "description": "展示待入场车辆基本信息及预约、派车任务的自动比对结果，支持门岗人员快速检索和筛选。",
+            "features": [
+              "加载待入场车辆列表，显示车牌、车型、所属单位、预约号、派车任务",
+              "自动比对车辆预约和派车任务授权状态，标注通过/未授权/待确认标签",
+              "支持按车牌、入场时段、车辆类型等条件筛选和排序",
+              "提供刷新列表和分页浏览功能"
+            ],
+            "pageSuggestion": "GateCheckView.vue",
+            "apiSuggestion": "GET /api/gate/pending-vehicles"
+          },
+          {
+            "key": "mod-2",
+            "priority": "P0",
+            "name": "人工核验确认",
+            "description": "门岗人员逐条或批量查看车辆授权详情，人工确认准入资格，完成入场前的最后审核。",
+            "features": [
+              "查看车辆预约详情、派车任务单、司机及随行人员信息",
+              "人工标记车辆授权状态（允许/拒绝/待补充资料）",
+              "支持单辆确认与批量确认操作",
+              "确认后自动更新核验结果并通知后续流程"
+            ],
+            "pageSuggestion": "GateCheckView.vue",
+            "apiSuggestion": "POST /api/gate/verify"
+          },
+          {
+            "key": "mod-3",
+            "priority": "P0",
+            "name": "放行与异常登记",
+            "description": "执行车辆放行操作或登记异常车辆信息，触发未授权入场告警，记录处理结果。",
+            "features": [
+              "执行放行操作，记录放行时间和门岗人员",
+              "对于未授权车辆，登记异常原因并触发实时告警通知",
+              "支持手动补录异常车辆入场记录（如紧急放行）",
+              "查看异常登记历史，支持编辑备注和关联告警"
+            ],
+            "pageSuggestion": "GateCheckView.vue",
+            "apiSuggestion": "POST /api/gate/release, POST /api/gate/exception"
+          }
+        ],
+        "sc-4": [
+          {
+            "key": "mod-1",
+            "priority": "P0",
+            "name": "报表筛选与查询",
+            "description": "提供报表周期和指标维度的选择与筛选功能，支持按车辆类型、外协单位、时间范围等维度灵活查询。",
+            "features": [
+              "支持选择报表周期（日/周/月/自定义范围）",
+              "支持选择指标维度（车辆利用率、任务完成率、平均等待时长、空驶率等）",
+              "支持按车辆类型、外协/自有等分类进一步筛选",
+              "支持重置筛选条件并重新查询"
+            ],
+            "pageSuggestion": "ManagerReportsView.vue",
+            "apiSuggestion": "GET /api/reports/filter-options, POST /api/reports/query"
+          },
+          {
+            "key": "mod-2",
+            "priority": "P0",
+            "name": "指标图表展示",
+            "description": "以图表和关键数据摘要的形式直观展示车辆利用率、任务完成率、平均等待时长、空驶率等统计分析数据。",
+            "features": [
+              "展示车辆利用率趋势图（折线图/柱状图）",
+              "展示任务完成率及外协车辆使用次数统计图",
+              "展示平均等待时长、空驶率等关键数据摘要卡片",
+              "支持图表交互（悬停查看详情、点击下钻）"
+            ],
+            "pageSuggestion": "ManagerReportsView.vue",
+            "apiSuggestion": "GET /api/reports/chart-data"
+          },
+          {
+            "key": "mod-3",
+            "priority": "P1",
+            "name": "数据导出与决策建议",
+            "description": "支持将当前报表数据导出为文件，并根据分析结果自动生成资源优化建议，辅助管理人员制定决策。",
+            "features": [
+              "支持将图表和表格数据导出为Excel/PDF格式",
+              "展示资源优化建议（如外协车辆费用优化、减少空驶率的调度策略）",
+              "支持一键下载导出文件",
+              "记录导出历史以供追溯"
+            ],
+            "pageSuggestion": "ManagerReportsView.vue",
+            "apiSuggestion": "GET /api/reports/export, GET /api/reports/optimization-advice"
+          }
+        ]
+      },
+      "pageDesignsByScenarioKey": {
+        "sc-1": {
+          "pages": [
+            {
+              "key": "page-1",
+              "priority": "P0",
+              "type": "工作台页",
+              "name": "调度员现场调度派车与异常处理工作台",
+              "vueFile": "VehicleDispatchView.vue",
+              "goal": "调度员在车辆调度看板上实时查看任务请求、车辆位置和状态地图，根据作业区域、车辆类型、任务优先级和距离等因素合理派车，并处理超速告警、禁入区域等异常情况。",
+              "features": [
+                "车辆状态与调度总览地图",
+                "任务派发与分配操作",
+                "任务执行监控",
+                "异常告警处理"
+              ],
+              "sections": [
+                "地图总览区",
+                "任务派发区",
+                "任务监控区",
+                "告警处理区"
+              ]
+            }
+          ],
+          "navigation": [
+            {
+              "label": "调度员现场调度派车与异常处理",
+              "target": "VehicleDispatchView.vue",
+              "default": true
+            }
+          ],
+          "fileStructure": {
+            "views": [
+              "VehicleDispatchView.vue"
+            ],
+            "components": [
+              "DispatchMap.vue",
+              "TaskList.vue",
+              "AlertList.vue",
+              "StatusTag.vue"
+            ],
+            "data": [
+              "scenarioMockData.js"
+            ]
+          }
+        },
+        "sc-2": {
+          "pages": [
+            {
+              "key": "page-1",
+              "priority": "P0",
+              "type": "工作台页",
+              "name": "司机移动端任务接收与作业确认工作台",
+              "vueFile": "DriverTaskView.vue",
+              "goal": "司机在移动端集中接收调度任务、导航至作业点确认到达、拍照提交任务完成，实现任务执行全程操作。",
+              "features": [
+                "任务接收与详情查看",
+                "导航与到达确认",
+                "现场拍照与任务关闭"
+              ],
+              "sections": [
+                "顶部操作栏",
+                "任务列表区",
+                "作业详情与导航区",
+                "照片上传与任务提交区"
+              ]
+            }
+          ],
+          "navigation": [
+            {
+              "label": "司机移动端任务接收与作业确认",
+              "target": "DriverTaskView.vue",
+              "default": true
+            }
+          ],
+          "fileStructure": {
+            "views": [
+              "DriverTaskView.vue"
+            ],
+            "components": [
+              "StatusTag.vue",
+              "TaskCard.vue",
+              "PhotoUploader.vue",
+              "NavigationAction.vue"
+            ],
+            "data": [
+              "scenarioMockData.js"
+            ]
+          }
+        },
+        "sc-3": {
+          "pages": [
+            {
+              "key": "page-1",
+              "priority": "P0",
+              "type": "工作台页",
+              "name": "门岗人员入场核验与放行管理工作台",
+              "vueFile": "GateCheckView.vue",
+              "goal": "门岗人员在一个界面内完成待入场车辆核验、人工授权确认、放行或异常登记，实现入场全流程管控",
+              "features": [
+                "待入场车辆核验列表",
+                "人工核验确认",
+                "放行与异常登记"
+              ],
+              "sections": [
+                "顶部筛选与状态栏",
+                "车辆核验列表区",
+                "核验详情与确认操作区",
+                "异常登记与告警区"
+              ]
+            }
+          ],
+          "navigation": [
+            {
+              "label": "门岗核验放行",
+              "target": "GateCheckView.vue",
+              "default": true
+            }
+          ],
+          "fileStructure": {
+            "views": [
+              "GateCheckView.vue"
+            ],
+            "components": [
+              "StatusTag.vue",
+              "DataTable.vue",
+              "VerifyModal.vue",
+              "ExceptionForm.vue",
+              "BatchActions.vue"
+            ],
+            "data": [
+              "gateCheckMockData.js"
+            ]
+          }
+        },
+        "sc-4": {
+          "pages": [
+            {
+              "key": "page-1",
+              "priority": "P0",
+              "type": "工作台页",
+              "name": "管理人员查看运营报表与资源优化工作台",
+              "vueFile": "ManagerReportsView.vue",
+              "goal": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
+              "features": [
+                "报表筛选与查询",
+                "指标图表展示",
+                "数据导出与决策建议"
+              ],
+              "sections": [
+                "报表筛选栏",
+                "图表与摘要展示区",
+                "决策建议区",
+                "导出操作区"
+              ]
+            }
+          ],
+          "navigation": [
+            {
+              "label": "运营报表与资源优化",
+              "target": "ManagerReportsView.vue",
+              "default": true
+            }
+          ],
+          "fileStructure": {
+            "views": [
+              "ManagerReportsView.vue"
+            ],
+            "components": [
+              "ReportFilterBar.vue",
+              "ChartCard.vue",
+              "SummaryCard.vue",
+              "AdvicePanel.vue",
+              "ExportButton.vue"
+            ],
+            "data": [
+              "scenarioMockData.js"
+            ]
+          }
+        }
+      },
+      "activeKey": "sc-4",
+      "savedAt": "2026-07-02T10:26:35.491Z"
+    },
+    "selectedPage": {
+      "key": "sc-4-page-1-0",
+      "name": "管理人员查看运营报表与资源优化工作台",
+      "vueFile": "ManagerReportsView.vue",
+      "goal": "管理人员综合查看运营报表、分析关键指标并导出决策建议",
+      "features": [
+        "报表筛选与查询",
+        "指标图表展示",
+        "数据导出与决策建议"
+      ],
+      "sections": [
+        "报表筛选栏",
+        "图表与摘要展示区",
+        "决策建议区",
+        "导出操作区"
+      ],
+      "fields": [
+        {
+          "name": "startDate",
+          "label": "开始日期",
+          "type": "date",
+          "required": true,
+          "description": "选择报表统计的开始日期"
+        },
+        {
+          "name": "endDate",
+          "label": "结束日期",
+          "type": "date",
+          "required": true,
+          "description": "选择报表统计的结束日期"
+        },
+        {
+          "name": "metricType",
+          "label": "指标类型",
+          "type": "select",
+          "required": false,
+          "description": "选择要查看的指标，如运营效率、成本、收入等"
+        },
+        {
+          "name": "department",
+          "label": "部门",
+          "type": "select",
+          "required": false,
+          "description": "按部门筛选报表数据"
+        }
+      ],
+      "actions": [
+        {
+          "label": "查询",
+          "trigger": "click",
+          "feedback": "触发数据加载，图表区域显示loading状态并重新渲染"
+        },
+        {
+          "label": "导出决策建议",
+          "trigger": "click",
+          "feedback": "下载生成的决策建议PDF或Excel文件"
+        },
+        {
+          "label": "重置",
+          "trigger": "click",
+          "feedback": "清空所有筛选条件并恢复默认数据展示"
+        }
+      ],
+      "validations": [
+        "开始日期不能晚于结束日期",
+        "至少选择一个筛选条件"
+      ],
+      "states": {
+        "empty": {
+          "description": "无报表数据时展示空状态提示，如“暂无报表数据，请调整筛选条件”"
+        },
+        "loading": {
+          "description": "数据加载中，图表区域显示旋转加载动画"
+        },
+        "success": {
+          "description": "数据加载成功，正常展示图表和摘要信息"
+        },
+        "error": {
+          "description": "数据加载失败，显示错误提示及重试按钮"
+        }
+      },
+      "generatedAt": "2026-07-02T10:39:13.239Z"
+    },
+    "selectedApiContract": {
+      "key": "api-sc-4-page-1-0",
+      "method": "GET",
+      "name": "查询运营报表数据",
+      "path": "/api/reports/operational",
+      "goal": "根据筛选条件获取运营报表数据，用于展示图表和摘要信息",
+      "trigger": "用户点击“查询”按钮或页面初始化时自动触发",
       "requestParams": [
         {
-          "name": "id",
+          "name": "startDate",
+          "type": "string",
+          "required": true,
+          "description": "报表统计开始日期，格式 yyyy-MM-dd"
+        },
+        {
+          "name": "endDate",
+          "type": "string",
+          "required": true,
+          "description": "报表统计结束日期，格式 yyyy-MM-dd"
+        },
+        {
+          "name": "metricType",
           "type": "string",
           "required": false,
-          "description": "业务对象标识，按接口场景可选。"
+          "description": "指标类型，如 OPERATION_EFFICIENCY, COST, REVENUE"
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "required": false,
+          "description": "部门ID或名称，用于筛选"
         }
       ],
       "successResponse": {
         "code": 0,
-        "message": "success",
+        "message": "成功",
         "data": {
-          "key": "contract-scenario-1782831312544-3-page-2-1-verifyExit",
-          "records": [],
-          "pagination": {
-            "page": 1,
-            "pageSize": 20,
-            "total": 0
+          "summary": {
+            "totalVehicles": 0,
+            "totalTrips": 0,
+            "avgEfficiency": 0
           },
-          "summary": {}
+          "charts": {
+            "trend": {
+              "labels": [],
+              "datasets": []
+            },
+            "distribution": {}
+          },
+          "suggestions": [
+            "建议1",
+            "建议2"
+          ]
         },
-        "traceId": "trace-id"
+        "traceId": "uuid"
       },
       "errorResponse": {
-        "code": 500,
-        "message": "接口处理失败",
+        "code": -1,
+        "message": "系统错误",
         "data": null,
-        "error": {
-          "code": "GATE_FAILED",
-          "message": "业务处理失败或状态流转不合法。",
-          "details": []
-        },
-        "traceId": "trace-id"
+        "traceId": "uuid"
       },
       "errorCodes": [
         {
-          "code": "GATE_VALIDATION_FAILED",
-          "meaning": "请求参数或状态流转不合法。",
-          "frontendAdvice": "在页面字段旁提示错误，并保留用户输入。"
+          "code": 400,
+          "meaning": "请求参数校验失败，如日期格式错误或开始日期晚于结束日期",
+          "frontendAdvice": "提示用户修正参数，并高亮错误字段"
         },
         {
-          "code": "GATE_SYNC_FAILED",
-          "meaning": "服务端保存或同步失败。",
-          "frontendAdvice": "展示失败原因并提供重试入口。"
+          "code": 403,
+          "meaning": "无权限访问该报表",
+          "frontendAdvice": "提示用户联系管理员"
+        },
+        {
+          "code": 500,
+          "meaning": "服务器内部错误",
+          "frontendAdvice": "显示错误提示及重试按钮"
         }
       ],
-      "detailGenerated": true,
-      "detailStatus": "done",
-      "detailError": "",
-      "detailGeneratedAt": "2026-07-01T14:58:12.502Z"
+      "sourcePageKey": "sc-4-page-1-0"
     },
-    "responseStandard": {
-      "sections": [
-        {
-          "key": "legacy",
-          "title": "统一返回 Envelope",
-          "description": "历史保存的响应格式已兼容显示，后续重新生成会采用新的统一结构。",
-          "items": [
-            {
-              "name": "code",
-              "description": 0
-            },
-            {
-              "name": "message",
-              "description": "success"
-            },
-            {
-              "name": "data",
-              "description": {}
-            }
-          ]
-        },
-        {
-          "key": "pagination",
-          "title": "列表分页 Data",
-          "description": "查询列表类接口统一把分页、统计和数据记录放在 data 内，避免每个接口重复定义。",
-          "items": [
-            {
-              "name": "data.records",
-              "description": "array。当前页业务记录。"
-            },
-            {
-              "name": "data.pagination.page",
-              "description": "number。当前页码，从 1 开始。"
-            },
-            {
-              "name": "data.pagination.pageSize",
-              "description": "number。每页条数。"
-            },
-            {
-              "name": "data.pagination.total",
-              "description": "number。符合筛选条件的总记录数。"
-            },
-            {
-              "name": "data.summary",
-              "description": "object。当前查询范围内的统计摘要，可为空对象。"
-            }
-          ]
-        },
-        {
-          "key": "error",
-          "title": "失败与错误信息",
-          "description": "失败响应仍保留统一外壳，错误原因放入 error，方便前端统一弹窗、字段提示和重试。",
-          "items": [
-            {
-              "name": "error.code",
-              "description": "string。稳定错误码，例如 VEHICLE_VALIDATION_FAILED。"
-            },
-            {
-              "name": "error.message",
-              "description": "string。失败原因的可读说明。"
-            },
-            {
-              "name": "error.details",
-              "description": "array。字段级错误、状态流转错误或校验详情。"
-            }
-          ]
-        },
-        {
-          "key": "frontend",
-          "title": "前端处理规则",
-          "description": "每个接口契约只描述自身参数和业务 data，下面这些规则作为全局约定复用。",
-          "items": [
-            {
-              "name": "成功判断",
-              "description": "code === 0 视为成功；否则进入统一错误处理。"
-            },
-            {
-              "name": "表单错误",
-              "description": "error.details 中带 field 时，优先落到对应字段旁。"
-            },
-            {
-              "name": "空状态",
-              "description": "records 为空数组且 code 为 0 时展示空状态，不作为异常。"
-            },
-            {
-              "name": "重试入口",
-              "description": "网络错误、5xx 或 *_SYNC_FAILED 错误码需要保留重试操作。"
-            }
-          ]
-        }
-      ]
-    },
-    "generationSource": {
-      "interactionPageCount": 35
-    },
-    "confirmedAt": "2026-07-02T03:26:35.146Z"
+    "savedAt": "2026-07-02T10:39:22.063Z"
   }
 }
 ```

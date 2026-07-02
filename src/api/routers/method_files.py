@@ -18,12 +18,11 @@ JSON_END = "<!-- FDE_STEP_RESULT_JSON_END -->"
 
 STEP_LABELS = {
     "requirement": "01 需求拆解",
-    "scenario": "02 场景识别",
-    "feature": "03 功能设计",
-    "page": "04 页面设计",
     "interaction": "05 交互设计",
     "api": "06 API 契约",
-    "prototype": "07 前端原型方案",
+    "scenariopagedesign": "02 场景→页面",
+    "interactionapi": "03 交互与API",
+    "prototype": "04 前端原型方案",
 }
 
 router = APIRouter(prefix="/method-files", tags=["method-files"])

@@ -512,13 +512,38 @@ const isGenerating = ref({
   stepPrompts: false,
 })
 
-/* ===== Data Sources ===== */
+/* ===== Data Sources (Phase 2 merged keys) ===== */
 const requirementResult = computed(() => props.projectContext.stepResults?.requirement || null)
-const scenarioResult = computed(() => props.projectContext.stepResults?.scenario || null)
-const featureResult = computed(() => props.projectContext.stepResults?.feature || null)
-const pageDesignResult = computed(() => props.projectContext.pageDesignResult || props.projectContext.stepResults?.page || null)
-const interactionResult = computed(() => props.projectContext.interactionDesignResult || props.projectContext.stepResults?.interaction || null)
-const apiContractResult = computed(() => props.projectContext.apiContractResult || props.projectContext.stepResults?.api || null)
+const scenarioPageResult = computed(() => props.projectContext.scenarioPageDesignResult || props.projectContext.stepResults?.scenarioPageDesign || null)
+const interactionApiResult = computed(() => props.projectContext.interactionApiResult || props.projectContext.stepResults?.interactionApi || null)
+
+/* ===== 从 interactionApiResult 提取所有 API 契约（兼容 Phase 2 generatedApiByPageKey） ===== */
+const allApiContracts = computed(() => {
+  var result = interactionApiResult.value
+  if (!result) return []
+
+  // Phase 2 格式：generatedApiByPageKey（按页面 key 索引的 API 契约 map）
+  if (result.generatedApiByPageKey) {
+    var contracts = []
+    var keys = Object.keys(result.generatedApiByPageKey)
+    for (var i = 0; i < keys.length; i++) {
+      var val = result.generatedApiByPageKey[keys[i]]
+      if (Array.isArray(val)) {
+        contracts.push.apply(contracts, val)
+      } else if (val && val.method) {
+        contracts.push(val)
+      }
+    }
+    return contracts
+  }
+
+  // 旧格式：扁平 contracts 数组
+  if (Array.isArray(result.contracts) && result.contracts.length) {
+    return result.contracts
+  }
+
+  return []
+})
 
 /* ===== LLM Helper ===== */
 const LLM_FETCH_TIMEOUT_MS = 120_000
@@ -589,7 +614,7 @@ function parseMaybeJson(raw) {
 /* ===== 1. 业务背景（纯读取前序步骤，无需 LLM） ===== */
 const projectBackground = computed(() => {
   const requirementAnalysis = requirementResult.value?.analysis || requirementResult.value || {}
-  const scenario = scenarioResult.value?.scenario || scenarioResult.value || {}
+  const scenario = scenarioPageResult.value?.scenarios?.[0] || {}
   const scenarioName = scenario.name || ''
   const scenarioDesc = scenario.description || scenario.goal || ''
 
@@ -616,7 +641,7 @@ const PAGE_SPEC_MAX_RETRIES = 1
 const pageDetailSpecs = computed(() => generatedPageSpecs.value || [])
 
 async function generatePageSpecs() {
-  if (!pageDesignResult.value) {
+  if (!scenarioPageResult.value) {
     generationStatusMessage.value = '请先完成步骤 04 页面设计。'
     return
   }
@@ -742,15 +767,17 @@ async function doGeneratePageSpecs(allPages, pending, accumulated) {
 }
 
 function buildPageSpecPagesInput() {
-  const pageDesign = pageDesignResult.value?.pageDesign || pageDesignResult.value || {}
-  const pages = (pageDesign.pages || []).length ? pageDesign.pages : recommendedViewFiles.value
+  var unified = extractAllPageDesigns(scenarioPageResult.value)
+  var pages = unified.pages.length ? unified.pages : recommendedViewFiles.value
 
-  return pages.map((p, i) => ({
-    file: p.vueFile || p.file,
-    name: p.name || `页面 ${i + 1}`,
-    goal: p.goal || p.responsibility || '',
-    priority: p.priority || assignPriority(i, pages.length),
-  }))
+  return pages.map(function (p, i) {
+    return {
+      file: p.vueFile || p.file,
+      name: p.name || `页面 ${i + 1}`,
+      goal: p.goal || p.responsibility || '',
+      priority: p.priority || assignPriority(i, pages.length),
+    }
+  })
 }
 
 /* ===== 3. 页面-API映射 (步骤5+6) - 增量生成 ===== */
@@ -758,18 +785,19 @@ const API_MAPPING_BATCH_SIZE = 5
 const pageApiMapping = computed(() => generatedPageApiMapping.value || [])
 
 async function generatePageApiMapping() {
-  if (!apiContractResult.value?.contracts?.length) {
-    generationStatusMessage.value = '请先完成步骤 06 API 契约。'
+  var contracts = allApiContracts.value
+  if (!contracts.length) {
+    generationStatusMessage.value = '请先完成步骤 03 交互与API（需生成 API 契约）。'
     return
   }
 
   const allPages = recommendedViewFiles.value
   if (!allPages.length) {
-    generationStatusMessage.value = '页面清单为空，请先在步骤 04 中确认页面设计。'
+    generationStatusMessage.value = '页面清单为空，请先在步骤 02 中生成页面设计。'
     return
   }
 
-  const apiContracts = apiContractResult.value.contracts || []
+  const apiContracts = contracts
   const existing = generatedPageApiMapping.value || []
   let accumulated = [...existing]
 
@@ -871,7 +899,7 @@ async function doGenerateApiMapping(allPages, pending, apiContracts, accumulated
 const navigationRoutes = computed(() => generatedNavigationRoutes.value || [])
 
 async function generateNavigationRoutes() {
-  if (!pageDesignResult.value) {
+  if (!scenarioPageResult.value) {
     generationStatusMessage.value = '请先完成步骤 04 页面设计。'
     return
   }
@@ -982,8 +1010,9 @@ const recommendedMockDataFiles = computed(() => {
 })
 
 async function generateMockDataSchemas() {
-  if (!apiContractResult.value?.contracts?.length) {
-    generationStatusMessage.value = '请先完成步骤 06 API 契约。'
+  var contracts = allApiContracts.value
+  if (!contracts.length) {
+    generationStatusMessage.value = '请先完成步骤 03 交互与API（需生成 API 契约）。'
     return
   }
 
@@ -991,7 +1020,7 @@ async function generateMockDataSchemas() {
   generationStatusMessage.value = '正在生成 Mock 数据 Schema...'
 
   try {
-    const apiContracts = apiContractResult.value.contracts || []
+    const apiContracts = contracts
     const input = {
       apiContracts: apiContracts.slice(0, 15).map((c) => ({
         method: c.method,
@@ -1155,7 +1184,37 @@ function getPriorityLabel(key) {
   return { P0: '核心页面 - 优先生成', P1: '重要页面 - 核心完成后再生成', P2: '辅助页面 - 最后生成' }[key] || key
 }
 
-const savedPageDesign = computed(() => (pageDesignResult.value?.pageDesign) || null)
+/* ===== 从 scenarioPageResult 提取统一的页面设计（兼容 Phase 2 pageDesignsByScenarioKey） ===== */
+const extractAllPageDesigns = (result) => {
+  if (!result) return { pages: [], fileStructure: {}, navigation: [] }
+
+  // Phase 2 格式：pageDesignsByScenarioKey（按场景 key 索引的页面设计 map）
+  if (result.pageDesignsByScenarioKey) {
+    const allPages = []
+    let fileStructure = {}
+    let navigation = []
+    const keys = Object.keys(result.pageDesignsByScenarioKey)
+    for (var i = 0; i < keys.length; i++) {
+      var design = result.pageDesignsByScenarioKey[keys[i]]
+      if (design && design.pages) allPages.push.apply(allPages, design.pages)
+      if (design && design.fileStructure && !fileStructure.views) fileStructure = design.fileStructure
+      if (design && design.navigation) navigation = navigation.concat(design.navigation)
+    }
+    return { pages: allPages, fileStructure: fileStructure, navigation: navigation }
+  }
+
+  // 旧格式：扁平 pageDesign
+  if (result.pageDesign && result.pageDesign.pages && result.pageDesign.pages.length) {
+    return result.pageDesign
+  }
+
+  return { pages: [], fileStructure: {}, navigation: [] }
+}
+
+const savedPageDesign = computed(() => {
+  var extracted = extractAllPageDesigns(scenarioPageResult.value)
+  return extracted.pages.length ? extracted : null
+})
 const savedFileStructure = computed(() => savedPageDesign.value?.fileStructure || {})
 
 const savedPageList = computed(() => {
@@ -1288,8 +1347,8 @@ function confirmAndNext() {
       projectBackground: projectBackground.value,
       projectStructure,
       styleGuide,
-      pageDesign: pageDesignResult.value,
-      apiContract: apiContractResult.value || props.projectContext.selectedApiContract || null,
+      pageDesign: extractAllPageDesigns(scenarioPageResult.value),
+      apiContract: interactionApiResult.value || props.projectContext.selectedApiContract || null,
     },
   })
 }
