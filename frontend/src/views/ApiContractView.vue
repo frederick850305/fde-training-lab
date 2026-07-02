@@ -7,7 +7,7 @@
         title-id="api-contract-title"
         description="根据已确认的页面交互结果生成接口清单，再按接口逐项生成契约详情。"
       />
-      <button class="primary-button" type="button" :disabled="isGeneratingList || !canGenerate" @click="generateApiList">
+      <button class="gen-btn" type="button" :disabled="isGeneratingList || !canGenerate" @click="generateApiList">
         {{ isGeneratingList ? '生成中...' : '生成接口' }}
       </button>
     </div>
@@ -30,7 +30,7 @@
           <div class="api-list-actions">
             <small>{{ generatedDetailCount }} / {{ contracts.length }} 已生成详情</small>
             <button
-              class="primary-button small-action"
+              class="gen-btn"
               type="button"
               :disabled="isGeneratingDetail || !pendingDetailCount"
               @click="generateAllContractDetails"

@@ -91,7 +91,7 @@
             <strong>由用户角色推导出的关键使用场景</strong>
           </div>
           <div class="panel-actions">
-            <button class="secondary-button small" type="button" :disabled="isLlmGenerating" @click="rebuildScenariosFromCurrentRoles">
+            <button class="gen-btn" type="button" :disabled="isLlmGenerating" @click="rebuildScenariosFromCurrentRoles">
               {{ isLlmGenerating ? '生成中...' : '根据角色生成场景' }}
             </button>
             <button class="secondary-button small" type="button" @click="addScenario">新增场景</button>

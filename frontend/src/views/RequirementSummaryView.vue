@@ -206,7 +206,7 @@ function resetForm() {
         </label>
 
         <div class="button-row">
-          <button class="primary-button" type="submit" :disabled="resultStatus === 'loading'">
+          <button class="gen-btn" type="submit" :disabled="resultStatus === 'loading'">
             {{ resultStatus === 'loading' ? '生成中...' : '生成报告' }}
           </button>
 

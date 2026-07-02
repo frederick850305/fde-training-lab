@@ -35,7 +35,7 @@
                 <strong>{{ item.name }}</strong>
               </div>
               <button
-                class="generate-button"
+                class="gen-btn"
                 type="button"
                 :disabled="generatingScenarioKey === item.key"
                 @click.stop="generateModulesForScenario(item)"

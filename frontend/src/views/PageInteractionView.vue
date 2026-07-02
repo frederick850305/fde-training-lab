@@ -60,7 +60,7 @@
             <h3>{{ selectedPage.name }}</h3>
             <p v-if="selectedPageDesign?.goal">{{ selectedPageDesign.goal }}</p>
           </div>
-          <button class="primary-button interaction-generate-button" type="button" :disabled="isGeneratingInteraction || !selectedPageDesign" @click="generateInteractionForSelectedPage">
+          <button class="gen-btn" type="button" :disabled="isGeneratingInteraction || !selectedPageDesign" @click="generateInteractionForSelectedPage">
             {{ isGeneratingInteraction ? '生成中...' : hasGeneratedInteraction ? '重新生成' : '生成' }}
           </button>
         </div>
