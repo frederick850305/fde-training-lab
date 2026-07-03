@@ -1,251 +1,201 @@
 <template>
   <div class="management-reports-view">
-    <!-- 顶部筛选区 -->
-    <DataFilterBar
-      :filters="filterConfig"
-      v-model="filterValues"
-      :showSearchButton="true"
-      @search="handleSearch"
-    />
+    <!-- 筛选区 -->
+    <div class="filter-bar">
+      <div class="filter-item">
+        <label>时间范围</label>
+        <select v-model="filters.timeRange">
+          <option value="today">今日</option>
+          <option value="week">本周</option>
+          <option value="month">本月</option>
+          <option value="custom">自定义</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>车辆类型</label>
+        <select v-model="filters.vehicleType">
+          <option value="">全部</option>
+          <option value="truck">货车</option>
+          <option value="van">厢式车</option>
+          <option value="trailer">挂车</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>作业区域</label>
+        <select v-model="filters.area">
+          <option value="">全部</option>
+          <option value="A">A区</option>
+          <option value="B">B区</option>
+          <option value="C">C区</option>
+        </select>
+      </div>
+      <button class="btn-query" @click="loadData">查询</button>
+    </div>
 
     <!-- 加载态 -->
-    <div v-if="state === 'loading'" class="loading-container">
-      <div class="skeleton-card-row">
-        <div v-for="i in 5" :key="i" class="skeleton-card"></div>
-      </div>
-      <div class="skeleton-chart"></div>
+    <div v-if="state === 'loading'" class="loading-placeholder">
+      <div class="skeleton skeleton-card" v-for="n in 5" :key="n"></div>
+      <div class="skeleton skeleton-chart"></div>
     </div>
 
     <!-- 空态 -->
-    <div v-else-if="state === 'empty'" class="empty-container">
-      <div class="empty-card-row">
-        <div v-for="i in 5" :key="i" class="card-placeholder">
-          <p>暂无数据</p>
-        </div>
-      </div>
-      <div class="empty-chart">
-        <img src="@/assets/empty-chart.svg" alt="暂无图表" />
-        <p>暂无统计数据</p>
-      </div>
+    <div v-else-if="state === 'empty'" class="empty-state">
+      <p>暂无统计数据</p>
+      <p class="hint">当前筛选条件下没有数据，请调整筛选条件</p>
     </div>
 
     <!-- 错误态 -->
-    <div v-else-if="state === 'error'" class="error-container">
-      <p class="error-message">加载失败，请重试</p>
-      <button class="retry-button" @click="retryLoad">重试</button>
+    <div v-else-if="state === 'error'" class="error-state">
+      <p>加载失败，请重试</p>
+      <button @click="loadData">重试</button>
     </div>
 
     <!-- 成功态 -->
-    <div v-else class="content-container">
-      <!-- 指标卡片区 -->
-      <div class="card-row">
+    <div v-else class="dashboard">
+      <!-- 指标卡片 -->
+      <div class="cards-row">
         <div
-          v-for="(card, index) in overviewData.cards"
-          :key="index"
-          class="metric-card"
-          @click="drillDownCard(card)"
+          class="indicator-card"
+          v-for="(card, idx) in indicatorCards"
+          :key="idx"
+          @click="drillDown(card)"
         >
-          <div class="card-label">{{ card.label }}</div>
+          <div class="card-title">{{ card.label }}</div>
           <div class="card-value">{{ card.value }}</div>
-          <div class="card-change" :class="card.change > 0 ? 'up' : 'down'">
-            {{ card.change > 0 ? '+' : '' }}{{ card.change }}%
+          <div class="card-extra">
+            <span :class="card.trend > 0 ? 'up' : 'down'">
+              {{ card.trend > 0 ? '↑' : '↓' }}{{ Math.abs(card.trend) }}%
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- 趋势图区域 -->
+      <!-- 趋势图 -->
       <div class="chart-section">
         <div class="chart-controls">
-          <select v-model="selectedMetric" @change="changeMetric">
-            <option v-for="opt in metricOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
+          <select v-model="chartMetric">
+            <option value="taskCount">任务量</option>
+            <option value="revenue">收入</option>
+            <option value="efficiency">效率</option>
           </select>
-          <select v-model="selectedGranularity" @change="changeGranularity">
-            <option v-for="opt in granularityOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
+          <select v-model="chartGranularity">
+            <option value="day">日</option>
+            <option value="week">周</option>
+            <option value="month">月</option>
           </select>
         </div>
-        <div class="chart-container">
-          <!-- 此处用简单div模拟图表，实际原型可集成ECharts -->
-          <div class="mock-chart">
-            <p>趋势图（{{ selectedMetric }} - {{ selectedGranularity }}）</p>
-            <div
-              v-for="(point, idx) in overviewData.trendData"
-              :key="idx"
-              class="data-point"
-              @click="drillDownPoint(point)"
-            >
-              {{ point.date }}: {{ point.value }}
-            </div>
+        <div class="chart-area">
+          <!-- 模拟柱状图，每根柱子用 div 表示高度 -->
+          <div class="bar-wrapper" v-for="(item, i) in chartData" :key="i">
+            <div class="bar" :style="{ height: item.height + '%' }"></div>
+            <div class="bar-label">{{ item.label }}</div>
           </div>
         </div>
       </div>
 
-      <!-- 导出操作区 -->
-      <div class="export-section">
-        <select v-model="exportRange">
-          <option value="current">当前视图</option>
-          <option value="all">全部数据</option>
-        </select>
-        <button @click="exportExcel">导出Excel</button>
-        <button @click="exportPDF">导出PDF</button>
+      <!-- 导出操作 -->
+      <div class="export-bar">
+        <button @click="exportReport('excel')">导出Excel</button>
+        <button @click="exportReport('pdf')">导出PDF</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import DataFilterBar from '@/components/DataFilterBar.vue'
-// 模拟数据导入（实际原型可替换为真实数据）
-import { mockOverviewData } from '@/data/reports'
+import { ref, reactive, inject, onMounted, computed } from 'vue'
+import prototypeContract from '../prototypeContract.js'
 
-// 筛选配置
-const filterConfig = [
-  {
-    type: 'dateRange',
-    label: '时间范围',
-    key: 'dateRange',
-    placeholder: '选择时间'
-  },
-  {
-    type: 'select',
-    label: '车辆类型',
-    key: 'vehicleType',
-    options: [
-      { label: '全部', value: '' },
-      { label: '卡车', value: 'truck' },
-      { label: '轿车', value: 'car' },
-      { label: '客车', value: 'bus' }
-    ],
-    multiple: true
-  },
-  {
-    type: 'select',
-    label: '作业区域',
-    key: 'area',
-    options: [
-      { label: '全部', value: '' },
-      { label: 'A区', value: 'A' },
-      { label: 'B区', value: 'B' },
-      { label: 'C区', value: 'C' }
-    ],
-    multiple: true
-  }
-]
+const prototypeContext = inject('prototypeContext')
+const currentRoleKey = computed(() => prototypeContext?.currentRoleKey || 'manager')
+const currentRole = computed(() => prototypeContext?.currentRole || { label: '管理层' })
 
-const filterValues = ref({
-  dateRange: [],
-  vehicleType: [],
-  area: []
-})
-
-// 页面状态
 const state = ref('loading')
-const overviewData = ref({
-  cards: [],
-  trendData: []
+const filters = reactive({
+  timeRange: 'today',
+  vehicleType: '',
+  area: ''
 })
+const indicatorCards = ref([])
+const chartMetric = ref('taskCount')
+const chartGranularity = ref('day')
+const chartData = ref([])
 
-// 趋势图控制
-const selectedMetric = ref('totalTrips')
-const metricOptions = [
-  { label: '总行程', value: 'totalTrips' },
-  { label: '运行时长', value: 'totalHours' },
-  { label: '车辆数', value: 'vehicleCount' }
+// 模拟指标数据（不超过3条大块 mock，此处为5个简单对象）
+const demoIndicators = [
+  { label: '总任务数', value: 128, trend: 5.2 },
+  { label: '完成率', value: '94%', trend: -1.3 },
+  { label: '平均时长', value: '45min', trend: -3.7 },
+  { label: '异常率', value: '2.1%', trend: 0.4 },
+  { label: '运营收入', value: '¥' + 35800, trend: 8.1 }
 ]
-const selectedGranularity = ref('day')
-const granularityOptions = [
-  { label: '按天', value: 'day' },
-  { label: '按周', value: 'week' },
-  { label: '按月', value: 'month' }
-]
 
-// 导出范围
-const exportRange = ref('current')
+// 模拟趋势图数据（模拟一周数据）
+const demoChartData = {
+  day: [
+    { label: '周一', height: 60 },
+    { label: '周二', height: 75 },
+    { label: '周三', height: 45 },
+    { label: '周四', height: 80 },
+    { label: '周五', height: 90 },
+    { label: '周六', height: 50 },
+    { label: '周日', height: 65 }
+  ],
+  week: [
+    { label: '第1周', height: 55 },
+    { label: '第2周', height: 70 },
+    { label: '第3周', height: 85 },
+    { label: '第4周', height: 60 }
+  ],
+  month: [
+    { label: '1月', height: 50 },
+    { label: '2月', height: 65 },
+    { label: '3月', height: 80 },
+    { label: '4月', height: 75 },
+    { label: '5月', height: 90 }
+  ]
+}
 
-// 模拟加载数据
-function loadData(params = {}) {
+function loadData() {
   state.value = 'loading'
-  // 模拟异步请求
+  // 模拟异步
   setTimeout(() => {
     try {
-      // 模拟数据源，实际可从mockOverviewData获取并过滤
-      const data = mockOverviewData
-      if (!data || data.cards.length === 0) {
-        state.value = 'empty'
+      // 根据角色调整默认筛选（示例：管理层看所有，管理员看更广）
+      if (currentRoleKey.value === 'admin') {
+        filters.area = ''
+        filters.vehicleType = ''
       } else {
-        overviewData.value = data
-        state.value = 'success'
+        // 其他角色可能有预设
       }
+      indicatorCards.value = demoIndicators
+      updateChart()
+      state.value = 'success'
     } catch (e) {
       state.value = 'error'
     }
-  }, 800)
+  }, 300)
 }
 
-// 查询
-function handleSearch() {
-  loadData(filterValues.value)
-}
-
-// 重试
-function retryLoad() {
-  loadData(filterValues.value)
-}
-
-// 下钻指标卡片
-function drillDownCard(card) {
-  // 原型中简单跳转，携带筛选条件
-  const query = {
-    filter: JSON.stringify(filterValues.value),
-    cardKey: card.key
+function updateChart() {
+  const granularity = chartGranularity.value
+  chartData.value = demoChartData[granularity] || []
+  if (chartData.value.length === 0) {
+    state.value = 'empty'
   }
-  // 假设使用 Vue Router
-  // router.push({ name: 'Detail', query })
-  console.log('下钻卡片', card.label, query)
 }
 
-// 下钻数据点
-function drillDownPoint(point) {
-  const query = {
-    filter: JSON.stringify(filterValues.value),
-    date: point.date
-  }
-  console.log('下钻数据点', point, query)
+function drillDown(card) {
+  // 原型中提示下钻，实际跳转由外部路由实现，此处仅alert模拟
+  alert('下钻至明细：' + card.label)
 }
 
-// 切换指标
-function changeMetric() {
-  // 重新加载趋势图数据
-  console.log('切换指标', selectedMetric.value)
+function exportReport(type) {
+  alert('导出' + type.toUpperCase() + '报表（原型演示）')
 }
 
-// 切换粒度
-function changeGranularity() {
-  console.log('切换粒度', selectedGranularity.value)
-}
-
-// 导出Excel
-function exportExcel() {
-  if (!exportRange.value) {
-    alert('请选择导出范围')
-    return
-  }
-  // 模拟导出
-  console.log('导出Excel', exportRange.value)
-}
-
-// 导出PDF
-function exportPDF() {
-  if (!exportRange.value) {
-    alert('请选择导出范围')
-    return
-  }
-  console.log('导出PDF', exportRange.value)
-}
+watch(chartMetric, updateChart)
+watch(chartGranularity, updateChart)
 
 onMounted(() => {
   loadData()
@@ -254,175 +204,156 @@ onMounted(() => {
 
 <style scoped>
 .management-reports-view {
-  padding: 20px;
-  font-family: sans-serif;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.skeleton-card-row {
+.filter-bar {
   display: flex;
   gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
-.skeleton-card {
-  flex: 1;
-  height: 100px;
-  background: #e0e0e0;
-  border-radius: 8px;
-  animation: pulse 1.5s infinite;
+.filter-item label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
 }
-.skeleton-chart {
-  height: 300px;
-  background: #e0e0e0;
-  border-radius: 8px;
-  animation: pulse 1.5s infinite;
+.filter-item select {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  min-width: 120px;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.empty-container {
-  text-align: center;
-  color: #999;
-}
-.empty-card-row {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-.card-placeholder {
-  width: 180px;
-  height: 100px;
-  background: #f5f5f5;
-  border: 1px dashed #ccc;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.empty-chart {
-  margin-top: 20px;
-}
-
-.error-container {
-  text-align: center;
-  padding: 40px;
-}
-.error-message {
-  color: #e74c3c;
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-.retry-button {
-  padding: 8px 24px;
-  background: #3498db;
-  color: white;
+.btn-query {
+  padding: 6px 20px;
+  background: #1890ff;
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-
-.content-container {
+.loading-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.skeleton {
+  background: #f0f0f0;
+  border-radius: 6px;
+  animation: pulse 1.5s infinite;
+}
+.skeleton-card {
+  height: 80px;
+}
+.skeleton-chart {
+  height: 200px;
+}
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+.empty-state,
+.error-state {
+  text-align: center;
+  padding: 60px 0;
+  color: #999;
+}
+.dashboard {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-.card-row {
+.cards-row {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
 }
-.metric-card {
+.indicator-card {
   flex: 1;
+  min-width: 150px;
   background: #fff;
-  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   border-radius: 8px;
   padding: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: transform 0.15s;
 }
-.metric-card:hover {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+.indicator-card:hover {
+  transform: translateY(-2px);
 }
-.card-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
+.card-title {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
 }
 .card-value {
   font-size: 28px;
-  font-weight: bold;
+  font-weight: 600;
 }
-.card-change {
-  font-size: 12px;
-  margin-top: 4px;
+.card-extra {
+  font-size: 13px;
+  margin-top: 6px;
 }
-.card-change.up {
-  color: #27ae60;
-}
-.card-change.down {
-  color: #e74c3c;
-}
-
+.up { color: #52c41a; }
+.down { color: #ff4d4f; }
 .chart-section {
   background: #fff;
-  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   border-radius: 8px;
   padding: 16px;
 }
 .chart-controls {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 16px;
 }
-select {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
+.chart-controls select {
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
 }
-.chart-container {
-  min-height: 250px;
-  background: #f9f9f9;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 12px;
+.chart-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 200px;
+  padding-top: 10px;
 }
-.mock-chart {
+.bar-wrapper {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
 }
-.data-point {
-  cursor: pointer;
-  padding: 4px 8px;
-  background: #eaf2f8;
-  border-radius: 4px;
-  display: inline-block;
+.bar {
+  width: 100%;
+  max-width: 40px;
+  background: #1890ff;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s;
 }
-.data-point:hover {
-  background: #d4e6f1;
+.bar-label {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
-
-.export-section {
+.export-bar {
   display: flex;
   gap: 12px;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid #eee;
 }
-.export-section button {
+.export-bar button {
   padding: 8px 20px;
-  background: #2c3e50;
-  color: white;
-  border: none;
+  border: 1px solid #d9d9d9;
+  background: #fff;
   border-radius: 4px;
   cursor: pointer;
 }
-.export-section button:hover {
-  background: #34495e;
+.export-bar button:hover {
+  border-color: #1890ff;
+  color: #1890ff;
 }
 </style>

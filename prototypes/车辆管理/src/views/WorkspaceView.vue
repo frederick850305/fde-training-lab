@@ -2,106 +2,112 @@
   <div class="workspace-view">
     <!-- 顶部筛选与排序栏 -->
     <div class="filter-bar">
-      <select v-model="filters.vehicleType" class="filter-item">
-        <option value="">全部车辆类型</option>
-        <option value="小型车">小型车</option>
-        <option value="大型车">大型车</option>
-        <option value="特种车">特种车</option>
-      </select>
-      <select v-model="filters.workArea" class="filter-item">
-        <option value="">全部作业区域</option>
-        <option value="A区">A区</option>
-        <option value="B区">B区</option>
-        <option value="C区">C区</option>
-      </select>
-      <input type="date" v-model="filters.date" class="filter-item" />
-      <select v-model="filters.sort" class="filter-item">
-        <option value="urgency">按紧急度排序</option>
-        <option value="date">按申请日期排序</option>
-      </select>
-      <input v-model="filters.keyword" placeholder="搜索车牌号" class="filter-item search-input" />
-      <button @click="refreshList" class="btn-refresh">刷新</button>
+      <div class="filter-group">
+        <label>车辆类型</label>
+        <select v-model="filters.vehicleType" @change="onFilterChange">
+          <option value="">全部</option>
+          <option value="truck">货车</option>
+          <option value="van">厢式车</option>
+          <option value="flatbed">平板车</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>作业区域</label>
+        <select v-model="filters.area" @change="onFilterChange">
+          <option value="">全部</option>
+          <option value="A">A区</option>
+          <option value="B">B区</option>
+          <option value="C">C区</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>申请日期</label>
+        <input type="date" v-model="filters.date" @change="onFilterChange" />
+      </div>
+      <div class="filter-group">
+        <label>排序</label>
+        <select v-model="filters.sortBy" @change="onFilterChange">
+          <option value="urgency">紧急度</option>
+          <option value="applyTime">申请时间</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>车牌搜索</label>
+        <input type="text" v-model="filters.plateSearch" @input="onFilterChange" placeholder="输入车牌" />
+      </div>
+      <button class="refresh-btn" @click="refreshList">刷新</button>
     </div>
 
-    <!-- 超时提示 -->
-    <div v-if="hasOverdue" class="overdue-banner">
-      有超时未处理的申请，请及时处理。
-    </div>
-
-    <!-- 主体区域 -->
+    <!-- 主体区域：左侧列表 + 右侧详情 -->
     <div class="main-content">
-      <!-- 左侧待办列表 -->
-      <div class="list-panel">
-        <div v-if="loadingState === 'loading'" class="skeleton-list">
-          <div v-for="n in 5" :key="n" class="skeleton-item"></div>
+      <!-- 左侧待办申请列表区 -->
+      <div class="left-panel">
+        <div v-if="loading" class="loading-state">
+          <div class="skeleton-item" v-for="i in 5" :key="i"></div>
         </div>
-        <div v-else-if="loadingState === 'error'" class="error-state">
-          <p>{{ errorMessage }}</p>
+        <div v-else-if="error" class="error-state">
+          <p>网络错误，加载失败</p>
           <button @click="refreshList">重试</button>
         </div>
-        <div v-else-if="reservations.length === 0" class="empty-state">暂无待审批预约</div>
-        <div v-else class="list-items">
+        <div v-else-if="reservations.length === 0" class="empty-state">
+          <p>暂无待审批预约</p>
+        </div>
+        <div v-else class="list">
           <div
-            v-for="item in reservations"
+            v-for="item in filteredReservations"
             :key="item.id"
             class="list-item"
             :class="{ selected: selectedId === item.id, overdue: item.overdue }"
-            @click="selectReservation(item.id)"
+            @click="selectItem(item)"
           >
             <div class="item-header">
-              <StatusTag :status="item.status" :text="item.statusLabel" size="small" />
+              <span class="plate">{{ item.plateNumber }}</span>
+              <span class="status-tag" :style="{ backgroundColor: statusColor(item.status) }">{{ item.status }}</span>
               <span v-if="item.overdue" class="overdue-badge">超时</span>
             </div>
             <div class="item-body">
-              <span class="plate">{{ item.plateNumber }}</span>
-              <span class="area">{{ item.workArea }}</span>
-              <span class="time">{{ item.applyTime }}</span>
+              <span>类型: {{ item.vehicleType }}</span>
+              <span>区域: {{ item.area }}</span>
+              <span>时间: {{ item.applyTime }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 右侧详情与操作区 -->
-      <div class="detail-panel">
-        <div v-if="!selectedId" class="detail-placeholder">请选择一个预约申请查看详情</div>
-        <div v-else-if="detailLoading" class="detail-loading">加载中...</div>
-        <div v-else-if="detailError" class="detail-error">
-          <p>加载详情失败</p>
-          <button @click="loadDetail(selectedId)">重试</button>
+      <div class="right-panel">
+        <div v-if="!selectedId" class="placeholder">
+          <p>请选择一条申请</p>
         </div>
-        <div v-else class="detail-content">
-          <!-- 表单详情 -->
-          <div class="detail-section">
-            <h3>预约信息</h3>
-            <p>车牌号：{{ currentDetail.plateNumber }}</p>
-            <p>车辆类型：{{ currentDetail.vehicleType }}</p>
-            <p>所属单位：{{ currentDetail.unit }}</p>
-            <p>作业区域：{{ currentDetail.workArea }}</p>
-            <p>预约时间：{{ currentDetail.applyTime }}</p>
-            <p>状态：{{ currentDetail.statusLabel }}</p>
+        <div v-else>
+          <div v-if="detailLoading" class="loading-indicator">加载中...</div>
+          <div v-else-if="detailError" class="detail-error">
+            <p>加载详情失败</p>
+            <button @click="loadDetail(selectedId)">重试</button>
           </div>
-          <!-- 车辆档案校验结果 -->
-          <div class="detail-section" v-if="currentDetail.verification">
-            <h3>车辆档案校验</h3>
-            <p v-if="currentDetail.verification.passed" style="color: green;">通过</p>
-            <p v-else style="color: red;">不通过：{{ currentDetail.verification.reason }}</p>
-          </div>
-          <!-- 授权码信息（审批通过后显示） -->
-          <div class="detail-section" v-if="currentDetail.accessCode">
-            <h3>授权码</h3>
-            <p>授权码：{{ currentDetail.accessCode.code }}</p>
-            <p>同步状态：
-              <StatusTag :status="currentDetail.accessCode.syncStatus" :text="currentDetail.accessCode.syncStatusLabel" />
-              <button v-if="currentDetail.accessCode.syncStatus !== 'synced'" @click="resyncAccessCode">重新同步</button>
-            </p>
-          </div>
-          <!-- 审批操作 -->
-          <div class="detail-actions">
-            <label>审批意见：</label>
-            <textarea v-model="approvalComment" placeholder="请输入审批意见（驳回必填）" class="comment-input"></textarea>
-            <div class="action-buttons">
-              <button class="btn-approve" @click="handleApprove">通过</button>
-              <button class="btn-reject" @click="handleReject">驳回</button>
+          <div v-else class="detail-content">
+            <h3>预约详情</h3>
+            <div class="detail-row" v-for="(value, key) in detailFields" :key="key">
+              <span class="label">{{ key }}</span>
+              <span class="value">{{ value }}</span>
+            </div>
+            <div class="vehicle-check" v-if="vehicleCheckResult">
+              <h4>车辆档案校验</h4>
+              <p v-if="vehicleCheckResult.valid" style="color: green;">校验通过</p>
+              <p v-else style="color: red;">校验不通过: {{ vehicleCheckResult.message }}</p>
+            </div>
+            <div class="approval-actions" v-if="currentDetail && currentDetail.status === 'pending'">
+              <textarea v-model="approvalComment" placeholder="审批意见" rows="3"></textarea>
+              <div class="buttons">
+                <button class="approve-btn" @click="handleApprove">通过</button>
+                <button class="reject-btn" @click="handleReject">驳回</button>
+              </div>
+            </div>
+            <div class="access-code-section" v-if="currentDetail && currentDetail.status === 'approved'">
+              <h4>授权码</h4>
+              <p>授权码: {{ currentDetail.accessCode?.code || '生成中...' }}</p>
+              <p>同步状态: {{ currentDetail.accessCode?.syncStatus || '未知' }}</p>
+              <button v-if="currentDetail.accessCode?.syncStatus === 'failed'" @click="resyncCode">重新同步</button>
             </div>
           </div>
         </div>
@@ -109,182 +115,206 @@
     </div>
 
     <!-- 底部操作日志快照 -->
-    <div class="log-snapshot" v-if="approvalLogs.length > 0">
-      <h3>审批记录</h3>
-      <ul>
-        <li v-for="log in approvalLogs" :key="log.id">
-          {{ log.time }} - {{ log.action }} by {{ log.operator }}: {{ log.comment }}
-        </li>
-      </ul>
+    <div class="bottom-log">
+      <h4>审批记录</h4>
+      <div v-if="logs.length === 0">暂无操作记录</div>
+      <div v-for="log in logs" :key="log.id" class="log-item">
+        <span>{{ log.operator }}</span>
+        <span>{{ log.action }}</span>
+        <span>{{ log.time }}</span>
+      </div>
     </div>
-
-    <!-- 二次确认对话框（驳回时使用） -->
-    <ConfirmDialog
-      :visible="showConfirmDialog"
-      title="确认操作"
-      :content="confirmContent"
-      confirm-text="确认"
-      cancel-text="取消"
-      :loading="confirmLoading"
-      @confirm="onConfirm"
-      @cancel="onCancel"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import StatusTag from '@/components/StatusTag.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { fetchReservations, fetchDetail, approveReservation, rejectReservation, fetchAccessCode } from '@/data/mockReservations'
+import { ref, computed, inject, onMounted, watch } from 'vue'
+import { fetchReservationsData } from '../data/mockReservations.js'
 
-// 状态定义
-const loadingState = ref('loading') // 'loading' | 'empty' | 'error' | 'success'
-const errorMessage = ref('')
-const reservations = ref([])
-const selectedId = ref(null)
+// 注入 prototypeContext
+const prototypeContext = inject('prototypeContext')
+const currentRole = prototypeContext?.currentRole || 'approver'
+const currentRoleKey = prototypeContext?.currentRoleKey || 'approver'
+
+// 页面状态
+const loading = ref(true)
+const error = ref(false)
 const detailLoading = ref(false)
 const detailError = ref(false)
-const currentDetail = ref({})
-const approvalLogs = ref([])
-const hasOverdue = computed(() => reservations.value.some(r => r.overdue))
+const reservations = ref([])
+const selectedId = ref(null)
+const currentDetail = ref(null)
+const vehicleCheckResult = ref(null)
 const approvalComment = ref('')
-const showConfirmDialog = ref(false)
-const confirmContent = ref('')
-const confirmLoading = ref(false)
-const pendingAction = ref(null) // 'approve' or 'reject'
+const logs = ref([])
 
 // 筛选条件
-const filters = reactive({
+const filters = ref({
   vehicleType: '',
-  workArea: '',
+  area: '',
   date: '',
-  sort: 'urgency',
-  keyword: ''
+  sortBy: 'urgency',
+  plateSearch: ''
 })
 
+// 根据角色调整默认筛选
+if (currentRoleKey === 'manager' || currentRoleKey === 'admin') {
+  // 管理员可以看到全部，不额外筛选
+} else if (currentRoleKey === 'approver') {
+  // 审批人员默认只看待审批
+}
+
+// 过滤后的列表（模拟）
+const filteredReservations = computed(() => {
+  let list = reservations.value
+  if (filters.value.vehicleType) {
+    list = list.filter(item => item.vehicleType === filters.value.vehicleType)
+  }
+  if (filters.value.area) {
+    list = list.filter(item => item.area === filters.value.area)
+  }
+  if (filters.value.date) {
+    list = list.filter(item => item.applyTime.startsWith(filters.value.date))
+  }
+  if (filters.value.plateSearch) {
+    list = list.filter(item => item.plateNumber.includes(filters.value.plateSearch))
+  }
+  return list
+})
+
+// 详情展示字段映射
+const detailFields = computed(() => {
+  if (!currentDetail.value) return {}
+  const d = currentDetail.value
+  return {
+    '申请ID': d.id,
+    '车牌号': d.plateNumber,
+    '车辆类型': d.vehicleType,
+    '所属单位': d.unit,
+    '作业区域': d.area,
+    '预约时间': d.applyTime,
+    '申请状态': d.status,
+    '超时标记': d.overdue ? '是' : '否'
+  }
+})
+
+// 状态颜色
+function statusColor(status) {
+  const map = {
+    'pending': '#ffa500',
+    'approved': '#4caf50',
+    'rejected': '#f44336',
+    'expired': '#9e9e9e'
+  }
+  return map[status] || '#ccc'
+}
+
 // 加载列表
-async function loadReservations() {
-  loadingState.value = 'loading'
+async function loadList() {
+  loading.value = true
+  error.value = false
   try {
-    const params = { ...filters }
-    const data = await fetchReservations(params)
-    if (data.length === 0) {
-      loadingState.value = 'empty'
-    } else {
-      reservations.value = data
-      loadingState.value = 'success'
-    }
+    const data = await fetchReservationsData()
+    reservations.value = data || []
+    // 模拟日志
+    logs.value = [
+      { id: 1, operator: '陈主管', action: '通过', time: '2025-03-20 10:30' },
+      { id: 2, operator: '陈主管', action: '驳回', time: '2025-03-19 14:20' }
+    ]
   } catch (e) {
-    loadingState.value = 'error'
-    errorMessage.value = e.message || '请求失败'
+    console.error(e)
+    error.value = true
+  } finally {
+    loading.value = false
   }
 }
 
 // 选择列表项
-async function selectReservation(id) {
-  selectedId.value = id
+function selectItem(item) {
+  selectedId.value = item.id
+  loadDetail(item.id)
+}
+
+// 加载详情
+async function loadDetail(id) {
   detailLoading.value = true
   detailError.value = false
   try {
-    const detail = await fetchDetail(id)
-    currentDetail.value = detail
-    approvalLogs.value = detail.logs || []
-    detailLoading.value = false
+    // 模拟从mock数据中查找
+    const item = reservations.value.find(r => r.id === id)
+    if (item) {
+      currentDetail.value = { ...item }
+      // 模拟车辆校验结果
+      vehicleCheckResult.value = {
+        valid: Math.random() > 0.3,
+        message: '年检已过期'
+      }
+    } else {
+      detailError.value = true
+    }
   } catch (e) {
     detailError.value = true
+  } finally {
     detailLoading.value = false
   }
-  approvalComment.value = ''
 }
 
-// 刷新
+// 筛选变化
+function onFilterChange() {
+  // 如果是角色为approver，只保留pending状态？ 这里不强制，让filtered列表处理
+}
+
+// 刷新列表
 function refreshList() {
-  loadReservations()
+  loadList()
 }
 
-// 通过
-function handleApprove() {
-  if (!currentDetail.value.id) return
-  // 检查车辆证照是否过期，假设从 detail 中获取
-  const verificationPassed = currentDetail.value.verification?.passed !== false
-  if (!verificationPassed) {
-    confirmContent.value = '车辆证照过期，确定要通过吗？'
-  } else {
-    confirmContent.value = '确认通过该预约申请？'
+// 通过审批
+async function handleApprove() {
+  if (!currentDetail.value) return
+  // 模拟调用审批通过接口
+  // 实际应调用 /api/reservations/{id}/approve
+  currentDetail.value.status = 'approved'
+  currentDetail.value.accessCode = {
+    code: 'CODE-' + Date.now(),
+    syncStatus: 'syncing'
   }
-  pendingAction.value = 'approve'
-  showConfirmDialog.value = true
+  // 模拟同步状态更新
+  setTimeout(() => {
+    if (currentDetail.value && currentDetail.value.accessCode) {
+      currentDetail.value.accessCode.syncStatus = 'synced'
+    }
+  }, 2000)
+  logs.value.unshift({ id: Date.now(), operator: '当前用户', action: '通过', time: new Date().toLocaleString() })
 }
 
-// 驳回
-function handleReject() {
+// 驳回审批
+async function handleReject() {
   if (!approvalComment.value.trim()) {
-    alert('驳回必须填写审批意见')
+    alert('请填写驳回原因')
     return
   }
-  confirmContent.value = '确认驳回该预约申请？'
-  pendingAction.value = 'reject'
-  showConfirmDialog.value = true
-}
-
-// 确认回调
-async function onConfirm() {
-  confirmLoading.value = true
-  try {
-    if (pendingAction.value === 'approve') {
-      const result = await approveReservation(selectedId.value, { comment: approvalComment.value })
-      // 成功后更新详情中的授权码
-      currentDetail.value.accessCode = result.accessCode
-      approvalLogs.value.push({
-        id: Date.now(),
-        time: new Date().toLocaleString(),
-        action: '通过',
-        operator: '当前审批人',
-        comment: approvalComment.value || ''
-      })
-      // 触发重新加载列表
-      loadReservations()
-    } else if (pendingAction.value === 'reject') {
-      await rejectReservation(selectedId.value, { comment: approvalComment.value })
-      approvalLogs.value.push({
-        id: Date.now(),
-        time: new Date().toLocaleString(),
-        action: '驳回',
-        operator: '当前审批人',
-        comment: approvalComment.value
-      })
-      // 关闭详情
-      selectedId.value = null
-      currentDetail.value = {}
-      loadReservations()
-    }
-    showConfirmDialog.value = false
-    confirmLoading.value = false
-    pendingAction.value = null
-  } catch (e) {
-    alert('操作失败：' + (e.message || '未知错误'))
-    confirmLoading.value = false
-  }
-}
-
-function onCancel() {
-  showConfirmDialog.value = false
-  pendingAction.value = null
+  if (!currentDetail.value) return
+  currentDetail.value.status = 'rejected'
+  logs.value.unshift({ id: Date.now(), operator: '当前用户', action: '驳回', time: new Date().toLocaleString() })
+  selectedId.value = null
+  currentDetail.value = null
 }
 
 // 重新同步授权码
-async function resyncAccessCode() {
-  try {
-    const newCode = await fetchAccessCode(selectedId.value)
-    currentDetail.value.accessCode = newCode
-  } catch (e) {
-    alert('同步失败')
-  }
+async function resyncCode() {
+  if (!currentDetail.value || !currentDetail.value.accessCode) return
+  currentDetail.value.accessCode.syncStatus = 'syncing'
+  // 模拟重新同步
+  setTimeout(() => {
+    if (currentDetail.value && currentDetail.value.accessCode) {
+      currentDetail.value.accessCode.syncStatus = 'synced'
+    }
+  }, 2000)
 }
 
 onMounted(() => {
-  loadReservations()
+  loadList()
 })
 </script>
 
@@ -293,234 +323,220 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: sans-serif;
 }
-
 .filter-bar {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
-  align-items: center;
   flex-wrap: wrap;
-}
-
-.filter-item {
-  padding: 6px 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   background: #fff;
-  min-width: 120px;
+  border-bottom: 1px solid #e0e0e0;
 }
-
-.search-input {
-  flex: 1;
-  min-width: 200px;
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-
-.btn-refresh {
+.filter-group label {
+  font-size: 13px;
+  color: #333;
+}
+.filter-group select,
+.filter-group input {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.refresh-btn {
+  margin-left: auto;
   padding: 6px 16px;
-  background: #409eff;
+  background: #1890ff;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-
-.overdue-banner {
-  background: #faecd8;
-  color: #e6a23c;
-  padding: 8px 16px;
-  border-bottom: 1px solid #e6a23c;
-  font-weight: bold;
-}
-
 .main-content {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
-
-.list-panel {
-  width: 320px;
+.left-panel {
+  width: 40%;
+  min-width: 300px;
   overflow-y: auto;
-  border-right: 1px solid #e4e7ed;
-  padding: 8px;
+  border-right: 1px solid #e0e0e0;
+  background: #fafafa;
 }
-
-.skeleton-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.right-panel {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #fff;
 }
-
-.skeleton-item {
-  height: 60px;
-  background: #eef1f6;
-  border-radius: 4px;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-.error-state, .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #909399;
-}
-
-.list-items {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .list-item {
-  padding: 10px 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background 0.2s;
 }
-
 .list-item:hover {
   background: #f0f5ff;
 }
-
 .list-item.selected {
-  background: #ecf5ff;
-  border-color: #409eff;
+  background: #e6f7ff;
+  border-left: 3px solid #1890ff;
 }
-
 .list-item.overdue {
-  border-left: 3px solid #e6a23c;
+  border-left: 3px solid #faad14;
 }
-
 .item-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
 }
-
-.overdue-badge {
-  background: #e6a23c;
-  color: #fff;
-  font-size: 12px;
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
-.item-body {
-  display: flex;
-  gap: 12px;
+.plate {
+  font-weight: 600;
   font-size: 14px;
 }
-
-.plate {
-  font-weight: bold;
+.status-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 12px;
 }
-
-.detail-panel {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
+.overdue-badge {
+  background: #faad14;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
 }
-
-.detail-placeholder, .detail-loading, .detail-error {
+.item-body {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+}
+.loading-state,
+.error-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 40px;
+  color: #999;
+}
+.skeleton-item {
+  height: 60px;
+  background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
-  color: #909399;
+  color: #999;
 }
-
-.detail-section {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
+.detail-content h3 {
+  margin-top: 0;
 }
-
-.detail-section h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
-  color: #303133;
+.detail-row {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
-
-.detail-section p {
-  margin: 4px 0;
-  font-size: 14px;
+.detail-row .label {
+  width: 90px;
+  color: #888;
 }
-
-.detail-actions {
+.detail-row .value {
+  color: #333;
+}
+.vehicle-check {
+  margin-top: 12px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+.approval-actions {
   margin-top: 16px;
 }
-
-.comment-input {
+.approval-actions textarea {
   width: 100%;
-  min-height: 60px;
-  padding: 8px;
-  border: 1px solid #dcdfe6;
+  padding: 6px;
+  border: 1px solid #ccc;
   border-radius: 4px;
   resize: vertical;
-  margin-bottom: 12px;
 }
-
-.action-buttons {
+.buttons {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
-
-.btn-approve {
-  padding: 8px 24px;
-  background: #67c23a;
+.approve-btn {
+  padding: 6px 20px;
+  background: #52c41a;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-
-.btn-reject {
-  padding: 8px 24px;
-  background: #f56c6c;
+.reject-btn {
+  padding: 6px 20px;
+  background: #ff4d4f;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-
-.log-snapshot {
-  border-top: 1px solid #e4e7ed;
+.access-code-section {
+  margin-top: 16px;
+  padding: 8px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+}
+.bottom-log {
   padding: 12px 16px;
-  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
   max-height: 120px;
   overflow-y: auto;
 }
-
-.log-snapshot h3 {
+.bottom-log h4 {
   margin: 0 0 8px;
   font-size: 14px;
-  color: #606266;
 }
-
-.log-snapshot ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.log-item {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
 }
-
-.log-snapshot li {
-  font-size: 13px;
-  color: #909399;
-  padding: 2px 0;
+.loading-indicator {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+.detail-error {
+  text-align: center;
+  padding: 40px;
+  color: #f5222d;
 }
 </style>

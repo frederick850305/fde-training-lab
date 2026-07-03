@@ -1,100 +1,92 @@
-export const taskItem = {
-  taskId: 'T-20250615001',
-  title: '运送物料至仓库B',
-  plateNo: '京A·12345',
-  departure: '厂区A门',
-  destination: '仓库B区',
-  waypoints: ['卸货点1'],
-  status: '进行中',
-  createTime: '2025-06-15 09:00',
-  estimatedTime: '2025-06-15 11:00'
-};
-
-export const taskDetail = {
-  taskId: 'T-20250615001',
-  vehicleInfo: { plateNo: '京A·12345', vehicleType: '厢式货车' },
-  driverInfo: { name: '李四', phone: '13800138001' },
-  materialList: [
-    { name: '螺丝', quantity: '100kg' },
-    { name: '螺母', quantity: '50kg' }
-  ],
-  navigation: { start: '厂区A门', end: '仓库B区', waypoints: ['卸货点1'] },
-  actionButtons: ['confirm_arrival', 'complete']
-};
-
-export const taskCompletion = {
-  photos: ['photo1.jpg', 'photo2.jpg'],
-  completionTime: '2025-06-15 10:30',
-  remark: '货物完好'
-};
-
-export const driverFeedback = {
-  feedbackId: 'FB-001',
-  type: '报修',
-  content: '车辆有异响',
-  time: '2025-06-15 10:10',
-  attachment: 'audio.mp3'
-};
-
-const statusMap = {
-  '待接单': { status: 'pending', statusLabel: '待接单' },
-  '进行中': { status: 'inProgress', statusLabel: '进行中' },
-  '已完成': { status: 'completed', statusLabel: '已完成' },
-  pending: { status: 'pending', statusLabel: '待接单' },
-  inProgress: { status: 'inProgress', statusLabel: '进行中' },
-  completed: { status: 'completed', statusLabel: '已完成' },
-};
-
-function normalizeTask(source, index = 0) {
-  const statusInfo = statusMap[source.status] || { status: source.status || 'pending', statusLabel: source.status || '待接单' };
-  const id = source.id || source.taskId;
-  const plate = source.plate || source.plateNo || source.vehicleInfo?.plateNo;
-  const workPoint = source.workPoint || `${source.departure || '厂区'} → ${source.destination || '目的地'}`;
-  return {
-    ...source,
-    id,
-    taskId: id,
-    plate,
-    plateNumber: plate,
-    workPoint,
-    workPointName: source.workPointName || source.destination || '仓库 B 区',
-    address: source.address || source.destination || '仓库 B 区',
-    pickupOrderNo: source.pickupOrderNo || `PO-${String(index + 1).padStart(4, '0')}`,
-    driverPhone: source.driverPhone || source.driverInfo?.phone || '13800138001',
-    dispatcherPhone: source.dispatcherPhone || '13900139001',
-    latitude: source.latitude || 39.908,
-    longitude: source.longitude || 116.397,
-    status: statusInfo.status,
-    statusLabel: statusInfo.statusLabel,
-    estimatedTime: source.estimatedTime,
-    feedbacks: source.feedbacks || [
-      { id: 'fb-1', type: '报修', time: '10:10', description: '车辆有异响，已上报调度。', photos: [], status: '待处理' },
-    ],
-  };
-}
-
-export const tasks = [
-  normalizeTask(taskItem, 0),
-  normalizeTask({ ...taskItem, taskId: 'T-20250615002', title: '配送备件至装配区', status: '待接单', plateNo: '京B·67890', destination: '装配区' }, 1),
-  normalizeTask({ ...taskItem, taskId: 'T-20250615003', title: '转运钢材至码头', status: '已完成', plateNo: '京C·24680', destination: '码头作业区' }, 2),
+// 司机任务 Mock 数据
+export const tasksRecords = [
+  {
+    taskItem: {
+      id: 'TSK-001',
+      taskId: 'TSK-001',
+      title: '原料运输-仓库A->车间C',
+      plate: '京A·12345',
+      plateNo: '京A·12345',
+      startAddress: '原料仓库A',
+      from: '原料仓库A',
+      destination: '车间C',
+      to: '车间C',
+      workPoints: ['装载点1', '卸载点2'],
+      status: '待接单',
+      taskStatus: '待接单',
+      createTime: '2024-12-01 09:00:00',
+      estimatedTime: '2024-12-01 10:00:00'
+    },
+    taskDetail: {
+      taskId: 'TSK-001',
+      vehicleInfo: { id: 'V001', plate: '京A·12345', type: '叉车' },
+      driverInfo: { name: '李师傅', phone: '13800000001' },
+      materialList: ['原料A: 500kg', '原料B: 200kg'],
+      navigation: { start: '原料仓库A', end: '车间C' },
+      actions: ['确认到达', '完成']
+    },
+    taskCompletion: {
+      photos: ['photo1.jpg', 'photo2.jpg'],
+      completeTime: '2024-12-01 10:30:00',
+      remark: '完成运输'
+    },
+    driverFeedback: {
+      id: 'FB-001',
+      feedbackId: 'FB-001',
+      type: '异常',
+      content: '车辆故障',
+      time: '2024-12-01 10:05:00',
+      attachment: 'fault.jpg'
+    }
+  },
+  {
+    taskItem: {
+      id: 'TSK-002',
+      taskId: 'TSK-002',
+      title: '成品运输-成品库->发货平台',
+      plate: '沪B·67890',
+      plateNo: '沪B·67890',
+      startAddress: '成品库',
+      from: '成品库',
+      destination: '发货平台',
+      to: '发货平台',
+      workPoints: ['发货平台'],
+      status: '进行中',
+      taskStatus: '进行中',
+      createTime: '2024-12-01 09:30:00',
+      estimatedTime: '2024-12-01 11:00:00'
+    },
+    taskDetail: {
+      taskId: 'TSK-002',
+      vehicleInfo: { id: 'V002', plate: '沪B·67890', type: '卡车' },
+      driverInfo: { name: '王师傅', phone: '13800000002' },
+      materialList: ['成品箱: 200箱'],
+      navigation: { start: '成品库', end: '发货平台' },
+      actions: ['确认到达']
+    },
+    taskCompletion: null,
+    driverFeedback: null
+  }
 ];
 
-export async function getTaskDetail(taskId) {
-  const base = tasks.find(item => item.id === taskId || item.taskId === taskId) || tasks[0];
-  return normalizeTask({
-    ...base,
-    ...taskDetail,
-    taskId: taskId || base.taskId || taskDetail.taskId,
-    title: base.title,
-    status: base.status,
-    estimatedTime: base.estimatedTime,
-  });
-}
-
-export async function confirmArrive(taskId) {
-  return { success: true, taskId, status: '已到达' };
-}
-
-export async function confirmComplete(taskId, payload = {}) {
-  return { success: true, taskId, ...taskCompletion, ...payload };
+export function fetchTasksData({ roleKey, currentUser, filters = {} } = {}) {
+  let data = tasksRecords;
+  if (filters.type === 'taskItem') {
+    data = data.map(r => r.taskItem);
+  } else if (filters.type === 'taskDetail') {
+    data = data.map(r => r.taskDetail).filter(Boolean);
+  } else if (filters.type === 'taskCompletion') {
+    data = data.map(r => r.taskCompletion).filter(Boolean);
+  } else if (filters.type === 'driverFeedback') {
+    data = data.flatMap(r => r.driverFeedback ? [r.driverFeedback] : []);
+  }
+  // 司机只能看到自己的任务（模拟根据 currentUser 过滤）
+  if (roleKey === 'driver' && currentUser) {
+    const driverName = currentUser.replace('司机-', '');
+    data = data.filter(r => {
+      const driver = r.driverInfo?.name || r.taskItem?.plateNo;
+      return driver === driverName;
+    });
+  }
+  return Promise.resolve(data);
 }

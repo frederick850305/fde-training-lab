@@ -1,331 +1,244 @@
 <template>
   <div class="alert-task-monitor">
-    <!-- 加载状态 -->
-    <div v-if="pageLoading" class="loading-container">
-      <div class="skeleton-list">
-        <div class="skeleton-item" v-for="n in 5" :key="n"></div>
+    <div class="left-panel">
+      <div class="panel-header">
+        <h2>实时告警</h2>
+        <div class="filters">
+          <select v-model="alertFilter.status">
+            <option value="">全部状态</option>
+            <option value="pending">待处理</option>
+            <option value="handled">已处理</option>
+            <option value="ignored">已忽略</option>
+          </select>
+          <button @click="fetchAlerts">刷新</button>
+          <button @click="exportAlerts" class="export-btn">导出</button>
+        </div>
       </div>
-      <div class="skeleton-list right">
-        <div class="skeleton-item" v-for="n in 3" :key="n"></div>
+      <div v-if="alertLoading" class="skeleton">加载中...</div>
+      <div v-else-if="alertError" class="error">
+        <p>{{ alertError }}</p>
+        <button @click="fetchAlerts">重试</button>
+      </div>
+      <div v-else-if="alertList.length === 0" class="empty">暂无告警</div>
+      <div v-else class="list">
+        <div v-for="alert in alertList" :key="alert.id" class="list-item" @click="openAlertDetail(alert)">
+          <StatusTag :status="alert.severity" :text="alert.type" />
+          <div class="item-info">
+            <span class="plate">{{ alert.plateNumber }}</span>
+            <span class="time">{{ alert.time }}</span>
+            <span class="location">{{ alert.location }}</span>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- 错误状态 -->
-    <div v-else-if="pageError" class="error-container">
-      <p>{{ errorMessage }}</p>
-      <button @click="retryLoad">重试</button>
+    <div class="right-panel">
+      <div class="panel-header">
+        <h2>任务进度</h2>
+        <div class="filters">
+          <select v-model="taskFilter.status">
+            <option value="">全部状态</option>
+            <option value="in_progress">进行中</option>
+            <option value="completed">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+          <button @click="fetchTasks">刷新</button>
+          <button @click="exportTasks" class="export-btn">导出</button>
+        </div>
+      </div>
+      <div v-if="taskLoading" class="skeleton">加载中...</div>
+      <div v-else-if="taskError" class="error">
+        <p>{{ taskError }}</p>
+        <button @click="fetchTasks">重试</button>
+      </div>
+      <div v-else-if="taskList.length === 0" class="empty">暂无任务</div>
+      <div v-else class="list">
+        <div v-for="task in taskList" :key="task.id" class="list-item" @click="openTaskDetail(task)">
+          <StatusTag :status="task.status" :text="task.statusLabel" />
+          <div class="item-info">
+            <span class="plate">{{ task.plateNumber }}</span>
+            <span class="driver">{{ task.driver }}</span>
+            <span class="time">{{ task.estimatedEndTime }}</span>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <!-- 正常内容 -->
-    <template v-else>
-      <!-- 告警列表区域（左侧） -->
-      <div class="alert-panel">
-        <div class="panel-header">
-          <h3>实时告警</h3>
-          <div class="filter-controls">
-            <select v-model="alertStatusFilter" @change="filterAlerts">
-              <option value="">全部状态</option>
-              <option value="pending">待处理</option>
-              <option value="handling">处理中</option>
-              <option value="resolved">已处理</option>
-            </select>
-          </div>
-          <button @click="exportAlerts" class="export-btn">导出Excel</button>
-        </div>
-        <div class="alert-list">
-          <div v-if="filteredAlerts.length === 0" class="empty-state">暂无告警</div>
-          <div
-            v-for="alert in filteredAlerts"
-            :key="alert.id"
-            class="alert-item"
-            :class="severityClass(alert.severity)"
-            @click="openAlertDetail(alert)"
-          >
-            <span class="severity-indicator"></span>
-            <div class="alert-info">
-              <span class="alert-type">{{ alert.type }}</span>
-              <span class="alert-desc">{{ alert.vehiclePlate }} · {{ alert.location }}</span>
-              <span class="alert-time">{{ alert.time }}</span>
-            </div>
-            <StatusTag :status="alert.status" :text="alert.statusLabel" size="small" />
-          </div>
-        </div>
-      </div>
-
-      <!-- 任务列表区域（右侧） -->
-      <div class="task-panel">
-        <div class="panel-header">
-          <h3>任务进展</h3>
-          <div class="filter-controls">
-            <select v-model="taskStatusFilter" @change="filterTasks">
-              <option value="">全部状态</option>
-              <option value="in_progress">进行中</option>
-              <option value="pending_review">待审核</option>
-              <option value="completed">已完成</option>
-              <option value="cancelled">已取消</option>
-            </select>
-          </div>
-          <button @click="exportTasks" class="export-btn">导出Excel</button>
-        </div>
-        <div class="task-list">
-          <div v-if="filteredTasks.length === 0" class="empty-state">暂无任务</div>
-          <div
-            v-for="task in filteredTasks"
-            :key="task.id"
-            class="task-item"
-            @click="openTaskDetail(task)"
-          >
-            <div class="task-header">
-              <span class="task-title">{{ task.title }}</span>
-              <StatusTag :status="task.status" :text="task.statusLabel" />
-            </div>
-            <div class="task-meta">
-              <span>{{ task.vehiclePlate }}</span>
-              <span>{{ task.driver }}</span>
-            </div>
-            <div class="task-progress">
-              <div class="progress-bar" :style="{ width: task.progress + '%' }"></div>
-            </div>
-            <div class="task-footer">
-              <span class="task-deadline">预计完成: {{ task.deadline }}</span>
-              <span class="task-percent">{{ task.progress }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- 告警处理弹窗 -->
-    <DetailPanel
-      v-model:visible="alertDialogVisible"
-      title="告警详情"
-      mode="modal"
-      :width="'500px'"
-    >
-      <template v-if="selectedAlert">
-        <div class="alert-detail-content">
-          <p><strong>告警类型：</strong>{{ selectedAlert.type }}</p>
-          <p><strong>车辆：</strong>{{ selectedAlert.vehiclePlate }}</p>
-          <p><strong>时间：</strong>{{ selectedAlert.time }}</p>
-          <p><strong>位置：</strong>{{ selectedAlert.location }}</p>
-          <p><strong>描述：</strong>{{ selectedAlert.description }}</p>
-          <div class="action-buttons">
-            <button @click="handleAlert('confirmed')" :disabled="alertHandling">确认</button>
-            <button @click="handleAlert('ignored')" :disabled="alertHandling">忽略</button>
-            <button @click="handleAlert('transferred')" :disabled="alertHandling">转人工</button>
-          </div>
-          <div class="remark-area">
-            <label>备注：</label>
-            <textarea v-model="alertRemark" placeholder="输入备注..."></textarea>
-          </div>
-        </div>
-      </template>
-    </DetailPanel>
-
-    <!-- 任务详情抽屉 -->
-    <DetailPanel
-      v-model:visible="taskDrawerVisible"
-      :title="selectedTask ? selectedTask.title : ''"
-      mode="drawer"
-      :width="'450px'"
-    >
-      <template v-if="selectedTask">
-        <div class="task-detail-content">
-          <p><strong>司机：</strong>{{ selectedTask.driver }}</p>
-          <p><strong>车辆：</strong>{{ selectedTask.vehiclePlate }}</p>
-          <p><strong>状态：</strong><StatusTag :status="selectedTask.status" :text="selectedTask.statusLabel" /></p>
-          <div class="timeline">
-            <h4>任务步骤</h4>
-            <div v-for="step in selectedTask.steps" :key="step.id" class="step-item">
-              <span class="step-time">{{ step.time }}</span>
-              <span class="step-action">{{ step.action }}</span>
-              <span v-if="step.photo" class="step-photo" @click="viewPhoto(step.photo)">查看照片</span>
-            </div>
-          </div>
-          <div class="related-alerts" v-if="selectedTask.relatedAlerts.length">
-            <h4>关联告警</h4>
-            <span v-for="alert in selectedTask.relatedAlerts" :key="alert.id" class="related-alert-tag">{{ alert.type }}</span>
-          </div>
-          <div class="action-buttons">
-            <button @click="urgeTask" :disabled="taskActionLoading">催办</button>
-            <button @click="showCancelDialog = true" :disabled="taskActionLoading">取消任务</button>
-          </div>
-        </div>
-      </template>
-    </DetailPanel>
-
-    <!-- 取消任务确认对话框 -->
-    <ConfirmDialog
-      v-model:visible="showCancelDialog"
-      title="取消任务"
-      content="请输入取消原因："
-      confirmText="确认取消"
-      cancelText="返回"
-      :loading="taskActionLoading"
-      @confirm="cancelTask"
-      @cancel="showCancelDialog = false"
-    >
+    <!-- 告警详情弹窗 -->
+    <DetailPanel v-model:visible="alertDetailVisible" title="告警详情" :width="'500px'">
       <template #default>
-        <textarea v-model="cancelReason" placeholder="请填写取消原因..." rows="3"></textarea>
+        <div v-if="selectedAlert" class="detail-content">
+          <p><strong>告警ID:</strong> {{ selectedAlert.id }}</p>
+          <p><strong>类型:</strong> {{ selectedAlert.type }}</p>
+          <p><strong>车牌号:</strong> {{ selectedAlert.plateNumber }}</p>
+          <p><strong>车辆ID:</strong> {{ selectedAlert.vehicleId }}</p>
+          <p><strong>时间:</strong> {{ selectedAlert.time }}</p>
+          <p><strong>紧急程度:</strong> <StatusTag :status="selectedAlert.severity" :text="selectedAlert.severity" /></p>
+          <p><strong>处理状态:</strong> {{ selectedAlert.status }}</p>
+          <p><strong>备注:</strong> {{ selectedAlert.remark || '无' }}</p>
+          <div class="actions">
+            <button @click="handleAlert('confirmed')" class="btn-confirm">确认</button>
+            <button @click="handleAlert('ignored')" class="btn-ignore">忽略</button>
+            <button @click="handleAlert('transferred')" class="btn-transfer">转人工</button>
+          </div>
+          <div class="remark-input">
+            <label>处理备注</label>
+            <input v-model="alertRemark" placeholder="可选备注" />
+          </div>
+        </div>
+      </template>
+    </DetailPanel>
+    <!-- 任务详情抽屉 -->
+    <DetailPanel v-model:visible="taskDetailVisible" title="任务详情" :width="'600px'" mode="drawer">
+      <template #default>
+        <div v-if="selectedTask" class="detail-content">
+          <p><strong>任务ID:</strong> {{ selectedTask.id }}</p>
+          <p><strong>车牌号:</strong> {{ selectedTask.plateNumber }}</p>
+          <p><strong>司机:</strong> {{ selectedTask.driver }}</p>
+          <p><strong>状态:</strong> <StatusTag :status="selectedTask.status" :text="selectedTask.statusLabel" /></p>
+          <p><strong>当前阶段:</strong> {{ selectedTask.currentPhase }}</p>
+          <p><strong>预计完成时间:</strong> {{ selectedTask.estimatedEndTime }}</p>
+          <div class="actions">
+            <button @click="remindTask" class="btn-remind">催办</button>
+            <button @click="openCancelDialog" class="btn-cancel">取消</button>
+          </div>
+        </div>
+      </template>
+    </DetailPanel>
+    <!-- 取消确认对话框 -->
+    <ConfirmDialog v-model:visible="cancelDialogVisible" title="取消任务" :content="'请填写取消原因'" @confirm="cancelTask">
+      <template #extra>
+        <input v-model="cancelReason" placeholder="请输入取消原因" class="cancel-input" />
       </template>
     </ConfirmDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import StatusTag from '@/components/StatusTag.vue'
-import DataTable from '@/components/DataTable.vue'
-import DetailPanel from '@/components/DetailPanel.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { alerts, tasks } from '@/data/mockAlerts'
+import { ref, inject, onMounted } from 'vue'
+import prototypeContract from '../prototypeContract'
+import StatusTag from '../components/StatusTag.vue'
+import DetailPanel from '../components/DetailPanel.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { fetchAlertsData } from '../data/mockAlerts.js'
 
-// 页面状态
-const pageLoading = ref(true)
-const pageError = ref(false)
-const errorMessage = ref('')
+const prototypeContext = inject('prototypeContext')
+const currentRoleKey = prototypeContext?.currentRoleKey || 'dispatcher'
+const currentRole = prototypeContext?.currentRole || { label: '调度员' }
 
 // 告警数据
 const alertList = ref([])
-const alertStatusFilter = ref('')
-const filteredAlerts = computed(() => {
-  if (!alertStatusFilter.value) return alertList.value
-  return alertList.value.filter(a => a.status === alertStatusFilter.value)
-})
+const alertLoading = ref(false)
+const alertError = ref('')
+const alertFilter = ref({ status: '' })
+const alertDetailVisible = ref(false)
+const selectedAlert = ref(null)
+const alertRemark = ref('')
 
 // 任务数据
 const taskList = ref([])
-const taskStatusFilter = ref('')
-const filteredTasks = computed(() => {
-  if (!taskStatusFilter.value) return taskList.value
-  return taskList.value.filter(t => t.status === taskStatusFilter.value)
-})
-
-// 告警弹窗
-const alertDialogVisible = ref(false)
-const selectedAlert = ref(null)
-const alertRemark = ref('')
-const alertHandling = ref(false)
-
-// 任务抽屉
-const taskDrawerVisible = ref(false)
+const taskLoading = ref(false)
+const taskError = ref('')
+const taskFilter = ref({ status: '' })
+const taskDetailVisible = ref(false)
 const selectedTask = ref(null)
-const taskActionLoading = ref(false)
-
-// 取消任务
-const showCancelDialog = ref(false)
+const cancelDialogVisible = ref(false)
 const cancelReason = ref('')
 
-// 严重程度类名
-function severityClass(severity) {
-  return {
-    high: 'severity-high',
-    medium: 'severity-medium',
-    low: 'severity-low'
-  }[severity] || ''
-}
-
-// 加载数据
-async function loadData() {
-  pageLoading.value = true
-  pageError.value = false
+async function fetchAlerts() {
+  alertLoading.value = true
+  alertError.value = ''
   try {
-    // 模拟接口调用
-    await new Promise(resolve => setTimeout(resolve, 800))
-    alertList.value = alerts
-    taskList.value = tasks
+    const data = await fetchAlertsData()
+    // 根据角色过滤演示
+    let filtered = data.alertsRecords || []
+    if (currentRoleKey === 'driver') {
+      filtered = filtered.filter(a => a.vehicleId === 'V001')
+    }
+    if (alertFilter.value.status) {
+      filtered = filtered.filter(a => a.status === alertFilter.value.status)
+    }
+    alertList.value = filtered
+    alertLoading.value = false
   } catch (e) {
-    pageError.value = true
-    errorMessage.value = '数据加载失败，请重试'
-  } finally {
-    pageLoading.value = false
+    alertError.value = '加载告警失败'
+    alertLoading.value = false
   }
 }
 
-const retryLoad = loadData
-
-onMounted(loadData)
-
-// 告警处理
-async function handleAlert(action) {
-  alertHandling.value = true
+async function fetchTasks() {
+  taskLoading.value = true
+  taskError.value = ''
   try {
-    // 模拟 POST /api/v1/alerts/handle
-    await new Promise(resolve => setTimeout(resolve, 300))
-    // 更新本地状态
-    const idx = alertList.value.findIndex(a => a.id === selectedAlert.value.id)
-    if (idx !== -1) {
-      const newStatus = action === 'confirmed' ? 'resolved' : (action === 'ignored' ? 'ignored' : 'transferred')
-      alertList.value[idx].status = newStatus
-      alertList.value[idx].remark = alertRemark.value
+    const data = await fetchAlertsData()
+    let tasks = data.taskProgress || []
+    if (currentRoleKey === 'driver') {
+      tasks = tasks.filter(t => t.driver === '李师傅')
     }
-    alertDialogVisible.value = false
-    alertRemark.value = ''
-  } finally {
-    alertHandling.value = false
+    if (taskFilter.value.status) {
+      tasks = tasks.filter(t => t.status === taskFilter.value.status)
+    }
+    taskList.value = tasks
+    taskLoading.value = false
+  } catch (e) {
+    taskError.value = '加载任务失败'
+    taskLoading.value = false
   }
 }
 
 function openAlertDetail(alert) {
-  selectedAlert.value = { ...alert }
+  selectedAlert.value = alert
   alertRemark.value = alert.remark || ''
-  alertDialogVisible.value = true
+  alertDetailVisible.value = true
 }
 
-// 任务操作
 function openTaskDetail(task) {
-  selectedTask.value = { ...task }
-  taskDrawerVisible.value = true
+  selectedTask.value = task
+  taskDetailVisible.value = true
 }
 
-async function urgeTask() {
-  taskActionLoading.value = true
-  try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    alert('催办通知已发送')
-  } finally {
-    taskActionLoading.value = false
+function openCancelDialog() {
+  cancelReason.value = ''
+  cancelDialogVisible.value = true
+}
+
+function handleAlert(action) {
+  // 模拟调用API
+  setTimeout(() => {
+    alertDetailVisible.value = false
+    fetchAlerts()
+  }, 300)
+}
+
+function remindTask() {
+  setTimeout(() => {
+    taskDetailVisible.value = false
+  }, 300)
+}
+
+function cancelTask() {
+  if (!cancelReason.value) {
+    alert('请填写取消原因')
+    return
   }
+  setTimeout(() => {
+    cancelDialogVisible.value = false
+    taskDetailVisible.value = false
+    fetchTasks()
+  }, 300)
 }
 
-async function cancelTask() {
-  taskActionLoading.value = true
-  try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    // 更新本地任务状态为已取消
-    const idx = taskList.value.findIndex(t => t.id === selectedTask.value.id)
-    if (idx !== -1) {
-      taskList.value[idx].status = 'cancelled'
-      taskList.value[idx].cancelReason = cancelReason.value
-    }
-    showCancelDialog.value = false
-    cancelReason.value = ''
-    taskDrawerVisible.value = false
-  } finally {
-    taskActionLoading.value = false
-  }
-}
-
-// 导出（预留）
 function exportAlerts() {
-  console.log('导出告警列表')
+  // 预留导出功能，模拟触发下载
+  console.log('导出告警数据')
 }
+
 function exportTasks() {
-  console.log('导出任务列表')
+  console.log('导出任务数据')
 }
 
-function viewPhoto(photoUrl) {
-  // 预留查看照片
-  window.open(photoUrl, '_blank')
-}
-
-function filterAlerts() {
-  // 可通过computed自动过滤，这里仅演示
-}
-
-function filterTasks() {
-  // 可通过computed自动过滤
-}
+onMounted(() => {
+  fetchAlerts()
+  fetchTasks()
+})
 </script>
 
 <style scoped>
@@ -334,326 +247,134 @@ function filterTasks() {
   height: 100%;
   gap: 16px;
   padding: 16px;
-  background: #f0f2f5;
+  background: #f5f7fa;
 }
-
-.loading-container {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-}
-
-.skeleton-list {
+.left-panel, .right-panel {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.skeleton-list.right {
-  flex: 0 0 400px;
-}
-
-.skeleton-item {
-  height: 80px;
-  background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  color: #ff4d4f;
-  gap: 12px;
-}
-
-.error-container button {
-  padding: 8px 24px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.alert-panel,
-.task-panel {
-  background: white;
+  background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  padding: 16px;
+  overflow-y: auto;
 }
-
-.alert-panel {
-  flex: 1;
-}
-
-.task-panel {
-  flex: 0 0 400px;
-}
-
 .panel-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e8e8e8;
-  gap: 12px;
+  margin-bottom: 12px;
 }
-
-.panel-header h3 {
+.panel-header h2 {
   margin: 0;
-  font-size: 16px;
-  flex: 1;
+  font-size: 18px;
 }
-
-.filter-controls select {
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.filters select {
   padding: 4px 8px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  background: white;
 }
-
 .export-btn {
-  padding: 4px 12px;
   background: #1890ff;
-  color: white;
+  color: #fff;
   border: none;
+  padding: 4px 12px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
 }
-
-.alert-list,
-.task-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.empty-state {
+.list {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: #999;
-  font-size: 14px;
+  flex-direction: column;
+  gap: 8px;
 }
-
-.alert-item {
+.list-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
   border-radius: 6px;
-  margin-bottom: 8px;
   cursor: pointer;
   transition: background 0.2s;
-  position: relative;
 }
-
-.alert-item:hover {
-  background: #fafafa;
+.list-item:hover {
+  background: #f0f5ff;
 }
-
-.severity-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.severity-high .severity-indicator {
-  background: #ff4d4f;
-}
-
-.severity-medium .severity-indicator {
-  background: #faad14;
-}
-
-.severity-low .severity-indicator {
-  background: #52c41a;
-}
-
-.alert-info {
-  flex: 1;
+.item-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
-.alert-type {
-  font-weight: 500;
-  color: #1f2937;
+.item-info .plate {
+  font-weight: bold;
 }
-
-.alert-desc {
+.item-info .time, .item-info .location, .item-info .driver {
   font-size: 12px;
-  color: #4b5563;
+  color: #666;
 }
-
-.alert-time {
-  font-size: 12px;
-  color: #888;
+.skeleton, .error, .empty {
+  padding: 40px 0;
+  text-align: center;
+  color: #999;
 }
-
-.task-item {
-  padding: 12px;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
+.detail-content {
+  padding: 16px 0;
 }
-
-.task-item:hover {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.task-title {
-  font-weight: 500;
-  color: #1f2937;
-}
-
-.task-meta {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #4b5563;
-}
-
-.task-progress {
-  height: 6px;
-  background: #e8e8e8;
-  border-radius: 3px;
-  margin-bottom: 6px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  background: #1890ff;
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-
-.task-deadline {
-  font-size: 12px;
-  color: #888;
-}
-
-.task-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.task-percent {
-  font-size: 12px;
-  color: #1890ff;
-  font-weight: 600;
-}
-
-.alert-detail-content,
-.task-detail-content {
-  padding: 16px;
-}
-
-.alert-detail-content p,
-.task-detail-content p {
+.detail-content p {
   margin: 8px 0;
 }
-
-.action-buttons {
-  margin-top: 16px;
+.actions {
   display: flex;
   gap: 8px;
+  margin-top: 16px;
 }
-
-.action-buttons button {
+.actions button {
   padding: 6px 16px;
-  border: 1px solid #d9d9d9;
+  border: none;
   border-radius: 4px;
-  background: white;
   cursor: pointer;
 }
-
-.action-buttons button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-confirm {
+  background: #52c41a;
+  color: #fff;
 }
-
-.remark-area {
+.btn-ignore {
+  background: #faad14;
+  color: #fff;
+}
+.btn-transfer {
+  background: #1890ff;
+  color: #fff;
+}
+.btn-remind {
+  background: #1890ff;
+  color: #fff;
+}
+.btn-cancel {
+  background: #ff4d4f;
+  color: #fff;
+}
+.remark-input {
   margin-top: 12px;
 }
-
-.remark-area textarea {
+.remark-input label {
+  display: block;
+  margin-bottom: 4px;
+}
+.remark-input input {
   width: 100%;
-  min-height: 60px;
-  padding: 8px;
+  padding: 6px 10px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  resize: vertical;
 }
-
-.timeline {
-  margin-top: 16px;
-}
-
-.step-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 8px;
-}
-
-.step-time {
-  font-size: 12px;
-  color: #888;
-  min-width: 60px;
-}
-
-.step-action {
-  flex: 1;
-}
-
-.step-photo {
-  color: #1890ff;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.related-alerts {
-  margin-top: 16px;
-}
-
-.related-alert-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background: #f5222d;
-  color: white;
+.cancel-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
-  margin: 4px 4px 0 0;
-  font-size: 12px;
+  margin-top: 8px;
 }
 </style>

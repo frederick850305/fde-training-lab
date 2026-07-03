@@ -2,322 +2,384 @@
   <div class="access-code-view">
     <!-- 顶部状态筛选栏 -->
     <div class="filter-bar">
-      <span
-        v-for="tab in statusTabs"
-        :key="tab.value"
-        :class="['filter-tab', { active: activeStatus === tab.value }]"
-        @click="switchStatus(tab.value)"
-      >
-        {{ tab.label }}
-      </span>
-      <div class="search-area">
+      <div class="status-tabs">
+        <span
+          v-for="tab in statusTabs"
+          :key="tab.key"
+          :class="['status-tab', { active: activeStatus === tab.key }]"
+          @click="selectStatus(tab.key)"
+        >
+          {{ tab.label }}
+        </span>
+      </div>
+      <div class="search-box">
         <input
           v-model="searchKeyword"
+          type="text"
           placeholder="搜索车牌号"
           @keyup.enter="handleSearch"
         />
-        <button @click="handleSearch">搜索</button>
+        <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
     </div>
 
-    <!-- 状态：loading -->
-    <div v-if="uiState === 'loading'" class="skeleton">
-      <div v-for="n in 5" :key="n" class="skeleton-row"></div>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-state">
+      <div class="skeleton-table">
+        <div v-for="n in 5" :key="n" class="skeleton-row"></div>
+      </div>
     </div>
 
-    <!-- 状态：error -->
-    <div v-else-if="uiState === 'error'" class="error-state">
-      <p>数据加载失败，请稍后重试</p>
-      <button @click="fetchData">重试</button>
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="error-state">
+      <p>{{ errorMessage }}</p>
+      <button @click="fetchList">重试</button>
     </div>
 
-    <!-- 状态：empty -->
-    <div v-else-if="uiState === 'empty'" class="empty-state">
+    <!-- 空状态 -->
+    <div v-else-if="filteredList.length === 0" class="empty-state">
       <p>暂无授权码数据</p>
     </div>
 
-    <!-- 状态：success 显示列表 -->
-    <div v-else-if="uiState === 'success'" class="content-area">
-      <DataTable
-        :columns="tableColumns"
-        :data="accessCodeList"
-        :loading="false"
-        :pagination="pagination"
-        rowKey="id"
-        @row-click="handleRowClick"
-        @update:pagination="handlePageChange"
+    <!-- 列表区域 -->
+    <div v-else class="list-area">
+      <div class="list-header">
+        <span class="col-plate">车牌号</span>
+        <span class="col-code">授权码</span>
+        <span class="col-valid">有效期</span>
+        <span class="col-status">同步状态</span>
+        <span class="col-use-time">使用时间</span>
+        <span class="col-gate">门岗信息</span>
+        <span class="col-action">操作</span>
+      </div>
+      <div
+        v-for="item in filteredList"
+        :key="item.id"
+        class="list-row"
+        @click="toggleExpand(item)"
       >
-        <!-- 自定义状态列 -->
-        <template #syncStatus="{ row }">
-          <StatusTag
-            :status="row.syncStatus"
-            :text="syncStatusMap[row.syncStatus]"
-            size="small"
-          />
-        </template>
-        <!-- 展开行内容 -->
-        <template #expand="{ row }">
-          <div class="expand-detail">
-            <p><strong>同步日志：</strong>{{ row.syncLog }}</p>
-            <button
-              v-if="row.syncStatus === 'failed'"
-              @click.stop="retrySync(row)"
-              :disabled="row.resyncing"
-            >
-              {{ row.resyncing ? '重试中...' : '重新同步' }}
-            </button>
-          </div>
-        </template>
-      </DataTable>
+        <span class="col-plate">{{ item.plateNumber }}</span>
+        <span class="col-code">{{ item.code }}</span>
+        <span class="col-valid">{{ item.validPeriod }}</span>
+        <span class="col-status">
+          <StatusTag :status="item.syncStatus" :text="statusLabelMap[item.syncStatus]" size="small" />
+        </span>
+        <span class="col-use-time">{{ item.useTime || '-' }}</span>
+        <span class="col-gate">{{ item.gateInfo || '-' }}</span>
+        <span class="col-action">
+          <button v-if="item.expanded" @click.stop="toggleExpand(item)">收起</button>
+          <button v-else @click.stop="toggleExpand(item)">展开</button>
+        </span>
 
-      <!-- 详情面板（使用 DetailPanel 组件） -->
-      <DetailPanel
-        :visible="detailVisible"
-        :title="'授权码详情'"
-        mode="drawer"
-        width="500px"
-        @close="detailVisible = false"
-      >
-        <div v-if="currentDetail">
-          <p>车牌号：{{ currentDetail.plate }}</p>
-          <p>授权码：{{ currentDetail.code }}</p>
-          <p>有效期：{{ currentDetail.validUntil }}</p>
-          <p>同步状态：{{ syncStatusMap[currentDetail.syncStatus] }}</p>
-          <p>使用时间：{{ currentDetail.usedAt || '未使用' }}</p>
-          <p>门岗信息：{{ currentDetail.gate || '-' }}</p>
+        <!-- 展开详情 -->
+        <div v-if="item.expanded" class="detail-panel">
+          <div class="sync-logs">
+            <strong>同步日志：</strong>
+            <p>{{ item.syncLog || '暂无日志' }}</p>
+          </div>
+          <button
+            class="retry-btn"
+            :disabled="item.retrying"
+            @click.stop="resync(item)"
+          >
+            {{ item.retrying ? '重新同步中...' : '重新同步' }}
+          </button>
         </div>
-      </DetailPanel>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import DataTable from '@/components/DataTable.vue'
-import StatusTag from '@/components/StatusTag.vue'
-import DetailPanel from '@/components/DetailPanel.vue'
+import { ref, computed, inject, onMounted } from 'vue'
+import { reservationsRecords, fetchReservationsData } from '../data/mockReservations.js'
+import StatusTag from '../components/StatusTag.vue'
 
-// 状态筛选 tabs
+const prototypeContext = inject('prototypeContext')
+const currentRoleKey = computed(() => prototypeContext?.currentRoleKey || 'approver')
+
+// 状态筛选标签
 const statusTabs = [
-  { label: '全部', value: 'all' },
-  { label: '同步成功', value: 'success' },
-  { label: '同步失败', value: 'failed' },
-  { label: '待同步', value: 'pending' },
-  { label: '已过期', value: 'expired' },
-  { label: '已使用', value: 'used' }
+  { key: 'all', label: '全部' },
+  { key: 'synced', label: '同步成功' },
+  { key: 'failed', label: '同步失败' },
+  { key: 'pending', label: '待同步' },
+  { key: 'expired', label: '已过期' },
+  { key: 'used', label: '已使用' }
 ]
 
-const activeStatus = ref('all')
-const searchKeyword = ref('')
-const uiState = ref('loading')
-const accessCodeList = ref([])
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0
-})
-
-// 表格列定义
-const tableColumns = [
-  { key: 'plate', title: '车牌号' },
-  { key: 'code', title: '授权码' },
-  { key: 'validUntil', title: '有效期' },
-  { key: 'syncStatus', title: '同步状态', slot: 'syncStatus' },
-  { key: 'usedAt', title: '使用时间' },
-  { key: 'gate', title: '门岗信息' }
-]
-
-// 同步状态映射
-const syncStatusMap = {
-  success: '同步成功',
+const statusLabelMap = {
+  synced: '同步成功',
   failed: '同步失败',
   pending: '待同步',
   expired: '已过期',
   used: '已使用'
 }
 
-// 详情面板
-const detailVisible = ref(false)
-const currentDetail = ref(null)
+// 根据角色设置默认筛选状态
+const defaultStatus = (() => {
+  if (currentRoleKey.value === 'gate') return 'pending'
+  if (currentRoleKey.value === 'approver') return 'all'
+  return 'all'
+})()
 
-// Mock 数据
-const mockData = [
-  { id: 1, plate: '京A12345', code: 'AC001', validUntil: '2025-12-31', syncStatus: 'success', usedAt: '2025-06-15 14:30', gate: '东门', syncLog: '同步成功' },
-  { id: 2, plate: '沪B67890', code: 'AC002', validUntil: '2025-12-31', syncStatus: 'failed', usedAt: null, gate: '西门', syncLog: '连接超时' },
-  { id: 3, plate: '粤C11223', code: 'AC003', validUntil: '2025-11-30', syncStatus: 'pending', usedAt: null, gate: '-', syncLog: '等待同步' },
-  { id: 4, plate: '苏D44556', code: 'AC004', validUntil: '2025-06-01', syncStatus: 'expired', usedAt: '2025-05-20 09:10', gate: '南门', syncLog: '已过期' },
-  { id: 5, plate: '浙E77889', code: 'AC005', validUntil: '2026-01-15', syncStatus: 'used', usedAt: '2025-07-01 16:45', gate: '北门', syncLog: '已使用' }
-]
+const activeStatus = ref(defaultStatus)
+const searchKeyword = ref('')
+const rawList = ref([])
+const loading = ref(true)
+const error = ref(false)
+const errorMessage = ref('')
 
-// 模拟异步请求
-function mockFetch() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // 根据筛选和搜索过滤
-      let filtered = [...mockData]
-      if (activeStatus.value !== 'all') {
-        filtered = filtered.filter(item => item.syncStatus === activeStatus.value)
-      }
-      if (searchKeyword.value) {
-        filtered = filtered.filter(item => item.plate.includes(searchKeyword.value))
-      }
-      // 模拟分页
-      const total = filtered.length
-      const start = (pagination.current - 1) * pagination.pageSize
-      const end = start + pagination.pageSize
-      const pageData = filtered.slice(start, end)
-      resolve({ list: pageData, total })
-    }, 500)
+// 从 mock 数据中提取授权码列表
+function extractAccessCodes(records) {
+  const items = []
+  records.forEach((rec, index) => {
+    if (rec.accessCode) {
+      items.push({
+        id: rec.accessCode.id || index,
+        plateNumber: rec.accessCode.plateNumber || rec.reservationItem?.plateNumber || '未知',
+        code: rec.accessCode.code || rec.accessCode.accessCodeValue || '-',
+        validPeriod: rec.accessCode.validPeriod || rec.accessCode.validity || '-',
+        syncStatus: rec.accessCode.syncStatus || 'pending',
+        useTime: rec.accessCode.useTime || '',
+        gateInfo: rec.accessCode.gateInfo || '',
+        syncLog: rec.accessCode.syncLog || '',
+        expanded: false,
+        retrying: false
+      })
+    }
   })
+  return items
 }
 
-async function fetchData() {
-  uiState.value = 'loading'
+async function fetchList() {
+  loading.value = true
+  error.value = false
   try {
-    const result = await mockFetch()
-    if (result.list.length === 0) {
-      uiState.value = 'empty'
-    } else {
-      accessCodeList.value = result.list
-      pagination.total = result.total
-      uiState.value = 'success'
-    }
+    // 模拟异步
+    await new Promise(resolve => setTimeout(resolve, 300))
+    const data = fetchReservationsData ? fetchReservationsData() : reservationsRecords
+    rawList.value = extractAccessCodes(data)
   } catch (e) {
-    uiState.value = 'error'
+    error.value = true
+    errorMessage.value = '获取授权码列表失败，请重试。'
+  } finally {
+    loading.value = false
   }
 }
 
-function switchStatus(status) {
-  activeStatus.value = status
-  pagination.current = 1
-  fetchData()
+// 筛选逻辑
+const filteredList = computed(() => {
+  let list = rawList.value
+  // 状态筛选
+  if (activeStatus.value !== 'all') {
+    list = list.filter(item => item.syncStatus === activeStatus.value)
+  }
+  // 车牌号搜索
+  if (searchKeyword.value.trim()) {
+    const kw = searchKeyword.value.trim().toLowerCase()
+    list = list.filter(item => item.plateNumber.toLowerCase().includes(kw))
+  }
+  return list
+})
+
+function selectStatus(key) {
+  activeStatus.value = key
 }
 
 function handleSearch() {
-  pagination.current = 1
-  fetchData()
+  // 搜索已在 computed 中实时触发，此函数仅保留用于回车或点击搜索按钮的显式意图
 }
 
-function handlePageChange(newPage) {
-  pagination.current = newPage.current
-  pagination.pageSize = newPage.pageSize
-  fetchData()
+function toggleExpand(item) {
+  item.expanded = !item.expanded
 }
 
-function handleRowClick(row) {
-  // 展示详情面板
-  currentDetail.value = row
-  detailVisible.value = true
-}
-
-async function retrySync(row) {
-  row.resyncing = true
-  // 模拟重试请求
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  // 模拟成功
-  row.syncStatus = 'success'
-  row.syncLog = '重试同步成功'
-  row.resyncing = false
+async function resync(item) {
+  item.retrying = true
+  try {
+    // 模拟 POST /api/access-codes/{id}/resync
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        // 模拟80%成功率
+        if (Math.random() > 0.2) {
+          item.syncStatus = 'synced'
+          item.syncLog = '门禁同步成功'
+          resolve()
+        } else {
+          reject(new Error('同步失败：门禁超时'))
+        }
+      }, 800)
+    })
+  } catch (e) {
+    item.syncStatus = 'failed'
+    item.syncLog = e.message
+  } finally {
+    item.retrying = false
+  }
 }
 
 onMounted(() => {
-  fetchData()
+  fetchList()
 })
 </script>
 
 <style scoped>
 .access-code-view {
-  padding: 20px;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  padding: 16px;
+  font-size: 14px;
+  color: #333;
 }
+
 .filter-bar {
   display: flex;
   align-items: center;
+  gap: 16px;
   margin-bottom: 16px;
-  gap: 8px;
   flex-wrap: wrap;
 }
-.filter-tab {
-  padding: 6px 16px;
+
+.status-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.status-tab {
+  padding: 4px 12px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
   background: #fff;
-  color: #333;
-  font-size: 14px;
   transition: all 0.2s;
 }
-.filter-tab.active,
-.filter-tab:hover {
+
+.status-tab.active {
+  background: #1890ff;
+  color: #fff;
   border-color: #1890ff;
-  color: #1890ff;
-  background: #e6f7ff;
 }
-.search-area {
-  margin-left: auto;
+
+.search-box {
   display: flex;
   gap: 4px;
 }
-.search-area input {
-  padding: 6px 12px;
+
+.search-box input {
+  padding: 4px 8px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  font-size: 14px;
+  width: 180px;
 }
-.search-area button {
-  padding: 6px 16px;
+
+.search-btn {
+  padding: 4px 12px;
+  border: 1px solid #1890ff;
   background: #1890ff;
   color: #fff;
-  border: none;
   border-radius: 4px;
   cursor: pointer;
 }
-.skeleton {
+
+.loading-state .skeleton-table {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
+
 .skeleton-row {
   height: 40px;
   background: #f0f0f0;
   border-radius: 4px;
   animation: shimmer 1.5s infinite;
 }
+
 @keyframes shimmer {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
-.error-state,
-.empty-state {
+
+.error-state, .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 0;
   color: #999;
 }
+
 .error-state button {
-  margin-top: 12px;
-  padding: 8px 24px;
-  background: #ff4d4f;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.expand-detail {
-  padding: 12px 24px;
-  background: #fafafa;
-}
-.expand-detail button {
   margin-top: 8px;
-  padding: 4px 12px;
-  background: #1890ff;
-  color: #fff;
-  border: none;
+  padding: 6px 16px;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
 }
-.expand-detail button:disabled {
-  background: #ccc;
+
+.list-area {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+.list-header {
+  display: flex;
+  background: #fafafa;
+  padding: 10px 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+}
+
+.list-row:hover {
+  background: #f5f5f5;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.col-plate { flex: 1.5; min-width: 100px; }
+.col-code { flex: 1.5; min-width: 120px; }
+.col-valid { flex: 1.5; min-width: 100px; }
+.col-status { flex: 1; min-width: 80px; }
+.col-use-time { flex: 1.2; min-width: 100px; }
+.col-gate { flex: 1.2; min-width: 80px; }
+.col-action { flex: 0.8; min-width: 60px; text-align: center; }
+
+.detail-panel {
+  width: 100%;
+  padding: 12px 16px;
+  background: #f9f9f9;
+  border-top: 1px solid #e8e8e8;
+  margin-top: 8px;
+}
+
+.sync-logs {
+  margin-bottom: 8px;
+}
+
+.sync-logs p {
+  margin: 4px 0 0;
+  color: #666;
+}
+
+.retry-btn {
+  padding: 4px 12px;
+  border: 1px solid #faad14;
+  background: #fff7e6;
+  color: #d46b08;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.retry-btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>

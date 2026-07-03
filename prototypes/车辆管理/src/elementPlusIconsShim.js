@@ -1,4 +1,1 @@
-export const Search = {
-  name: 'SearchIcon',
-  template: '<span>⌕</span>',
-}
+export const Search = { name: 'SearchIcon', template: '<span>⌕</span>' }

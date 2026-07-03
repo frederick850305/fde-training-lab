@@ -1,90 +1,112 @@
 <template>
-  <div v-if="visible" class="detail-mask" :class="{ modal: mode === 'modal' }" @click.self="handleClose">
-  <div :class="['detail-panel', mode]">
-    <slot name="header">
-      <div class="panel-header">
-        <span class="title">{{ title }}</span>
-        <button v-if="closable" class="close-btn" @click="handleClose">×</button>
+  <div v-if="visible" class="detail-panel-overlay" :class="mode" @click.self="onClose">
+    <div class="detail-panel" :style="{ width: width }">
+      <slot name="header">
+        <div class="detail-panel-header">
+          <span class="detail-panel-title">{{ title }}</span>
+          <button v-if="closable" class="detail-panel-close" @click="onClose">&times;</button>
+        </div>
+      </slot>
+      <div class="detail-panel-body">
+        <slot name="default" />
       </div>
-    </slot>
-    <div class="panel-body">
-      <slot />
+      <slot name="footer" />
     </div>
-    <slot name="footer" />
-  </div>
   </div>
 </template>
 
 <script setup>
 defineProps({
-  visible: { type: Boolean, default: false },
-  title: { type: String, default: '' },
-  mode: { type: String, default: 'drawer' },
-  width: { type: String, default: '400px' },
-  closable: { type: Boolean, default: true }
+  visible: {
+    type: Boolean,
+    default: false
+  },
+  title: {
+    type: String,
+    default: ''
+  },
+  mode: {
+    type: String,
+    default: 'drawer',
+    validator: (value) => ['drawer', 'modal'].includes(value)
+  },
+  width: {
+    type: String,
+    default: '400px'
+  },
+  closable: {
+    type: Boolean,
+    default: true
+  }
 })
-const emit = defineEmits(['close', 'update:visible'])
 
-function handleClose() {
-  emit('update:visible', false)
+const emit = defineEmits(['close'])
+
+function onClose() {
   emit('close')
 }
 </script>
 
 <style scoped>
-.detail-mask.modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(15, 23, 42, 0.36);
-}
-.detail-panel {
+.detail-panel-overlay {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+}
+
+.detail-panel-overlay.drawer {
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.detail-panel-overlay.modal {
+  justify-content: center;
+  align-items: center;
+}
+
+.detail-panel {
   background: #fff;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.15);
-  z-index: 1001;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  width: v-bind(width);
+  max-height: 100%;
+  overflow-y: auto;
 }
-.detail-panel.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  height: auto;
-  max-height: 80vh;
-  box-shadow: 0 20px 45px rgba(15,23,42,0.25);
+
+.detail-panel-overlay.modal .detail-panel {
   border-radius: 8px;
-  width: v-bind(width);
+  max-width: 90%;
+  max-height: 90%;
 }
-.panel-header {
+
+.detail-panel-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #e8e8e8;
 }
-.title {
+
+.detail-panel-title {
   font-size: 16px;
   font-weight: 600;
 }
-.close-btn {
+
+.detail-panel-close {
+  background: none;
   border: none;
-  background: transparent;
   font-size: 20px;
   cursor: pointer;
   color: #999;
 }
-.close-btn:hover {
-  color: #333;
-}
-.panel-body {
+
+.detail-panel-body {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
+  padding: 20px;
 }
 </style>

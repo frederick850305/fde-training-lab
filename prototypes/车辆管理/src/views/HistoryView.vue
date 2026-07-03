@@ -1,6 +1,6 @@
 <template>
   <div class="history-view">
-    <!-- 筛选栏 -->
+    <!-- 顶部筛选栏 -->
     <DataFilterBar
       :filters="filterConfig"
       v-model="filterValues"
@@ -8,435 +8,337 @@
       @search="handleSearch"
     />
 
-    <!-- 加载中状态 -->
-    <div v-if="loading" class="state-container">
-      <div class="loading-spinner"></div>
-      <p>数据加载中，请稍候...</p>
-    </div>
-
-    <!-- 错误状态 -->
-    <div v-else-if="error" class="state-container error-state">
-      <p>请求失败，请检查网络后重试</p>
-      <button @click="fetchData" class="retry-btn">重试</button>
-    </div>
-
-    <!-- 空状态 -->
-    <div v-else-if="!loading && tableData.length === 0" class="state-container empty-state">
-      <p>暂无记录</p>
-      <p class="hint">请修改筛选条件后重新查询</p>
-    </div>
-
-    <!-- 数据表格 -->
-    <template v-else>
-      <DataTable
-        :columns="tableColumns"
-        :data="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        rowKey="id"
-        @row-click="handleRowClick"
-      />
-    </template>
-
     <!-- 导出区域 -->
     <div class="export-area">
-      <button @click="handleExport" :disabled="exporting" class="export-btn">
+      <button class="export-btn" @click="handleExport" :disabled="exporting">
         {{ exporting ? '导出中...' : '导出Excel' }}
       </button>
-      <div v-if="exportProgress > -1" class="export-progress">
-        <div class="progress-bar" :style="{ width: exportProgress + '%' }"></div>
-        <span>{{ exportProgress }}%</span>
+      <div v-if="exportProgress" class="export-progress">{{ exportProgress }}</div>
+    </div>
+
+    <!-- 列表区域 -->
+    <div class="list-area">
+      <!-- 加载态 -->
+      <div v-if="loading" class="state-loading">
+        <span class="spinner"></span> 数据加载中...
       </div>
+
+      <!-- 错误态 -->
+      <div v-else-if="error" class="state-error">
+        <p>接口请求失败，请重试</p>
+        <button @click="fetchHistory">重试</button>
+      </div>
+
+      <!-- 空态 -->
+      <div v-else-if="listData.length === 0" class="state-empty">
+        <p>暂无记录</p>
+        <p v-if="hasActiveFilter">请修改筛选条件后重新查询</p>
+      </div>
+
+      <!-- 成功态 -->
+      <DataTable
+        v-else
+        :columns="tableColumns"
+        :data="listData"
+        :loading="false"
+        :pagination="pagination"
+        rowKey="id"
+        @page-change="handlePageChange"
+      >
+        <template #action="{ row }">
+          <button class="detail-btn" @click="openDetail(row)">详情</button>
+        </template>
+      </DataTable>
     </div>
 
     <!-- 详情弹窗 -->
     <DetailPanel
       :visible="detailVisible"
-      :title="currentDetail ? currentDetail.licensePlate : ''"
-      mode="modal"
-      width="600px"
+      :title="detailTitle"
+      mode="drawer"
+      width="500px"
       @close="detailVisible = false"
     >
-      <template v-if="currentDetail">
-        <div class="detail-content">
-          <h4>基本信息</h4>
-          <p>车牌号：{{ currentDetail.licensePlate }}</p>
-          <p>预约时间：{{ currentDetail.reservationTime }}</p>
-          <p>审批状态：
-            <StatusTag :status="currentDetail.approvalStatus" :text="currentDetail.approvalStatus" />
-          </p>
-          <p>授权码：{{ currentDetail.accessCode }}</p>
-          <p>入场时间：{{ currentDetail.entryTime }}</p>
-          <p>出场时间：{{ currentDetail.exitTime }}</p>
-          <p>费用：¥{{ currentDetail.fee }}</p>
-
-          <h4>操作日志</h4>
-          <ul class="log-timeline">
-            <li v-for="(log, index) in currentDetail.operationLogs" :key="index">
-              <span class="log-time">{{ log.time }}</span>
-              <span class="log-event">{{ log.event }}</span>
-            </li>
-          </ul>
-
-          <h4>费用明细</h4>
-          <table class="fee-table">
+      <div class="detail-content">
+        <h4>操作日志时间线</h4>
+        <ul class="timeline">
+          <li v-for="log in detailLogs" :key="log.time">
+            <span class="time">{{ log.time }}</span>
+            <span class="desc">{{ log.description }}</span>
+          </li>
+        </ul>
+        <h4>费用明细</h4>
+        <table class="fee-table">
+          <thead>
             <tr>
-              <th>项目</th>
+              <th>费用项目</th>
               <th>金额</th>
             </tr>
-            <tr v-for="(item, index) in currentDetail.feeDetails" :key="index">
-              <td>{{ item.name }}</td>
-              <td>¥{{ item.amount }}</td>
+          </thead>
+          <tbody>
+            <tr v-for="fee in detailFees" :key="fee.item">
+              <td>{{ fee.item }}</td>
+              <td>{{ fee.amount }}</td>
             </tr>
-          </table>
-        </div>
-      </template>
+          </tbody>
+        </table>
+      </div>
     </DetailPanel>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import DataFilterBar from '@/components/DataFilterBar.vue'
-import DataTable from '@/components/DataTable.vue'
-import DetailPanel from '@/components/DetailPanel.vue'
-import StatusTag from '@/components/StatusTag.vue'
+import { ref, computed, inject, onMounted } from 'vue'
+import { prototypeContract } from '../prototypeContract'
+import DataFilterBar from '../components/DataFilterBar.vue'
+import DataTable from '../components/DataTable.vue'
+import DetailPanel from '../components/DetailPanel.vue'
+import { fetchReservationsData } from '../data/mockReservations'
 
-// 模拟数据（实际原型可改为从 src/data/mockReservations 导入）
-const mockData = Array.from({ length: 88 }, (_, i) => ({
-  id: i + 1,
-  licensePlate: '京A·' + String(10000 + i).slice(-5),
-  reservationTime: `2025-03-${String(10 + (i % 20)).padStart(2, '0')} ${String(8 + (i % 12)).padStart(2, '0')}:00`,
-  approvalStatus: ['已批准', '待审批', '已拒绝', '已过期'][i % 4],
-  accessCode: 'AC' + String(100000 + Math.floor(Math.random() * 900000)),
-  entryTime: i % 2 === 0 ? `2025-03-${String(10 + (i % 20)).padStart(2, '0')} 08:${String(i % 60).padStart(2, '0')}` : '-',
-  exitTime: i % 2 === 0 ? `2025-03-${String(10 + (i % 20)).padStart(2, '0')} 17:${String(i % 60).padStart(2, '0')}` : '-',
-  fee: (Math.random() * 1000).toFixed(2),
-  operationLogs: [
-    { time: '2025-03-10 08:00', event: '预约申请提交' },
-    { time: '2025-03-10 09:15', event: '审批通过' },
-    { time: '2025-03-11 07:30', event: '车辆入场' },
-    { time: '2025-03-11 18:20', event: '车辆出场，费用计算' }
-  ],
-  feeDetails: [
-    { name: '基础停车费', amount: '200.00' },
-    { name: '超时附加费', amount: '50.00' },
-    { name: '清洁服务费', amount: '30.00' }
-  ]
-}))
+const prototypeContext = inject('prototypeContext', { currentRole: 'manager', currentRoleKey: 'manager' })
+const { currentRole, currentRoleKey } = prototypeContext
 
-// 筛选配置
+// 状态
+const loading = ref(false)
+const error = ref(false)
+const listData = ref([])
+const pagination = ref({ current: 1, pageSize: 10, total: 0 })
+
+// 筛选
 const filterConfig = [
-  { type: 'dateRange', label: '时间范围', key: 'dateRange', options: [] },
-  { type: 'input', label: '车辆', key: 'licensePlate', placeholder: '输入车牌号' },
-  { type: 'select', label: '所属单位', key: 'unit', options: [
-    { label: '全部', value: '' },
-    { label: 'A物流', value: 'A物流' },
-    { label: 'B运输', value: 'B运输' },
-    { label: 'C工程', value: 'C工程' }
-  ]},
-  { type: 'select', label: '作业区域', key: 'area', options: [
-    { label: '全部', value: '' },
-    { label: '东区', value: '东区' },
-    { label: '西区', value: '西区' },
-    { label: '南区', value: '南区' },
-    { label: '北区', value: '北区' }
-  ]},
-  { type: 'select', label: '审批状态', key: 'approvalStatus', options: [
-    { label: '全部', value: '' },
-    { label: '已批准', value: '已批准' },
-    { label: '待审批', value: '待审批' },
-    { label: '已拒绝', value: '已拒绝' },
-    { label: '已过期', value: '已过期' }
+  { type: 'dateRange', label: '时间范围', key: 'timeRange', placeholder: '选择日期范围' },
+  { type: 'input', label: '车辆', key: 'vehicle', placeholder: '车牌号' },
+  { type: 'input', label: '所属单位', key: 'unit', placeholder: '单位名称' },
+  { type: 'input', label: '作业区域', key: 'area', placeholder: '区域名称' },
+  { type: 'select', label: '审批状态', key: 'status', options: [
+    { value: '', label: '全部' },
+    { value: 'approved', label: '已通过' },
+    { value: 'rejected', label: '已驳回' },
+    { value: 'pending', label: '待审批' }
   ]}
 ]
 
-// 响应式状态
-const filterValues = reactive({
-  dateRange: [],
-  licensePlate: '',
-  unit: '',
-  area: '',
-  approvalStatus: ''
+// 根据角色设置默认筛选
+const defaultFilter = computed(() => {
+  if (currentRoleKey === 'approver') {
+    return { status: 'approved' }
+  } else if (currentRoleKey === 'manager' || currentRoleKey === 'admin') {
+    return { status: '' }
+  }
+  return {}
 })
 
-const tableData = ref([])
-const loading = ref(false)
-const error = ref(false)
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0
+const filterValues = ref({ ...defaultFilter.value })
+
+const hasActiveFilter = computed(() => {
+  return Object.values(filterValues.value).some(v => v !== '' && v !== null && v !== undefined)
 })
-const detailVisible = ref(false)
-const currentDetail = ref(null)
-const exporting = ref(false)
-const exportProgress = ref(-1)
 
 // 表格列定义
 const tableColumns = [
-  { key: 'id', title: '记录ID', width: 80, sortable: true },
-  { key: 'licensePlate', title: '车牌号', width: 120 },
-  { key: 'reservationTime', title: '预约时间', width: 160 },
-  {
-    key: 'approvalStatus',
-    title: '审批状态',
-    width: 100,
-    customRender: ({ value }) => {
-      // 简单使用 StatusTag 组件，但实际在模板中通过插槽处理更好，这里简化为字符串
-      return value
-    }
-  },
-  { key: 'accessCode', title: '授权码', width: 120 },
-  { key: 'entryTime', title: '入场时间', width: 160 },
-  { key: 'exitTime', title: '出场时间', width: 160 },
-  { key: 'fee', title: '费用(元)', width: 100, sortable: true }
+  { key: 'vehiclePlate', title: '车牌号', sortable: true },
+  { key: 'reservationTime', title: '预约时间', sortable: true },
+  { key: 'approvalStatus', title: '审批状态', customRender: (value) => {
+    const statusMap = { approved: '已通过', rejected: '已驳回', pending: '待审批' }
+    return statusMap[value] || value
+  }},
+  { key: 'accessCode', title: '授权码' },
+  { key: 'entryTime', title: '入场时间' },
+  { key: 'exitTime', title: '出场时间' },
+  { key: 'fee', title: '费用', align: 'right' },
+  { key: 'action', title: '操作', width: '80px' }
 ]
 
-// 模拟数据加载
-const fetchData = () => {
+// 导出
+const exporting = ref(false)
+const exportProgress = ref('')
+
+async function handleExport() {
+  exporting.value = true
+  exportProgress.value = '正在生成文件...'
+  try {
+    // 模拟导出延迟
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    exportProgress.value = '导出完成，开始下载'
+    // 实际原型中可触发下载
+  } catch (e) {
+    exportProgress.value = '导出失败'
+  } finally {
+    exporting.value = false
+    setTimeout(() => { exportProgress.value = '' }, 2000)
+  }
+}
+
+// 数据获取
+async function fetchHistory() {
   loading.value = true
   error.value = false
-  // 模拟网络请求延迟
-  setTimeout(() => {
-    try {
-      // 根据筛选条件过滤（简单模拟）
-      let filtered = mockData
-      if (filterValues.licensePlate) {
-        filtered = filtered.filter(item =>
-          item.licensePlate.includes(filterValues.licensePlate)
-        )
-      }
-      if (filterValues.unit) {
-        filtered = filtered.filter(item => item.unit === filterValues.unit)
-      }
-      if (filterValues.area) {
-        filtered = filtered.filter(item => item.area === filterValues.area)
-      }
-      if (filterValues.approvalStatus) {
-        filtered = filtered.filter(
-          item => item.approvalStatus === filterValues.approvalStatus
-        )
-      }
-      // 分页
-      const total = filtered.length
-      const start = (pagination.current - 1) * pagination.pageSize
-      const end = start + pagination.pageSize
-      const list = filtered.slice(start, end)
-
-      tableData.value = list
-      pagination.total = total
-      loading.value = false
-    } catch (e) {
-      error.value = true
-      loading.value = false
+  try {
+    const rawData = await fetchReservationsData()
+    // 根据schema中的historyRecord进行normalize
+    const records = (rawData.historyRecords || []).map(item => ({
+      id: item.id || item.recordId,
+      vehiclePlate: item.vehiclePlate || item.plateNumber,
+      reservationTime: item.reservationTime,
+      approvalStatus: item.approvalStatus || item.status,
+      accessCode: item.accessCode,
+      entryTime: item.entryTime,
+      exitTime: item.exitTime,
+      fee: item.fee
+    }))
+    // 应用筛选条件（简单模拟，实际应该在API层面过滤）
+    let filtered = records
+    if (filterValues.value.vehicle) {
+      filtered = filtered.filter(r => r.vehiclePlate.includes(filterValues.value.vehicle))
     }
-  }, 800) // 800ms延迟模拟
+    if (filterValues.value.status) {
+      filtered = filtered.filter(r => r.approvalStatus === filterValues.value.status)
+    }
+    // 其他筛选同理，为原型演示简化
+    // 倒序
+    filtered.sort((a, b) => new Date(b.reservationTime) - new Date(a.reservationTime))
+    listData.value = filtered
+    pagination.value.total = filtered.length
+  } catch (e) {
+    error.value = true
+    listData.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
-// 搜索事件
-const handleSearch = () => {
-  pagination.current = 1
-  fetchData()
+function handleSearch() {
+  pagination.value.current = 1
+  fetchHistory()
 }
 
-// 分页切换（通过 watch pagination.current 自动触发）
-import { watch } from 'vue'
-watch(() => pagination.current, (newVal) => {
-  if (newVal) fetchData()
-})
+function handlePageChange(page) {
+  pagination.value.current = page
+  fetchHistory()
+}
 
-// 行点击查看详情
-const handleRowClick = (row) => {
-  currentDetail.value = row
+// 详情
+const detailVisible = ref(false)
+const detailTitle = ref('')
+const detailLogs = ref([])
+const detailFees = ref([])
+
+function openDetail(row) {
+  detailTitle.value = `预约记录详情 - ${row.vehiclePlate}`
+  // 模拟操作日志和费用明细
+  detailLogs.value = [
+    { time: row.reservationTime, description: '提交预约申请' },
+    { time: row.reservationTime, description: '审批通过' },
+    { time: row.entryTime, description: '车辆入场' },
+    { time: row.exitTime, description: '车辆出场' }
+  ]
+  detailFees.value = [
+    { item: '入场费', amount: '50.00' },
+    { item: '停车费', amount: '30.00' },
+    { item: '其他', amount: '20.00' }
+  ]
   detailVisible.value = true
 }
 
-// 导出Excel模拟
-const handleExport = () => {
-  if (exporting.value) return
-  exporting.value = true
-  exportProgress.value = 0
-  const interval = setInterval(() => {
-    exportProgress.value += Math.floor(Math.random() * 20) + 5
-    if (exportProgress.value >= 100) {
-      clearInterval(interval)
-      exportProgress.value = 100
-      setTimeout(() => {
-        exporting.value = false
-        exportProgress.value = -1
-        // 模拟下载完成提示
-        alert('导出完成，文件已下载。')
-      }, 500)
-    }
-  }, 300)
-}
-
-// 页面加载时获取数据
 onMounted(() => {
-  fetchData()
+  fetchHistory()
 })
 </script>
 
 <style scoped>
 .history-view {
   padding: 16px;
-  background: #f5f7fa;
-  min-height: 100vh;
 }
-
-.state-container {
+.export-area {
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.export-btn {
+  padding: 6px 16px;
+  background: #409eff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.export-progress {
+  color: #909399;
+  font-size: 13px;
+}
+.list-area {
+  min-height: 200px;
+}
+.state-loading, .state-error, .state-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 40px;
+  color: #909399;
 }
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #409eff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-state p {
-  color: #f56c6c;
+.state-error p {
   margin-bottom: 12px;
 }
-
-.retry-btn {
-  padding: 8px 24px;
-  background: #409eff;
-  color: #fff;
-  border: none;
+.state-error button {
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dcdfe6;
+  border-top-color: #409eff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.detail-btn {
+  padding: 2px 8px;
+  background: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #b3d8ff;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
 }
-
-.retry-btn:hover {
-  background: #66b1ff;
-}
-
-.empty-state p {
-  color: #909399;
-  margin: 4px 0;
-}
-
-.hint {
-  font-size: 13px;
-  color: #c0c4cc;
-}
-
-.export-area {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.export-btn {
-  padding: 8px 24px;
-  background: #67c23a;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.export-btn:disabled {
-  background: #b3e19d;
-  cursor: not-allowed;
-}
-
-.export-progress {
-  flex: 1;
-  max-width: 200px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.progress-bar {
-  height: 10px;
-  background: #409eff;
-  border-radius: 5px;
-  transition: width 0.3s;
-  flex: 1;
-}
-
-.detail-content {
-  padding: 8px 0;
-}
-
 .detail-content h4 {
   margin: 16px 0 8px;
-  color: #303133;
-  border-left: 4px solid #409eff;
-  padding-left: 8px;
 }
-
-.detail-content p {
-  margin: 4px 0;
-  font-size: 14px;
-  color: #606266;
-}
-
-.log-timeline {
+.timeline {
   list-style: none;
   padding: 0;
 }
-
-.log-timeline li {
-  display: flex;
-  gap: 16px;
-  padding: 6px 0;
-  border-bottom: 1px solid #ebeef5;
+.timeline li {
+  padding: 4px 0;
+  border-left: 2px solid #dcdfe6;
+  padding-left: 12px;
+  margin-bottom: 8px;
 }
-
-.log-time {
-  color: #909399;
-  font-size: 13px;
-  min-width: 120px;
+.timeline .time {
+  font-weight: bold;
+  margin-right: 8px;
 }
-
-.log-event {
-  color: #303133;
-}
-
 .fee-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
 }
-
-.fee-table th,
-.fee-table td {
-  border: 1px solid #ebeef5;
-  padding: 8px 12px;
+.fee-table th, .fee-table td {
+  border: 1px solid #dcdfe6;
+  padding: 6px 12px;
   text-align: left;
-  font-size: 14px;
 }
-
 .fee-table th {
   background: #f5f7fa;
-  color: #606266;
-}
-
-.fee-table td {
-  color: #303133;
 }
 </style>

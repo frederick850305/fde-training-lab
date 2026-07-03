@@ -1,90 +1,111 @@
-export const reservationItem = {
-  reservationId: 'R-001',
-  plateNo: '京E·22222',
-  vehicleType: '小型货车',
-  company: '外协物流A',
-  workArea: '仓库区',
-  reservationTime: '2025-06-15 10:00',
-  status: '待审批',
-  timeoutFlag: false
-};
-
-export const approvalAction = {
-  reservationId: 'R-001',
-  approved: true,
-  comment: '同意进入',
-  forceApprove: false
-};
-
-export const accessCode = {
-  codeId: 'AC-001',
-  codeValue: 'AC20250615001',
-  plateNo: '京E·22222',
-  syncStatus: '待同步',
-  validPeriod: { start: '2025-06-15 09:00', end: '2025-06-15 18:00' },
-  useStatus: '未使用'
-};
-
-export const historyRecord = {
-  recordId: 'HR-001',
-  plateNo: '京E·22222',
-  reservationTime: '2025-06-10 14:00',
-  approvalStatus: '已通过',
-  accessCode: 'AC20250610001',
-  entryTime: '2025-06-10 14:05',
-  exitTime: '2025-06-10 16:30',
-  fee: 0
-};
-
-const reservations = [
-  reservationItem,
-  { ...reservationItem, reservationId: 'R-002', plateNo: '京E·33333', status: '待审批', timeoutFlag: true },
-  { ...reservationItem, reservationId: 'R-003', plateNo: '京E·44444', status: '已通过' },
-].map((item, index) => ({
-  ...item,
-  id: item.reservationId,
-  plateNumber: item.plateNo,
-  unit: item.company,
-  applyTime: item.reservationTime,
-  overdue: item.timeoutFlag,
-  status: item.status === '待审批' ? 'pending' : item.status === '已通过' ? 'approved' : 'rejected',
-  statusLabel: item.status,
-  urgency: item.timeoutFlag ? 'high' : index === 0 ? 'medium' : 'normal',
-  verification: item.timeoutFlag
-    ? { passed: false, reason: '预约超时未处理，需要复核' }
-    : { passed: true, reason: '' },
-  logs: [
-    { id: `${item.reservationId}-log-1`, time: item.reservationTime, action: '提交预约', operator: item.company, comment: '等待审批' },
-  ],
-}));
-
-export async function fetchReservations() {
-  return reservations;
-}
-
-export async function fetchDetail(id) {
-  return reservations.find(item => item.id === id || item.reservationId === id) || reservations[0];
-}
-
-export async function approveReservation(id, payload = {}) {
-  return {
-    ...approvalAction,
-    reservationId: id,
-    comment: payload.comment || '同意',
-    accessCode: {
-      ...accessCode,
-      reservationId: id,
-      code: accessCode.codeValue,
-      syncStatus: 'synced',
-      syncStatusLabel: '已同步',
+// 预约审批 Mock 数据
+export const reservationsRecords = [
+  {
+    reservationItem: {
+      id: 'RSV-001',
+      reservationId: 'RSV-001',
+      plate: '京A·12345',
+      plateNo: '京A·12345',
+      vehicleType: '卡车',
+      type: '卡车',
+      company: 'XX物流公司',
+      workArea: '车间A',
+      reservationTime: '2024-12-01 09:00:00',
+      status: '待审批',
+      applyStatus: '待审批',
+      overTimeMark: false
     },
-  };
-}
+    approvalAction: {
+      reservationId: 'RSV-001',
+      approved: true,
+      comment: '同意',
+      forceApprove: false
+    },
+    accessCode: {
+      id: 'AC-001',
+      codeId: 'AC-001',
+      code: '1234ABCD',
+      plate: '京A·12345',
+      plateNo: '京A·12345',
+      syncStatus: '已同步',
+      validUntil: '2024-12-01 18:00:00',
+      used: false
+    },
+    historyRecord: {
+      id: 'HR-001',
+      historyId: 'HR-001',
+      plate: '京A·12345',
+      plateNo: '京A·12345',
+      reservationTime: '2024-12-01 09:00:00',
+      approvalStatus: '已通过',
+      code: '1234ABCD',
+      entryTime: '2024-12-01 09:15:00',
+      exitTime: '2024-12-01 10:00:00',
+      fee: 50.00
+    }
+  },
+  {
+    reservationItem: {
+      id: 'RSV-002',
+      reservationId: 'RSV-002',
+      plate: '沪B·67890',
+      plateNo: '沪B·67890',
+      vehicleType: '叉车',
+      type: '叉车',
+      company: 'XX叉车租赁',
+      workArea: '仓库B',
+      reservationTime: '2024-12-01 10:00:00',
+      status: '已通过',
+      applyStatus: '已通过',
+      overTimeMark: true
+    },
+    approvalAction: {
+      reservationId: 'RSV-002',
+      approved: true,
+      comment: '已审批',
+      forceApprove: false
+    },
+    accessCode: {
+      id: 'AC-002',
+      codeId: 'AC-002',
+      code: '5678EFGH',
+      plate: '沪B·67890',
+      plateNo: '沪B·67890',
+      syncStatus: '同步失败',
+      validUntil: '2024-12-01 18:00:00',
+      used: false
+    },
+    historyRecord: {
+      id: 'HR-002',
+      historyId: 'HR-002',
+      plate: '沪B·67890',
+      plateNo: '沪B·67890',
+      reservationTime: '2024-12-01 10:00:00',
+      approvalStatus: '已通过',
+      code: '5678EFGH',
+      entryTime: '2024-12-01 10:20:00',
+      exitTime: null,
+      fee: 0
+    }
+  }
+];
 
-export async function rejectReservation(id, payload = {}) {
-  return { reservationId: id, approved: false, comment: payload.comment || '驳回' };
-}
-
-export async function fetchAccessCode(id) {
-  return { ...accessCode, reservationId: id };
+export function fetchReservationsData({ roleKey, currentUser, filters = {} } = {}) {
+  let data = reservationsRecords;
+  if (filters.type === 'reservationItem') {
+    data = data.map(r => r.reservationItem);
+  } else if (filters.type === 'approvalAction') {
+    data = data.map(r => r.approvalAction);
+  } else if (filters.type === 'accessCode') {
+    data = data.map(r => r.accessCode);
+  } else if (filters.type === 'historyRecord') {
+    data = data.map(r => r.historyRecord);
+  }
+  if (roleKey === 'approver') {
+    // 审批人只能看到待审批的预约
+    if (filters.type === 'reservationItem' || !filters.type) {
+      data = data.filter(r => r.reservationItem?.status === '待审批');
+    }
+  }
+  return Promise.resolve(data);
 }

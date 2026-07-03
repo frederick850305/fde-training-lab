@@ -1,95 +1,109 @@
 <template>
   <div class="driver-task-execute">
-    <!-- loading 状态 -->
-    <div v-if="state === 'loading'" class="skeleton">
-      <div class="skeleton-header"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-buttons"></div>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar">
+      <button class="back-btn">← 返回</button>
+      <span class="task-id">{{ taskId || '任务ID' }}</span>
+      <span class="status-tag" :class="taskStatus">{{ statusLabel }}</span>
     </div>
 
-    <!-- error 状态 -->
-    <div v-else-if="state === 'error'" class="error-state">
-      <p>加载失败，请重试</p>
-      <button @click="fetchTaskDetail">重试</button>
+    <!-- 加载状态 -->
+    <div v-if="loading" class="skeleton">
+      <div class="skeleton-block"></div>
+      <div class="skeleton-block"></div>
+      <div class="skeleton-block"></div>
     </div>
 
-    <!-- empty 状态（实际不会出现，但保留） -->
-    <div v-else-if="state === 'empty'" class="empty-state">
-      <p>暂无任务</p>
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="error-state">
+      <p>数据加载失败，请重试</p>
+      <button @click="retryLoad">重试</button>
     </div>
 
-    <!-- success 状态 -->
+    <!-- 空状态（理论上不会出现，但保留） -->
+    <div v-else-if="empty" class="empty-state">
+      <p>暂无任务数据</p>
+    </div>
+
+    <!-- 成功状态：任务详情 -->
     <div v-else class="content">
-      <!-- 顶部导航栏 -->
-      <div class="top-nav">
-        <button @click="goBack">返回</button>
-        <span class="task-id">任务ID: {{ task.id }}</span>
-        <span class="status-tag" :class="task.status">{{ task.statusLabel }}</span>
-      </div>
-
       <!-- 任务信息卡片 -->
-      <div class="task-info-card">
-        <p><strong>作业点：</strong>{{ task.workPointName }}</p>
-        <p><strong>地址：</strong>{{ task.address }}</p>
-        <p><strong>预计时间：</strong>{{ task.estimatedTime }}</p>
-        <p><strong>提货单号：</strong>{{ task.pickupOrderNo }}</p>
-        <p><strong>车牌：</strong>{{ task.plateNumber }}</p>
-        <p><strong>司机电话：</strong><a :href="'tel:' + task.driverPhone">{{ task.driverPhone }}</a></p>
-        <p><strong>调度员电话：</strong><a :href="'tel:' + task.dispatcherPhone">{{ task.dispatcherPhone }}</a></p>
+      <div class="info-card">
+        <div class="info-row">
+          <label>作业点名称：</label>
+          <span>{{ taskDetail.workPointName }}</span>
+        </div>
+        <div class="info-row">
+          <label>作业点地址：</label>
+          <span>{{ taskDetail.workPointAddress }}</span>
+        </div>
+        <div class="info-row">
+          <label>经纬度：</label>
+          <span>{{ taskDetail.latitude }}, {{ taskDetail.longitude }}</span>
+        </div>
+        <div class="info-row">
+          <label>预计时间：</label>
+          <span>{{ taskDetail.estimatedTime }}</span>
+        </div>
+        <div class="info-row">
+          <label>提货单号：</label>
+          <span class="link" @click="viewMaterial(taskDetail.materialOrderNo)">{{ taskDetail.materialOrderNo }}</span>
+        </div>
+        <div class="info-row">
+          <label>车牌：</label>
+          <span>{{ taskDetail.licensePlate }}</span>
+        </div>
+        <div class="info-row">
+          <label>司机手机：</label>
+          <span class="phone" @click="callPhone(taskDetail.driverPhone)">{{ taskDetail.driverPhone }}</span>
+        </div>
+        <div class="info-row">
+          <label>调度员电话：</label>
+          <span class="phone" @click="callPhone(taskDetail.dispatcherPhone)">{{ taskDetail.dispatcherPhone }}</span>
+        </div>
       </div>
 
       <!-- 操作按钮区 -->
       <div class="action-buttons">
-        <button class="btn-navigate" @click="navigate">导航</button>
-        <button class="btn-arrive" :disabled="task.status === 'arrived'" @click="confirmArrive">
-          {{ task.status === 'arrived' ? '已到达' : '确认到达' }}
-        </button>
-        <button class="btn-complete" :disabled="task.status === 'completed'" @click="confirmComplete">
-          完成确认
-        </button>
+        <button @click="navigateTo">导航</button>
+        <button :disabled="taskStatus === 'arrived' || taskStatus === 'completed'" @click="confirmArrive">确认到达</button>
+        <button :disabled="taskStatus === 'completed'" @click="confirmComplete">完成确认</button>
       </div>
 
       <!-- 照片上传区域 -->
       <div class="photo-upload">
-        <FileUpload
-          :fileList="photos"
-          @update:fileList="photos = $event"
-          accept="image/*"
-          :multiple="true"
-          :maxCount="9"
-          uploadUrl="/api/upload"
-        />
+        <h4>现场照片</h4>
+        <div class="photo-list">
+          <div v-for="(photo, idx) in photos" :key="idx" class="photo-item">
+            <img :src="photo" alt="照片" />
+            <button @click="removePhoto(idx)">删除</button>
+          </div>
+          <button @click="addPhoto">+ 拍照/相册</button>
+        </div>
       </div>
 
       <!-- 异常反馈入口 -->
-      <div class="feedback-entry">
-        <button @click="showFeedbackForm = true">提交异常反馈</button>
-        <DetailPanel
-          :visible="showFeedbackForm"
-          title="异常反馈"
-          mode="modal"
-          @close="showFeedbackForm = false"
-        >
-          <!-- 反馈表单内容简写，实际会包含类型、描述、照片等 -->
-          <div>
-            <p>反馈表单（略）</p>
-            <button @click="submitFeedback">提交</button>
-          </div>
-        </DetailPanel>
+      <div class="feedback-section">
+        <button @click="showFeedbackForm = true">异常反馈</button>
+        <div v-if="showFeedbackForm" class="feedback-form">
+          <textarea v-model="feedbackContent" placeholder="描述异常情况"></textarea>
+          <button @click="submitFeedback">提交</button>
+        </div>
       </div>
 
       <!-- 历史反馈记录列表 -->
       <div class="history-feedback">
-        <h3>历史反馈记录</h3>
-        <div v-if="feedbacks.length === 0" class="empty-feedback">暂无反馈</div>
-        <div v-else>
-          <div v-for="fb in feedbacks" :key="fb.id" class="feedback-item" @click="toggleFeedbackDetail(fb.id)">
-            <span>{{ fb.type }}</span>
-            <span>{{ fb.time }}</span>
-            <div v-if="expandedFeedbackId === fb.id" class="feedback-detail">
+        <h4 @click="toggleFeedbackList">历史反馈 <span>{{ feedbackExpanded ? '▼' : '▶' }}</span></h4>
+        <div v-if="feedbackExpanded">
+          <div v-if="feedbackList.length === 0" class="no-feedback">暂无反馈</div>
+          <div v-for="(fb, idx) in feedbackList" :key="idx" class="feedback-item" @click="toggleFeedbackDetail(idx)">
+            <div class="fb-summary">{{ fb.type }} - {{ fb.time }}</div>
+            <div v-if="fb.expanded" class="fb-detail">
               <p>{{ fb.description }}</p>
-              <img v-for="img in fb.photos" :src="img" :key="img" />
-              <p>处理状态: {{ fb.status }}</p>
+              <div v-if="fb.photos && fb.photos.length">
+                <img v-for="(p, pi) in fb.photos" :key="pi" :src="p" />
+              </div>
+              <p>处理状态：{{ fb.status }}</p>
             </div>
           </div>
         </div>
@@ -99,257 +113,340 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { getTaskDetail, confirmArrive as apiConfirmArrive, confirmComplete as apiConfirmComplete } from '@/data/mockTasks.js'
-import FileUpload from '@/components/FileUpload.vue'
-import DetailPanel from '@/components/DetailPanel.vue'
+import { ref, inject, onMounted } from 'vue'
+import { prototypeContract } from '../prototypeContract'
+import { fetchTasksData } from '../data/mockTasks.js'
 
-const router = useRouter()
+const prototypeContext = inject('prototypeContext')
+const currentRoleKey = prototypeContext?.currentRoleKey || 'driver'
 
-// 页面状态
-const state = ref('loading')
-const task = ref({})
+const taskId = ref('TASK-2025-001')
+const taskStatus = ref('pending') // pending / arrived / completed
+const statusLabel = ref('待执行')
+const loading = ref(true)
+const error = ref(false)
+const empty = ref(false)
+const taskDetail = ref({
+  workPointName: '',
+  workPointAddress: '',
+  latitude: '',
+  longitude: '',
+  estimatedTime: '',
+  materialOrderNo: '',
+  licensePlate: '',
+  driverPhone: '',
+  dispatcherPhone: ''
+})
 const photos = ref([])
 const showFeedbackForm = ref(false)
-const feedbacks = ref([])
-const expandedFeedbackId = ref(null)
+const feedbackContent = ref('')
+const feedbackExpanded = ref(false)
+const feedbackList = ref([])
 
-// 模拟获取任务详情
-async function fetchTaskDetail() {
-  state.value = 'loading'
-  try {
-    const res = await getTaskDetail()
-    task.value = res
-    feedbacks.value = res.feedbacks || []
-    state.value = 'success'
-  } catch (e) {
-    state.value = 'error'
+function normalizeTaskDetail(detail) {
+  return {
+    workPointName: detail.workPointName || detail.workpointName || '',
+    workPointAddress: detail.workPointAddress || detail.address || '',
+    latitude: detail.latitude || '',
+    longitude: detail.longitude || '',
+    estimatedTime: detail.estimatedTime || '',
+    materialOrderNo: detail.materialOrderNo || '',
+    licensePlate: detail.licensePlate || '',
+    driverPhone: detail.driverPhone || '',
+    dispatcherPhone: detail.dispatcherPhone || ''
   }
 }
 
-function goBack() {
-  router.back()
+function normalizeFeedbackList(items) {
+  return items.map((item, idx) => ({
+    type: item.type || '异常',
+    time: item.time || '',
+    description: item.description || '',
+    photos: item.photos || [],
+    status: item.status || '待处理',
+    expanded: false
+  }))
 }
 
-function navigate() {
-  // 调用系统地图
-  const { latitude, longitude, address } = task.value
-  const url = `https://maps.apple.com/?q=${encodeURIComponent(address)}&ll=${latitude},${longitude}`
-  window.open(url, '_system')
+async function loadTaskData() {
+  loading.value = true
+  error.value = false
+  empty.value = false
+  try {
+    const data = await fetchTasksData()
+    // 数据源是数组，取第一条作为示例
+    if (!data || data.length === 0) {
+      empty.value = true
+      return
+    }
+    const taskItem = data[0]
+    taskId.value = taskItem.taskId || 'TASK-2025-001'
+    // 根据角色调整状态显示
+    if (currentRoleKey === 'driver') {
+      taskStatus.value = taskItem.taskStatus || 'pending'
+    } else {
+      // 其他角色可看到不同状态，这里保持样例
+      taskStatus.value = taskItem.taskStatus || 'pending'
+    }
+    statusLabel.value = taskStatus.value === 'pending' ? '待执行' : taskStatus.value === 'arrived' ? '已到达' : '已完成'
+    // 填充详情（从taskDetail或taskItem中提取）
+    const detail = taskItem.taskDetail || taskItem
+    taskDetail.value = normalizeTaskDetail(detail)
+    // 模拟反馈列表
+    feedbackList.value = normalizeFeedbackList(taskItem.driverFeedback ? [taskItem.driverFeedback] : [])
+    // 模拟照片
+    photos.value = []
+    loading.value = false
+  } catch (e) {
+    error.value = true
+    loading.value = false
+  }
+}
+
+function retryLoad() {
+  loadTaskData()
+}
+
+function navigateTo() {
+  // 模拟导航调用系统地图
+  console.log('导航到：', taskDetail.value.latitude, taskDetail.value.longitude)
+}
+
+function callPhone(phone) {
+  if (phone) {
+    window.location.href = `tel:${phone}`
+  }
+}
+
+function viewMaterial(orderNo) {
+  // 跳转到物资详情，模拟
+  console.log('查看物资：', orderNo)
 }
 
 function confirmArrive() {
-  if (task.value.status === 'arrived') return
-  // 调用 API
-  apiConfirmArrive(task.value.id).then(() => {
-    task.value.status = 'arrived'
-    task.value.statusLabel = '已到达'
-  })
+  // 模拟到达确认
+  taskStatus.value = 'arrived'
+  statusLabel.value = '已到达'
+  console.log('POST /api/driver/tasks/{taskId}/arrive')
 }
 
 function confirmComplete() {
-  if (task.value.status === 'completed') return
-  // 完成需要先上传至少一张照片
+  // 需要至少一张照片
   if (photos.value.length === 0) {
-    alert('请至少上传一张现场照片')
+    alert('请先上传至少一张现场照片')
     return
   }
-  apiConfirmComplete(task.value.id, { photos: photos.value }).then(() => {
-    task.value.status = 'completed'
-    task.value.statusLabel = '已完成'
-  })
+  taskStatus.value = 'completed'
+  statusLabel.value = '已完成'
+  console.log('POST /api/driver/tasks/{taskId}/complete')
+}
+
+function addPhoto() {
+  // 模拟选择照片
+  photos.value.push('https://via.placeholder.com/150')
+}
+
+function removePhoto(idx) {
+  photos.value.splice(idx, 1)
 }
 
 function submitFeedback() {
-  // 调用异常反馈 API
-  const newFeedback = {
-    id: Date.now(),
-    type: '其他',
-    description: '模拟反馈',
+  if (!feedbackContent.value.trim()) return
+  console.log('POST /api/driver/feedback', { content: feedbackContent.value })
+  feedbackList.value.push({
+    type: '异常反馈',
     time: new Date().toLocaleString(),
+    description: feedbackContent.value,
     photos: [],
-    status: '待处理'
-  }
-  feedbacks.value.unshift(newFeedback)
+    status: '已提交',
+    expanded: true
+  })
+  feedbackContent.value = ''
   showFeedbackForm.value = false
 }
 
-function toggleFeedbackDetail(id) {
-  expandedFeedbackId.value = expandedFeedbackId.value === id ? null : id
+function toggleFeedbackList() {
+  feedbackExpanded.value = !feedbackExpanded.value
 }
 
-onMounted(fetchTaskDetail)
+function toggleFeedbackDetail(idx) {
+  feedbackList.value[idx].expanded = !feedbackList.value[idx].expanded
+}
+
+onMounted(() => {
+  loadTaskData()
+})
 </script>
 
 <style scoped>
 .driver-task-execute {
-  padding: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: sans-serif;
+  padding: 12px;
+  max-width: 480px;
+  margin: 0 auto;
 }
-
-/* skeleton 样式简略 */
-.skeleton {
-  background: #f0f0f0;
-}
-.skeleton-header {
-  height: 48px;
-  background: #e0e0e0;
-  margin-bottom: 16px;
-}
-.skeleton-card {
-  height: 200px;
-  background: #e0e0e0;
-  margin-bottom: 16px;
-}
-.skeleton-buttons {
-  height: 120px;
-  background: #e0e0e0;
-}
-
-.error-state {
-  text-align: center;
-  padding: 40px;
-  color: #f5222d;
-}
-.error-state button {
-  margin-top: 16px;
-  padding: 8px 24px;
-  border: none;
-  background: #1890ff;
-  color: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
-}
-
-.top-nav {
+.top-bar {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  gap: 8px;
   margin-bottom: 16px;
 }
-.top-nav button {
+.back-btn {
+  background: transparent;
   border: none;
-  background: none;
-  cursor: pointer;
   font-size: 16px;
+  cursor: pointer;
 }
 .task-id {
+  font-weight: bold;
   flex: 1;
-  text-align: center;
-  font-weight: 500;
 }
 .status-tag {
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 12px;
-  background: #e6f7ff;
-  color: #1890ff;
 }
-.status-tag.completed {
-  background: #f6ffed;
-  color: #52c41a;
+.status-tag.pending { background: #f0ad4e; color: white; }
+.status-tag.arrived { background: #5bc0de; color: white; }
+.status-tag.completed { background: #5cb85c; color: white; }
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.status-tag.arrived {
-  background: #fff7e6;
-  color: #faad14;
+.skeleton-block {
+  height: 20px;
+  background: #eee;
+  border-radius: 4px;
 }
-
-.task-info-card {
-  border: 1px solid #e8e8e8;
+.error-state, .empty-state {
+  text-align: center;
+  padding: 40px 0;
+}
+.info-card {
+  border: 1px solid #ddd;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   margin-bottom: 16px;
 }
-.task-info-card p {
-  margin: 8px 0;
+.info-row {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 14px;
 }
-.task-info-card a {
+.info-row label {
+  width: 100px;
+  color: #666;
+  flex-shrink: 0;
+}
+.link {
   color: #1890ff;
-  text-decoration: none;
+  cursor: pointer;
+  text-decoration: underline;
 }
-
+.phone {
+  color: #1890ff;
+  cursor: pointer;
+}
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 .action-buttons button {
   flex: 1;
-  padding: 12px 0;
+  padding: 8px 0;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-}
-.btn-navigate {
+  border-radius: 4px;
   background: #1890ff;
-  color: #fff;
+  color: white;
+  cursor: pointer;
 }
-.btn-arrive {
-  background: #faad14;
-  color: #fff;
-}
-.btn-complete {
-  background: #52c41a;
-  color: #fff;
-}
-button:disabled {
-  opacity: 0.5;
+.action-buttons button:disabled {
+  background: #ccc;
   cursor: not-allowed;
 }
-
 .photo-upload {
   margin-bottom: 16px;
 }
-
-.feedback-entry {
-  margin-bottom: 16px;
+.photo-upload h4 {
+  margin: 0 0 8px;
 }
-.feedback-entry button {
+.photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.photo-item {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.photo-item img {
   width: 100%;
-  padding: 12px;
-  background: #ff4d4f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.history-feedback {
-  border-top: 1px solid #eee;
-  padding-top: 16px;
-}
-.history-feedback h3 {
-  margin-bottom: 8px;
-}
-.empty-feedback {
-  color: #999;
-  text-align: center;
-  padding: 24px;
-}
-.feedback-item {
-  padding: 8px;
-  cursor: pointer;
-  border-bottom: 1px solid #f5f5f5;
-}
-.feedback-detail {
-  margin-top: 8px;
-  padding: 8px;
-  background: #fafafa;
+  height: 100%;
+  object-fit: cover;
   border-radius: 4px;
 }
-.feedback-detail img {
-  max-width: 100px;
-  margin: 4px;
+.photo-item button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+.feedback-section {
+  margin-bottom: 16px;
+}
+.feedback-section button {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.feedback-form {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.feedback-form textarea {
+  width: 100%;
+  height: 80px;
+  resize: vertical;
+}
+.history-feedback h4 {
+  cursor: pointer;
+  user-select: none;
+  margin: 0 0 8px;
+}
+.no-feedback {
+  color: #999;
+  font-style: italic;
+}
+.feedback-item {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.fb-summary {
+  font-weight: 500;
+}
+.fb-detail {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.fb-detail img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  margin-right: 4px;
 }
 </style>

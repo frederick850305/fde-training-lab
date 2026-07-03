@@ -35,11 +35,9 @@
       <div class="section-label">📐 运行契约</div>
       <ItemCard :item="contractItem" :busy="isBusy" :disable="!skelDone" :disableHint="skelDone?'':'请先生成骨架'" @gen="genContract" @retry="genContract" />
 
-      <!-- ====== Pages ====== -->
-      <div class="section-label">📄 页面文件（每页一次调用）</div>
-      <div class="item-grid">
-        <ItemCard v-for="pi in pageItems" :key="pi.key" :item="pi" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genPage(pi)" @retry="genPage(pi)" />
-      </div>
+      <!-- ====== Mock ====== -->
+      <div class="section-label">📦 Mock 数据</div>
+      <ItemCard :item="mockItem" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genMock" @retry="genMock" />
 
       <!-- ====== Components ====== -->
       <div class="section-label">🧩 通用组件（每个一次调用）</div>
@@ -47,9 +45,11 @@
         <ItemCard v-for="ci in compItems" :key="ci.key" :item="ci" :busy="isBusy" :disable="!skelDone" :disableHint="skelDone?'':'请先生成骨架'" @gen="genComp(ci)" @retry="genComp(ci)" />
       </div>
 
-      <!-- ====== Mock ====== -->
-      <div class="section-label">📦 Mock 数据</div>
-      <ItemCard :item="mockItem" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genMock" @retry="genMock" />
+      <!-- ====== Pages ====== -->
+      <div class="section-label">📄 页面文件（每页一次调用）</div>
+      <div class="item-grid">
+        <ItemCard v-for="pi in pageItems" :key="pi.key" :item="pi" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genPage(pi)" @retry="genPage(pi)" />
+      </div>
 
       <!-- ====== App Shell ====== -->
       <div class="section-label">🧭 应用壳与导航</div>
@@ -58,8 +58,8 @@
       <!-- ====== Action ====== -->
       <p v-if="writeStatus" class="write-msg" :class="{ err: writeStatus.includes('❌') }">{{ writeStatus }}</p>
       <div class="action-bar">
-        <button class="gen-all-btn" :disabled="isBusy || allDone" @click="genAll">{{ isBusy ? '⏳' : allDone ? '✅ 完成' : '⚡ 生成缺失项' }}</button>
-        <button v-if="hasFailed" class="write-btn" :disabled="isBusy" @click="retryFailed">重试失败项</button>
+        <button class="gen-all-btn" :disabled="isBusy" @click="handleGenerateChoice">{{ isBusy ? '⏳ 生成中' : '⚡ 生成 / 重新生成' }}</button>
+        <button v-if="hasFailed" class="write-btn" :disabled="isBusy" @click="retryFailed">重试失败项（{{ failedItems.length }}）</button>
         <button v-if="allDone" class="primary-btn" @click="confirmAndFinish">确认并完成 →</button>
       </div>
     </template>
@@ -95,6 +95,7 @@ const isBusy = ref(false)
 const curTask = ref('')
 const diskFiles = ref(new Set())
 const isCheckingDisk = ref(false)
+const isBatchGenerating = ref(false)
 
 const prevOk  = computed(() => Boolean(props.projectContext.stepResults?.prototype))
 const llmOk   = computed(() => props.projectContext.executionMode === 'llm-ready' && props.projectContext.llmConfigured)
@@ -143,11 +144,14 @@ const done  = computed(() => allItems.value.filter(i => i.st === 'done').length)
 const pct   = computed(() => total.value ? Math.round(done.value / total.value * 100) : 0)
 const allDone = computed(() => total.value > 0 && allItems.value.every(i => i.st === 'done'))
 const hasFailed = computed(() => allItems.value.some(i => i.st === 'fail'))
+const failedItems = computed(() => allItems.value.filter(i => i.st === 'fail'))
+const hasGenerated = computed(() => allItems.value.some(i => i.st === 'done' || i.files?.length))
 
 /* ================================================================
    从已保存状态恢复（切换步骤后回到本页不丢失进度）
    ================================================================ */
 function restoreSavedState() {
+  if (isBatchGenerating.value) return
   const saved = props.projectContext.stepResults?.prototypeGenerate
   if (!saved?.items?.length) return
   const savedMap = Object.fromEntries(saved.items.map(it => [it.key, it]))
@@ -156,9 +160,15 @@ function restoreSavedState() {
     for (const it of arr) {
       const s = savedMap[it.key]
       if (!s) continue
+      if (s.st === 'done' && s.signature !== getItemSignature(it)) {
+        resetItem(it, `生成输入已变化，需要重新生成 ${it.label}`)
+        continue
+      }
       it.st = s.st || it.st
       it.files = (s.files || []).map(f => typeof f === 'string' ? { path: f, content: '' } : f)
       it._rawFiles = it.files
+      it.signature = s.signature || ''
+      it.validation = s.validation || null
       it.msg = s.st === 'done' ? `✅ ${it.files.length} 文件` : (s.msg || it.msg)
       it.err = s.err || it.err
     }
@@ -184,13 +194,145 @@ function expectedFilesForItem(item) {
   return []
 }
 
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue)
+  if (value && typeof value === 'object') {
+    return Object.keys(value).sort().reduce((acc, key) => {
+      acc[key] = stableValue(value[key])
+      return acc
+    }, {})
+  }
+  return value
+}
+
+function stableStringify(value) {
+  return JSON.stringify(stableValue(value))
+}
+
+function hashText(text = '') {
+  let hash = 5381
+  for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) + hash) ^ text.charCodeAt(i)
+  return (hash >>> 0).toString(36)
+}
+
+function itemInputPayload(item) {
+  const contract = buildPrototypeContract()
+  const base = {
+    generatorVersion: 'prototype-generate-v3',
+    key: item.key,
+    outputFiles: expectedFilesForItem(item),
+    projectName: props.projectContext.projectName || '',
+    customerName: props.projectContext.customerName || '',
+  }
+
+  if (item.key === 'skel_config') return { ...base, slug: slug.value, type: 'project-config' }
+  if (item.key === 'skel_app') return { ...base, type: 'base-style' }
+  if (item.key === contractItem.value.key) return { ...base, type: 'contract', contract }
+  if (item.key === mockItem.value.key) return { ...base, type: 'mock', mocks: contract.mocks, pages: contract.pages }
+  if (item.key === appItem.value.key) return { ...base, type: 'app-shell', navigationGroups: contract.navigationGroups, pages: contract.pages, roles: contract.roles }
+  if (compItems.value.includes(item)) {
+    const component = (sug.value?.componentFiles || []).find(c => c.file === item.label)
+    return { ...base, type: 'component', component }
+  }
+  if (pageItems.value.includes(item)) {
+    const page = (sug.value?.viewFiles || []).find(v => v.file === item.label)
+    const pageSpec = (sug.value?.pageDetailSpecs || []).find(spec => spec.file === item.label)
+    const apiMapping = (sug.value?.pageApiMapping || []).find(mapping => mapping.page === item.label)
+    const pageContract = contract.pages.find(candidate => candidate.file === item.label)
+    return { ...base, type: 'page', page, pageSpec, apiMapping, pageContract }
+  }
+  return base
+}
+
+function getItemSignature(item) {
+  return hashText(stableStringify(itemInputPayload(item)))
+}
+
+function normalizeGeneratedPath(rawPath = '') {
+  const cleaned = String(rawPath).trim().replace(/\\/g, '/').replace(/^\/+/, '')
+  const prefix = `prototypes/${slug.value}/`
+  if (cleaned.startsWith(prefix)) return cleaned
+  if (/^(package\.json|vite\.config\.js|index\.html|src\/)/.test(cleaned)) return projectPath(cleaned)
+  return cleaned
+}
+
+function validateFilesForItem(item, files) {
+  const expected = expectedFilesForItem(item)
+  const expectedSet = new Set(expected)
+  const normalizedFiles = (files || []).map(file => ({
+    ...file,
+    path: normalizeGeneratedPath(file.path),
+    content: typeof file.content === 'string' ? file.content : '',
+  }))
+  const actualSet = new Set(normalizedFiles.map(file => file.path))
+  const issues = []
+
+  for (const path of expected) {
+    if (!actualSet.has(path)) issues.push(`缺少目标文件 ${path}`)
+  }
+  for (const file of normalizedFiles) {
+    if (!expectedSet.has(file.path)) issues.push(`返回了非本生成项目标文件 ${file.path}`)
+    if (!file.content.trim()) issues.push(`${file.path} 内容为空`)
+  }
+
+  return { files: normalizedFiles, issues }
+}
+
+function validateGeneratedCodeOutput(files) {
+  const issues = []
+  const filePaths = new Set([...(diskFiles.value || []), ...currentGeneratedFiles().map(file => file.path), ...files.map(file => file.path)])
+  const assetPattern = /(?:src|href)=["'](\.{1,2}\/[^"']+\.(?:svg|png|jpe?g|gif|webp))["']|url\(["']?(\.{1,2}\/[^"')]+\.(?:svg|png|jpe?g|gif|webp))["']?\)/g
+
+  for (const file of files) {
+    if (!/\.(vue|js|css)$/.test(file.path)) continue
+    const content = file.content || ''
+    if (file.path.endsWith('.vue') && content.includes('withDefaults(defineProps({')) {
+      issues.push(`${file.path} 使用了会导致 Vue 编译失败的 withDefaults(defineProps({ ... })) 写法`)
+    }
+    if (file.path.endsWith('.vue') && /<script\s+setup[^>]*>[\s\S]*\bexport\s+(?:function|const|let|var|default)\b/.test(content)) {
+      issues.push(`${file.path} 在 <script setup> 中包含 export 声明`)
+    }
+
+    let assetMatch = assetPattern.exec(content)
+    while (assetMatch) {
+      const asset = assetMatch[1] || assetMatch[2]
+      const resolved = resolveRelativeProjectPath(file.path, asset)
+      if (resolved && !filePaths.has(resolved)) issues.push(`${file.path} 引用了不存在的静态资源 ${asset}`)
+      assetMatch = assetPattern.exec(content)
+    }
+  }
+
+  return issues
+}
+
+function resolveRelativeProjectPath(ownerPath, rawSource) {
+  if (!rawSource?.startsWith('.')) return ''
+  const ownerParts = ownerPath.split('/')
+  ownerParts.pop()
+  for (const part of rawSource.split('/')) {
+    if (!part || part === '.') continue
+    if (part === '..') ownerParts.pop()
+    else ownerParts.push(part)
+  }
+  return ownerParts.join('/')
+}
+
 function reconcileDiskState() {
+  if (isBatchGenerating.value || isBusy.value) return false
   if (!diskFiles.value.size) return false
   let changed = false
 
   for (const item of allItems.value) {
     const paths = expectedFilesForItem(item)
     if (!paths.length || !paths.every(path => diskFiles.value.has(path))) continue
+    const signature = getItemSignature(item)
+    if (item.signature !== signature) {
+      if (item.st === 'done') {
+        resetItem(item, `文件存在，但生成输入已变化，需要重新生成 ${item.label}`)
+        changed = true
+      }
+      continue
+    }
 
     const files = paths.map(path => ({ path, content: '' }))
     if (item.st !== 'done' || item.files?.length !== files.length) {
@@ -207,7 +349,7 @@ function reconcileDiskState() {
 }
 
 async function loadDiskState() {
-  if (!prevOk.value) return
+  if (!prevOk.value || isBatchGenerating.value) return
   isCheckingDisk.value = true
   try {
     const response = await fetch(`${API}/prototype-projects/${encodeURIComponent(slug.value)}/status`)
@@ -265,7 +407,7 @@ async function callLLM(key, title, instruction, currentOutput) {
   if (!r.ok || p.success === false) throw new Error(p?.detail?.message || p?.detail || p?.message || `后端 ${r.status}`)
   const out = p?.data?.revised_output
   if (!out?.files?.length) throw new Error('LLM 返回空文件列表，请重试')
-  return out.files.map(f => ({ path: f.path || f, content: f.content || '' }))
+  return out.files.map(f => ({ path: normalizeGeneratedPath(f.path || f), content: f.content || '' }))
 }
 
 async function writeFilesToDisk(files) {
@@ -295,14 +437,18 @@ async function writeAllToDisk() {
     : `⚠️ prototypes/${slug.value}/ 尚未创建`
   emitDraft()
 }
-function setRun(it) { it.st = 'running'; it.msg = '正在请求 LLM 生成...'; it.err = ''; it.files = [] }
-function setDone(it, files) { it.st = 'done'; it.files = files; it._rawFiles = files; it.msg = '✅ ' + files.length + ' 文件'; it.err = '' }
-function setFail(it, e) { it.st = 'fail'; it.err = e.name==='AbortError'?'⏱ LLM 超时（120s），Prompt 可能太长，请重试':e.message?.includes('Failed to fetch')?'无法连接后端':e.message||'失败'; it.msg = ''; it.files = [] }
+function setRun(it) { it.st = 'running'; it.msg = '正在请求 LLM 生成...'; it.err = ''; it.files = []; it.signature = ''; it.validation = null }
+function setDone(it, files) { it.st = 'done'; it.files = files; it._rawFiles = files; it.signature = getItemSignature(it); it.validation = { signature: it.signature, checkedAt: new Date().toISOString() }; it.msg = '✅ ' + files.length + ' 文件'; it.err = '' }
+function setFail(it, e) { it.st = 'fail'; it.err = e.name==='AbortError'?'⏱ LLM 超时（120s），Prompt 可能太长，请重试':e.message?.includes('Failed to fetch')?'无法连接后端':e.message||'失败'; it.msg = ''; it.files = []; it.signature = ''; it.validation = null }
 
 async function run(it, title, instruction, currentOutput) {
   if (isBusy.value) return; isBusy.value = true; setRun(it)
   try {
-    const files = await callLLM(it.key, title, instruction, currentOutput)
+    const llmFiles = await callLLM(it.key, title, instruction, currentOutput)
+    const { files, issues: targetIssues } = validateFilesForItem(it, llmFiles)
+    const codeIssues = validateGeneratedCodeOutput(files)
+    const issues = [...targetIssues, ...codeIssues]
+    if (issues.length) throw new Error(`生成结果预检失败：${issues.slice(0, 4).join('；')}${issues.length > 4 ? `；另有 ${issues.length - 4} 项` : ''}`)
     await writeFilesToDisk(files)
     setDone(it, files)
     writeStatus.value = `✅ 已写入 ${files.length} 个文件到 prototypes/${slug.value}/`
@@ -320,9 +466,13 @@ async function writeStaticTask(it, files) {
   isBusy.value = true
   setRun(it)
   try {
-    await writeFilesToDisk(files)
-    setDone(it, files)
-    writeStatus.value = `✅ 已写入 ${files.length} 个文件到 prototypes/${slug.value}/`
+    const { files: normalizedFiles, issues: targetIssues } = validateFilesForItem(it, files)
+    const codeIssues = validateGeneratedCodeOutput(normalizedFiles)
+    const issues = [...targetIssues, ...codeIssues]
+    if (issues.length) throw new Error(`静态文件预检失败：${issues.slice(0, 4).join('；')}${issues.length > 4 ? `；另有 ${issues.length - 4} 项` : ''}`)
+    await writeFilesToDisk(normalizedFiles)
+    setDone(it, normalizedFiles)
+    writeStatus.value = `✅ 已写入 ${normalizedFiles.length} 个文件到 prototypes/${slug.value}/`
   } catch (e) {
     setFail(it, e)
   } finally {
@@ -423,6 +573,23 @@ function updateValidationStatus() {
   }
   writeStatus.value = `✅ 原型静态校验通过：角色、导航、mock 契约和页面导入一致`
   return true
+}
+
+async function validateProjectOnDisk() {
+  writeStatus.value = '正在执行原型磁盘级校验和 npm run build...'
+  const response = await fetch(`${API}/prototype-projects/${encodeURIComponent(slug.value)}/validate`, {
+    method: 'POST',
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(payload.detail || `原型校验接口失败：${response.status}`)
+  if (!payload.ok) {
+    const staticIssues = (payload.static_issues || []).map(issue => `${issue.file}: ${issue.message}`)
+    const buildMessage = payload.build?.stderr_tail || payload.build?.stdout_tail || ''
+    const details = [...staticIssues, buildMessage].filter(Boolean)
+    throw new Error(`原型磁盘级校验未通过：${details.slice(0, 3).join('；') || 'npm run build 失败'}`)
+  }
+  writeStatus.value = '✅ 原型磁盘级校验通过：静态检查和 npm run build 均成功'
+  return payload
 }
 
 function projectPath(path) {
@@ -739,39 +906,196 @@ async function genAppShell() {
 }
 
 /* ── All ── */
-async function genAll() {
-  curTask.value = '🏗 项目骨架'
-  for (const sk of skelItems.value) { if (sk.st !== 'done') { await genSkel(sk); if (sk.st !== 'done') { curTask.value = ''; return } } }
-  curTask.value = '📐 运行契约'
-  if (contractItem.value.st !== 'done') { await genContract(); if (contractItem.value.st !== 'done') { curTask.value = ''; return } }
-  curTask.value = '📦 Mock 数据'
-  if (mockItem.value.st !== 'done') { await genMock(); if (mockItem.value.st !== 'done') { curTask.value = ''; return } }
-  curTask.value = '🧩 通用组件'
-  for (const ci of compItems.value) { if (ci.st !== 'done') { await genComp(ci); if (ci.st !== 'done') { curTask.value = ''; return } } }
-  curTask.value = '📄 页面文件'
-  for (const pi of pageItems.value) { if (pi.st !== 'done') { curTask.value = '📄 ' + pi.label; await genPage(pi); if (pi.st !== 'done') { curTask.value = ''; return } } }
-  curTask.value = '🧭 App.vue'
-  if (appItem.value.st !== 'done') await genAppShell()
-  if (appItem.value.st === 'done') updateValidationStatus()
-  curTask.value = ''
+function resetItem(item, msg = '') {
+  item.st = 'idle'
+  item.msg = msg
+  item.err = ''
+  item.files = []
+  item._rawFiles = []
+  item.signature = ''
+  item.validation = null
 }
 
-async function retryFailed() {
-  for (const item of allItems.value) {
-    if (item.st !== 'fail') continue
-    if (skelItems.value.includes(item)) await genSkel(item)
-    else if (item.key === contractItem.value.key) await genContract()
-    else if (item.key === mockItem.value.key) await genMock()
-    else if (compItems.value.includes(item)) await genComp(item)
-    else if (pageItems.value.includes(item)) await genPage(item)
-    else if (item.key === appItem.value.key) await genAppShell()
-    if (item.st !== 'done') return
+function resetGeneratedState() {
+  for (const item of allItems.value) resetItem(item)
+  curTask.value = ''
+  writeStatus.value = '已重置本页生成状态，接下来会按新流程覆盖写入目标文件。'
+  emitDraft()
+}
+
+async function handleGenerateChoice() {
+  if (!hasGenerated.value) {
+    await genAll()
+    return
+  }
+
+  const expectedFileCount = allItems.value.reduce((sum, item) => sum + expectedFilesForItem(item).length, 0)
+  const expectedTaskCount = allItems.value.length
+  const shouldRegenerate = window.confirm([
+    `当前 prototypes/${slug.value}/ 已有生成状态。`,
+    `确定要从 0 开始重新生成 ${expectedTaskCount} 个生成项，并覆盖本页管理的约 ${expectedFileCount} 个目标文件吗？`,
+    `进度条显示的是生成项数量；目标文件数包含一个生成项内写入的多个文件。`,
+    '此操作不会删除目录或清空未列出的文件；取消则只生成缺失项。',
+  ].join('\n'))
+
+  if (shouldRegenerate) {
+    resetGeneratedState()
+    await nextTick()
+    await genAll()
+    return
+  }
+
+  if (allDone.value) {
+    writeStatus.value = '已保留当前生成结果；没有缺失项需要生成。'
+    return
+  }
+  await genAll()
+}
+
+async function genAll() {
+  isBatchGenerating.value = true
+  try {
+    curTask.value = '🏗 项目骨架'
+    for (const sk of skelItems.value) { if (sk.st !== 'done') { await genSkel(sk); if (sk.st !== 'done') { curTask.value = ''; return } } }
+    curTask.value = '📐 运行契约'
+    if (contractItem.value.st !== 'done') { await genContract(); if (contractItem.value.st !== 'done') { curTask.value = ''; return } }
+    curTask.value = '📦 Mock 数据'
+    if (mockItem.value.st !== 'done') { await genMock(); if (mockItem.value.st !== 'done') { curTask.value = ''; return } }
+    curTask.value = '🧩 通用组件'
+    for (const ci of compItems.value) { if (ci.st !== 'done') { await genComp(ci); if (ci.st !== 'done') { curTask.value = ''; return } } }
+    curTask.value = '📄 页面文件'
+    for (const pi of pageItems.value) { if (pi.st !== 'done') { curTask.value = '📄 ' + pi.label; await genPage(pi); if (pi.st !== 'done') { curTask.value = ''; return } } }
+    curTask.value = '🧭 App.vue'
+    if (appItem.value.st !== 'done') await genAppShell()
+    if (appItem.value.st === 'done' && updateValidationStatus()) {
+      try {
+        await validateProjectOnDisk()
+      } catch (e) {
+        setFail(appItem.value, e)
+      }
+    }
+  } finally {
+    isBatchGenerating.value = false
+    curTask.value = ''
   }
 }
 
-function confirmAndFinish() {
+async function ensureRetryPrerequisites(item) {
+  if (item.key === 'skel_config' || item.key === 'skel_app') return true
+
+  for (const sk of skelItems.value) {
+    if (sk.st !== 'done') {
+      curTask.value = `补齐前置：${sk.label}`
+      await genSkel(sk)
+      if (sk.st !== 'done') return false
+    }
+  }
+
+  if (item.key === contractItem.value.key) return true
+
+  if (contractItem.value.st !== 'done') {
+    curTask.value = `补齐前置：${contractItem.value.label}`
+    await genContract()
+    if (contractItem.value.st !== 'done') return false
+  }
+
+  if (pageItems.value.includes(item) && mockItem.value.st !== 'done') {
+    curTask.value = `补齐前置：${mockItem.value.label}`
+    await genMock()
+    if (mockItem.value.st !== 'done') return false
+  }
+
+  if (item.key === appItem.value.key) {
+    if (mockItem.value.st !== 'done') {
+      curTask.value = `补齐前置：${mockItem.value.label}`
+      await genMock()
+      if (mockItem.value.st !== 'done') return false
+    }
+    for (const ci of compItems.value) {
+      if (ci.st !== 'done') {
+        curTask.value = `补齐前置：${ci.label}`
+        await genComp(ci)
+        if (ci.st !== 'done') return false
+      }
+    }
+    for (const pi of pageItems.value) {
+      if (pi.st !== 'done') {
+        curTask.value = `补齐前置：${pi.label}`
+        await genPage(pi)
+        if (pi.st !== 'done') return false
+      }
+    }
+  }
+
+  return true
+}
+
+async function retryFailed() {
+  if (isBusy.value) {
+    writeStatus.value = '当前已有生成任务在执行，请等待完成后再重试失败项。'
+    return
+  }
+
+  const targets = failedItems.value
+  if (!targets.length) {
+    writeStatus.value = '当前没有失败项需要重试。'
+    return
+  }
+
+  isBatchGenerating.value = true
+  writeStatus.value = `开始重试 ${targets.length} 个失败项...`
+  try {
+    for (const item of targets) {
+      curTask.value = `重试失败项：${item.label}`
+      const ready = await ensureRetryPrerequisites(item)
+      if (!ready) {
+        writeStatus.value = `❌ 重试前置步骤失败：${item.label}`
+        return
+      }
+      if (item.st !== 'fail') continue
+
+      if (skelItems.value.includes(item)) await genSkel(item)
+      else if (item.key === contractItem.value.key) await genContract()
+      else if (item.key === mockItem.value.key) await genMock()
+      else if (compItems.value.includes(item)) await genComp(item)
+      else if (pageItems.value.includes(item)) await genPage(item)
+      else if (item.key === appItem.value.key) await genAppShell()
+
+      if (item.st !== 'done') {
+        writeStatus.value = `❌ 仍有失败项：${item.label}。${item.err || '请查看该项错误信息'}`
+        return
+      }
+    }
+
+    writeStatus.value = hasFailed.value
+      ? `❌ 部分失败项仍未完成：${failedItems.value.map(item => item.label).join('、')}`
+      : '✅ 失败项已全部重试完成'
+    if (!hasFailed.value && allDone.value && updateValidationStatus()) {
+      try {
+        await validateProjectOnDisk()
+      } catch (e) {
+        setFail(appItem.value, e)
+      }
+    }
+  } finally {
+    isBatchGenerating.value = false
+    curTask.value = ''
+  }
+}
+
+async function confirmAndFinish() {
   if (!updateValidationStatus()) return
-  emit('prototype-generated', { outputDir: `prototypes/${slug.value}`, generatedFiles: allItems.value.flatMap(i=>i.files||[]), suggestion: sug.value })
+  try {
+    const validation = await validateProjectOnDisk()
+    emit('prototype-generated', {
+      outputDir: `prototypes/${slug.value}`,
+      generatedFiles: allItems.value.flatMap(i=>i.files||[]),
+      suggestion: sug.value,
+      validation,
+    })
+  } catch (e) {
+    writeStatus.value = `❌ ${e.message || '原型磁盘级校验失败'}`
+  }
 }
 
 function emitDraft() {
@@ -779,6 +1103,8 @@ function emitDraft() {
     outputDir: `prototypes/${slug.value}`,
     items: allItems.value.map(i => ({
       key: i.key, st: i.st, msg: i.msg, err: i.err,
+      signature: i.signature || '',
+      validation: i.validation || null,
       files: (i.files || []).map(f => ({ path: f.path, content: '' })),
     })),
   })

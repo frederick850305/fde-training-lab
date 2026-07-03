@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import DispatchWorkbenchView from './views/DispatchWorkbenchView.vue'
 import AlertAndTaskMonitorView from './views/AlertAndTaskMonitorView.vue'
 import DriverTaskListView from './views/DriverTaskListView.vue'
@@ -17,6 +17,7 @@ import VehicleArchiveList from './views/VehicleArchiveList.vue'
 import VehicleArchiveEdit from './views/VehicleArchiveEdit.vue'
 import VehicleArchiveLogs from './views/VehicleArchiveLogs.vue'
 import { installPrototypeRouter } from './routerShim.js'
+import { prototypeContract } from './prototypeContract.js'
 
 const components = {
   DispatchWorkbenchView,
@@ -34,167 +35,144 @@ const components = {
   HistoryView,
   VehicleArchiveList,
   VehicleArchiveEdit,
-  VehicleArchiveLogs
+  VehicleArchiveLogs,
 }
 
-const navigationGroups = [
-  {
-    group: '调度指挥',
-    icon: '🚦',
-    routes: [
-      { path: '/dispatch/workbench', component: 'DispatchWorkbenchView', title: '调度工作台', default: true },
-      { path: '/dispatch/monitor', component: 'AlertAndTaskMonitorView', title: '告警与任务监控', default: false },
-      { path: '/dispatch/mobile', component: 'MobileDispatchView', title: '移动调度', default: false },
-      { path: '/dispatch/task-adjust', component: 'TaskAdjustView', title: '任务调整', default: false }
-    ]
-  },
-  {
-    group: '任务执行',
-    icon: '🚚',
-    routes: [
-      { path: '/task/list', component: 'DriverTaskListView', title: '司机任务列表', default: true },
-      { path: '/task/execute', component: 'DriverTaskExecuteView', title: '任务执行', default: false }
-    ]
-  },
-  {
-    group: '场地管理',
-    icon: '🏢',
-    routes: [
-      { path: '/gate/access-check', component: 'GateAccessCheckView', title: '门岗核验', default: true },
-      { path: '/gate/entry-records', component: 'GateEntryRecordsView', title: '入场记录', default: false }
-    ]
-  },
-  {
-    group: '外协管理',
-    icon: '📋',
-    routes: [
-      { path: '/external/workspace', component: 'WorkspaceView', title: '预约工作台', default: true },
-      { path: '/external/access-code', component: 'AccessCodeView', title: '授权码管理', default: false },
-      { path: '/external/history', component: 'HistoryView', title: '历史记录', default: false }
-    ]
-  },
-  {
-    group: '综合管理',
-    icon: '📊',
-    routes: [
-      { path: '/management/reports', component: 'ManagementReportsView', title: '运营报表', default: true },
-      { path: '/management/report-detail', component: 'ReportDetailView', title: '报表详情', default: false },
-      { path: '/management/vehicle-archive', component: 'VehicleArchiveList', title: '车辆档案列表', default: false },
-      { path: '/management/vehicle-archive/edit', component: 'VehicleArchiveEdit', title: '车辆档案编辑', default: false },
-      { path: '/management/vehicle-archive/logs', component: 'VehicleArchiveLogs', title: '档案操作日志', default: false }
-    ]
-  }
-]
+const navigationGroups = prototypeContract.navigationGroups || []
+const roles = prototypeContract.roles || []
+const currentRoleKey = ref(prototypeContract.defaultRole || roles[0]?.key || 'admin')
+const currentRoute = ref(findDefaultRoute(currentRoleKey.value)?.path || navigationGroups[0]?.routes?.[0]?.path || '/')
+const routeHistory = ref([currentRoute.value])
+const expandedGroups = ref(new Set())
 
-const currentComponent = ref(components['DispatchWorkbenchView'])
-const currentRoute = ref('/dispatch/workbench')
-const routeHistory = ref(['/dispatch/workbench'])
+const currentRole = computed(() => roles.find(role => role.key === currentRoleKey.value) || roles[0] || { key: 'admin', label: '系统管理员', userName: '演示用户' })
+const visibleGroups = computed(() => navigationGroups
+  .map(group => ({
+    ...group,
+    routes: (group.routes || []).filter(route => canAccess(route, currentRoleKey.value)),
+  }))
+  .filter(group => group.routes.length))
+const currentRouteMeta = computed(() => findRouteByPath(currentRoute.value) || findDefaultRoute(currentRoleKey.value))
+const currentComponent = computed(() => components[currentRouteMeta.value?.component] || Object.values(components)[0])
 
-const routeAliases = {
-  '/dashboard': '/management/reports',
-  '/vehicles': '/management/vehicle-archive',
-  '/vehicles/add': '/management/vehicle-archive/edit',
+provide('prototypeContext', {
+  currentRole,
+  currentRoleKey,
+  currentRoute,
+  contract: prototypeContract,
+})
+
+function canAccess(route, roleKey) {
+  return !route.roles?.length || route.roles.includes(roleKey) || roleKey === 'admin'
 }
 
-const nameAliases = {
-  DriverTaskExecuteView: '/task/execute',
-  WorkbenchView: '/dispatch/workbench',
-  Detail: '/management/report-detail',
+function findRouteByPath(path) {
+  return navigationGroups.flatMap(group => group.routes || []).find(route => route.path === path)
 }
 
-function routeToComponent(path) {
-  const normalized = routeAliases[path] || path
-  const exact = navigationGroups.flatMap(group => group.routes).find(route => route.path === normalized)
-  if (exact) return exact
-  if (normalized.startsWith('/vehicles/edit')) {
-    return { path: '/management/vehicle-archive/edit', component: 'VehicleArchiveEdit' }
-  }
-  if (normalized.startsWith('/management/report-detail')) {
-    return { path: '/management/report-detail', component: 'ReportDetailView' }
-  }
-  return null
+function findDefaultRoute(roleKey) {
+  return navigationGroups.flatMap(group => group.routes || []).find(route => route.default && canAccess(route, roleKey))
+    || navigationGroups.flatMap(group => group.routes || []).find(route => canAccess(route, roleKey))
 }
 
-function switchComponent(componentName, path) {
-  currentComponent.value = components[componentName]
-  currentRoute.value = path
-  if (routeHistory.value[routeHistory.value.length - 1] !== path) routeHistory.value.push(path)
+function groupKey(group) {
+  return group.group
+}
+
+function groupHasRoute(group, path) {
+  return (group.routes || []).some(route => route.path === path)
+}
+
+function ensureExpandedForRoute(path) {
+  const group = navigationGroups.find(item => groupHasRoute(item, path))
+  if (!group) return
+  expandedGroups.value = new Set([...expandedGroups.value, groupKey(group)])
+}
+
+function toggleGroup(group) {
+  const next = new Set(expandedGroups.value)
+  const key = groupKey(group)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedGroups.value = next
+}
+
+function isGroupExpanded(group) {
+  return expandedGroups.value.has(groupKey(group))
+}
+
+function switchRoute(route) {
+  currentRoute.value = route.path
+  if (routeHistory.value[routeHistory.value.length - 1] !== route.path) routeHistory.value.push(route.path)
+  ensureExpandedForRoute(route.path)
 }
 
 function navigateRoute(target) {
   if (target.path === '__back__') {
     routeHistory.value.pop()
-    const previous = routeHistory.value[routeHistory.value.length - 1] || '/dispatch/workbench'
-    const route = routeToComponent(previous)
-    if (route) {
-      currentComponent.value = components[route.component]
-      currentRoute.value = route.path
-    }
+    const previous = routeHistory.value[routeHistory.value.length - 1] || findDefaultRoute(currentRoleKey.value)?.path
+    const route = findRouteByPath(previous)
+    if (route && canAccess(route, currentRoleKey.value)) switchRoute(route)
     return
   }
-  const path = target.path || nameAliases[target.name] || ''
-  const route = routeToComponent(path)
-  if (route) switchComponent(route.component, route.path)
+  const route = findRouteByPath(target.path)
+  if (route && canAccess(route, currentRoleKey.value)) switchRoute(route)
 }
+
+watch(currentRoleKey, roleKey => {
+  const active = findRouteByPath(currentRoute.value)
+  if (!active || !canAccess(active, roleKey)) {
+    const nextRoute = findDefaultRoute(roleKey)
+    if (nextRoute) switchRoute(nextRoute)
+  }
+}, { immediate: true })
+
+watch(currentRoute, path => ensureExpandedForRoute(path), { immediate: true })
 
 installPrototypeRouter(navigateRoute)
 </script>
 
 <template>
   <div class="app-shell">
-    <nav class="side-nav">
-      <div v-for="group in navigationGroups" :key="group.group" class="nav-group">
-        <div class="nav-group-title">
-          <span>{{ group.icon }}</span>
-          <span>{{ group.group }}</span>
+    <nav class="side-nav" aria-label="原型导航">
+      <div class="brand">
+        <strong>{{ prototypeContract.projectName }}</strong>
+        <span>{{ prototypeContract.customerName || 'Prototype Demo' }}</span>
+      </div>
+
+      <section class="role-panel" aria-label="演示角色">
+        <label for="prototype-role">当前角色</label>
+        <select id="prototype-role" v-model="currentRoleKey">
+          <option v-for="role in roles" :key="role.key" :value="role.key">{{ role.label }}</option>
+        </select>
+        <div class="role-user">
+          <span>{{ currentRole.userName }}</span>
+          <span>{{ currentRole.label }}</span>
         </div>
-        <ul class="nav-group-routes">
-          <li v-for="route in group.routes" :key="route.path" 
-              :class="{ 'active': currentRoute === route.path }"
-              @click="switchComponent(route.component, route.path)">
-            {{ route.title }}
-          </li>
-        </ul>
+      </section>
+
+      <div class="nav-scroll">
+        <section v-for="group in visibleGroups" :key="group.group" class="nav-group">
+          <button class="nav-group-title" type="button" @click="toggleGroup(group)">
+            <span class="nav-group-title-main">
+              <span>{{ group.icon }}</span>
+              <span>{{ group.group }}</span>
+            </span>
+            <span class="nav-group-count">{{ isGroupExpanded(group) ? '收起' : group.routes.length + '项' }}</span>
+          </button>
+          <ul v-if="isGroupExpanded(group)" class="nav-group-routes">
+            <li v-for="route in group.routes" :key="route.path">
+              <button class="nav-button" :class="{ active: currentRoute === route.path }" type="button" @click="switchRoute(route)">
+                {{ route.title }}
+              </button>
+            </li>
+          </ul>
+        </section>
       </div>
     </nav>
+
     <main class="main-panel">
       <component :is="currentComponent" />
     </main>
   </div>
 </template>
-
-<style scoped>
-.nav-group-routes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-}
-.side-nav ul li {
-  list-style: none;
-  cursor: pointer;
-  padding: 10px 14px;
-  border-radius: 8px;
-  transition: background 0.2s;
-  color: #cbd5e1;
-  font-weight: 750;
-}
-.side-nav ul li:hover {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-}
-.side-nav ul li.active {
-  background: #2563eb;
-  color: #fff;
-  font-weight: bold;
-}
-.nav-group-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  font-weight: bold;
-  color: #94a3b8;
-}
-</style>

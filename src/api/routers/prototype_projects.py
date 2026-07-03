@@ -17,6 +17,12 @@ PROTOTYPES_DIR = PROJECT_ROOT / "prototypes"
 
 router = APIRouter(prefix="/prototype-projects", tags=["prototype-projects"])
 RUNNING_SERVERS: dict[str, dict[str, Any]] = {}
+IMPORT_SOURCE_RE = re.compile(
+    r"""(?:import\s+(?:[^'"]+\s+from\s+)?|export\s+[^'"]+\s+from\s+|import\()\s*['"]([^'"]+)['"]"""
+)
+ASSET_SOURCE_RE = re.compile(
+    r"""(?:src|href)=["'](\.{1,2}/[^"']+\.(?:svg|png|jpe?g|gif|webp))["']|url\(["']?(\.{1,2}/[^"')]+\.(?:svg|png|jpe?g|gif|webp))["']?\)"""
+)
 
 
 class PrototypeFile(BaseModel):
@@ -67,6 +73,15 @@ def _relative_project_path(slug: str, path: Path) -> str:
     return f"prototypes/{_safe_slug(slug)}/{path.relative_to(_project_dir(slug).resolve()).as_posix()}"
 
 
+def _tail(text: str, limit: int = 3000) -> str:
+    value = text or ""
+    return value[-limit:] if len(value) > limit else value
+
+
+def _project_relative(path: Path, project_dir: Path) -> str:
+    return path.relative_to(project_dir).as_posix()
+
+
 def _is_process_running(process: subprocess.Popen[str] | None) -> bool:
     return bool(process) and process.poll() is None
 
@@ -99,6 +114,73 @@ def _project_summary(path: Path) -> dict[str, Any]:
         "running": running,
         "url": server.get("url") if running and server else "",
     }
+
+
+def _resolve_relative_source(project_dir: Path, owner: Path, source: str) -> bool:
+    if not source.startswith("."):
+        return True
+
+    base = (owner.parent / source).resolve()
+    project_root = project_dir.resolve()
+    if base != project_root and project_root not in base.parents:
+        return False
+
+    if base.is_file():
+        return True
+
+    candidates: list[Path] = []
+    if base.suffix:
+        candidates.append(base)
+    else:
+        candidates.extend(base.with_suffix(ext) for ext in [".js", ".vue", ".json", ".css", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"])
+        candidates.extend(base / f"index{ext}" for ext in [".js", ".vue", ".json"])
+
+    return any(candidate.exists() and candidate.is_file() for candidate in candidates)
+
+
+def _validate_project_static(project_dir: Path) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    required_files = [
+        "package.json",
+        "index.html",
+        "src/main.js",
+        "src/App.vue",
+        "src/prototypeContract.js",
+    ]
+
+    for rel in required_files:
+        if not (project_dir / rel).is_file():
+            issues.append({"file": rel, "message": "缺少原型运行必需文件"})
+
+    index_path = project_dir / "index.html"
+    if index_path.is_file():
+        index_content = index_path.read_text(encoding="utf-8", errors="replace")
+        if not re.search(r"""charset=["']?UTF-8""", index_content, flags=re.I):
+            issues.append({"file": "index.html", "message": "缺少 UTF-8 charset，可能导致浏览器标题乱码"})
+
+    source_files = [
+        path
+        for path in (project_dir / "src").rglob("*")
+        if path.is_file() and path.suffix in {".vue", ".js", ".css"}
+    ] if (project_dir / "src").exists() else []
+
+    for source_file in source_files:
+        rel = _project_relative(source_file, project_dir)
+        content = source_file.read_text(encoding="utf-8", errors="replace")
+        if source_file.suffix == ".vue" and "withDefaults(defineProps({" in content:
+            issues.append({"file": rel, "message": "withDefaults 只能配合 type-based defineProps 使用，当前写法会导致 Vue 编译失败"})
+
+        for match in IMPORT_SOURCE_RE.finditer(content):
+            raw_source = match.group(1)
+            if not _resolve_relative_source(project_dir, source_file, raw_source):
+                issues.append({"file": rel, "message": f"相对导入不存在或越界：{raw_source}"})
+
+        for match in ASSET_SOURCE_RE.finditer(content):
+            raw_source = match.group(1) or match.group(2)
+            if raw_source and not _resolve_relative_source(project_dir, source_file, raw_source):
+                issues.append({"file": rel, "message": f"静态资源不存在或越界：{raw_source}"})
+
+    return issues
 
 
 @router.get("")
@@ -142,6 +224,61 @@ def read_project_status(slug: str) -> dict[str, Any]:
         "output_dir": str(project_dir),
         "exists": True,
         "files": files,
+    }
+
+
+@router.post("/{slug}/validate")
+def validate_project(slug: str) -> dict[str, Any]:
+    safe_slug = _safe_slug(slug)
+    project_dir = _project_dir(safe_slug)
+    if not project_dir.exists():
+        raise HTTPException(status_code=404, detail="Prototype project does not exist")
+    if not (project_dir / "package.json").exists():
+        raise HTTPException(status_code=400, detail="Prototype project package.json is missing")
+
+    static_issues = _validate_project_static(project_dir)
+    build_result: dict[str, Any] = {
+        "ok": False,
+        "returncode": None,
+        "stdout_tail": "",
+        "stderr_tail": "",
+    }
+
+    try:
+        build = subprocess.run(
+            ["npm", "run", "build"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        build_result = {
+            "ok": build.returncode == 0,
+            "returncode": build.returncode,
+            "stdout_tail": _tail(build.stdout),
+            "stderr_tail": _tail(build.stderr),
+        }
+    except subprocess.TimeoutExpired as exc:
+        build_result = {
+            "ok": False,
+            "returncode": None,
+            "stdout_tail": _tail(exc.stdout or ""),
+            "stderr_tail": _tail(exc.stderr or "npm run build timed out"),
+        }
+    except OSError as exc:
+        build_result = {
+            "ok": False,
+            "returncode": None,
+            "stdout_tail": "",
+            "stderr_tail": f"Failed to run npm build: {exc}",
+        }
+
+    return {
+        "slug": safe_slug,
+        "output_dir": str(project_dir),
+        "ok": not static_issues and build_result["ok"],
+        "static_issues": static_issues,
+        "build": build_result,
     }
 
 

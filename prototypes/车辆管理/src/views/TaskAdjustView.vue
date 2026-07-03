@@ -1,342 +1,817 @@
 <template>
   <div class="task-adjust-view">
-    <!-- Empty state -->
-    <div v-if="isEmpty" class="empty-state">
-      <el-alert title="无法获取任务信息，请返回重试" type="error" show-icon />
-      <el-button disabled style="margin-top: 16px;">提交</el-button>
-    </div>
-
-    <!-- Normal content -->
-    <div v-else>
-      <!-- 顶部任务/车辆信息摘要区 -->
-      <section class="summary-section">
-        <p><strong>车牌：</strong>{{ vehicleInfo.plate }}</p>
-        <p><strong>司机：</strong>{{ vehicleInfo.driver }}</p>
-        <p><strong>任务描述：</strong>{{ vehicleInfo.taskDesc }}</p>
-      </section>
-
-      <!-- 操作类型选择按钮组 -->
-      <section class="action-section">
-        <el-radio-group v-model="actionType" size="small">
-          <el-radio-button value="change">改派</el-radio-button>
-          <el-radio-button value="cancel">取消</el-radio-button>
-          <el-radio-button value="add">加派</el-radio-button>
-        </el-radio-group>
-      </section>
-
-      <!-- 操作表单区 -->
-      <section class="form-section">
-        <!-- 改派 -->
-        <div v-if="actionType === 'change'" class="change-form">
-          <el-form label-width="100px">
-            <el-form-item label="目标司机">
-              <el-input v-model="targetDriverName" readonly placeholder="点击选择司机" @click="openDriverPicker" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- 取消 -->
-        <div v-if="actionType === 'cancel'" class="cancel-form">
-          <el-form label-width="100px">
-            <el-form-item label="确认原因">
-              <el-input v-model="cancelReason" type="textarea" rows="3" placeholder="请填写取消原因" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- 加派 -->
-        <div v-if="actionType === 'add'" class="add-form">
-          <el-form label-width="100px">
-            <el-form-item label="作业地点">
-              <el-input v-model="addLocation" readonly placeholder="点击选择作业点" @click="openLocationPicker" />
-            </el-form-item>
-            <el-form-item label="作业时间">
-              <el-date-picker v-model="addTime" type="datetime" placeholder="选择日期时间" style="width: 100%;" />
-            </el-form-item>
-            <el-form-item label="作业要求">
-              <el-input v-model="addRequirement" type="textarea" rows="3" placeholder="请填写作业要求" />
-            </el-form-item>
-          </el-form>
-        </div>
-      </section>
-
-      <!-- 异常处理记录区 -->
-      <section class="exception-section">
-        <el-form label-width="100px">
-          <el-form-item label="处理原因">
-            <el-input v-model="exceptionReason" type="textarea" rows="2" placeholder="请填写异常处理原因" />
-          </el-form-item>
-          <el-form-item label="备注">
-            <el-input v-model="remark" type="textarea" rows="2" placeholder="备注信息" />
-          </el-form-item>
-          <el-form-item label="附件">
-            <el-upload action="#" :auto-upload="false" list-type="text">
-              <el-button size="small" type="primary">选择文件</el-button>
-            </el-upload>
-          </el-form-item>
-        </el-form>
-      </section>
-
-      <!-- 底部提交确认按钮区 -->
-      <section class="submit-section">
-        <el-button type="primary" :loading="isLoading" :disabled="isSubmitting" @click="handleSubmit">
-          {{ isLoading ? '提交中...' : '提交' }}
-        </el-button>
-      </section>
-    </div>
-
-    <!-- Driver picker dialog (simulated) -->
-    <el-dialog v-model="driverPickerVisible" title="选择目标司机" width="90%" top="10vh">
-      <el-table :data="nearbyDrivers" @row-click="selectDriver">
-        <el-table-column prop="name" label="姓名" />
-        <el-table-column prop="plate" label="车牌" />
-        <el-table-column prop="location" label="当前位置" />
-        <el-table-column prop="distance" label="距离" />
-      </el-table>
-    </el-dialog>
-
-    <!-- Location picker (simulated) -->
-    <el-dialog v-model="locationPickerVisible" title="选择作业地点" width="90%" top="10vh">
-      <el-input v-model="searchLocation" placeholder="搜索地点" style="margin-bottom:12px;" />
-      <div class="mock-map" @click="mockPick">
-        <p>点击模拟地图选点：{{ selectedAddress }}</p>
+    <!-- 顶部任务/车辆信息摘要区 -->
+    <div class="summary-section">
+      <h4 class="section-title">任务/车辆信息</h4>
+      <div v-if="currentTask" class="summary-content">
+        <div class="summary-item"><span class="label">车牌号：</span><span class="value">{{ currentTask.plateNumber }}</span></div>
+        <div class="summary-item"><span class="label">司机：</span><span class="value">{{ currentTask.driverName }}</span></div>
+        <div class="summary-item"><span class="label">任务描述：</span><span class="value">{{ currentTask.description }}</span></div>
+        <div class="summary-item"><span class="label">任务状态：</span><span class="value status-badge" :class="'status-' + (currentTask.status || '').toLowerCase()">{{ currentTask.status }}</span></div>
       </div>
-    </el-dialog>
-
-    <!-- Confirm dialog -->
-    <ConfirmDialog ref="confirmDialogRef" :visible="confirmVisible" title="确认操作" :content="confirmContent" @confirm="doSubmit" @cancel="confirmVisible=false" />
-
-    <!-- Loading overlay -->
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="spinner"></div>
+      <div v-else class="empty-summary">
+        <span class="empty-icon">⚠️</span>
+        <span>无法获取任务信息，请返回重试</span>
+      </div>
     </div>
+
+    <!-- 操作类型选择按钮组 -->
+    <div class="operation-section">
+      <h4 class="section-title">选择操作类型</h4>
+      <div class="operation-buttons">
+        <button
+          v-for="op in operationTypes"
+          :key="op.key"
+          :class="['op-btn', { active: selectedOperation === op.key }]"
+          @click="selectOperation(op.key)"
+        >
+          {{ op.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 操作表单区 -->
+    <div class="form-section">
+      <h4 class="section-title">{{ formTitle }}</h4>
+      <div v-if="selectedOperation === 'reassign'" class="reassign-form">
+        <div class="form-group">
+          <label>目标司机</label>
+          <div class="driver-selector" @click="showDriverPicker = true">
+            <input type="text" :value="formData.targetDriverName" placeholder="点击选择司机" readonly />
+            <span class="selector-arrow">▶</span>
+          </div>
+        </div>
+        <div v-if="showDriverPicker" class="driver-list-overlay">
+          <div class="driver-list-panel">
+            <h5>选择目标司机</h5>
+            <div
+              v-for="driver in nearbyDrivers"
+              :key="driver.id"
+              :class="['driver-item', { selected: formData.targetDriver === driver.id }]"
+              @click="selectDriver(driver)"
+            >
+              <div class="driver-info">
+                <span class="driver-name">{{ driver.name }}</span>
+                <span class="driver-plate">{{ driver.plateNumber }}</span>
+                <span class="driver-location">{{ driver.currentPosition }}</span>
+              </div>
+              <span v-if="formData.targetDriver === driver.id" class="check-mark">✓</span>
+            </div>
+            <button class="close-picker" @click="showDriverPicker = false">关闭</button>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="selectedOperation === 'cancel'" class="cancel-form">
+        <div class="form-group">
+          <label>取消原因</label>
+          <textarea v-model="formData.cancelReason" placeholder="请说明取消原因" rows="3"></textarea>
+        </div>
+      </div>
+      <div v-else-if="selectedOperation === 'add'" class="add-form">
+        <div class="form-group">
+          <label>作业地点</label>
+          <div class="location-selector" @click="showLocationPicker = true">
+            <input type="text" :value="formData.workLocation" placeholder="点击选择作业地点" readonly />
+            <span class="selector-arrow">▶</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>作业时间</label>
+          <input type="datetime-local" v-model="formData.workTime" />
+        </div>
+        <div class="form-group">
+          <label>作业要求</label>
+          <textarea v-model="formData.workRequirement" placeholder="请输入作业要求" rows="2"></textarea>
+        </div>
+        <div v-if="showLocationPicker" class="location-list-overlay">
+          <div class="location-list-panel">
+            <h5>选择作业地点</h5>
+            <div
+              v-for="loc in mockLocations"
+              :key="loc.value"
+              :class="['location-item', { selected: formData.workLocation === loc.label }]"
+              @click="selectLocation(loc)"
+            >
+              <span>{{ loc.label }}</span>
+              <span v-if="formData.workLocation === loc.label" class="check-mark">✓</span>
+            </div>
+            <button class="close-picker" @click="showLocationPicker = false">关闭</button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="form-placeholder">
+        <p>请先选择操作类型</p>
+      </div>
+    </div>
+
+    <!-- 异常处理记录区 -->
+    <div class="exception-section">
+      <h4 class="section-title">异常处理记录</h4>
+      <div class="form-group">
+        <label>处理原因</label>
+        <select v-model="exceptionRecord.reason">
+          <option value="">请选择</option>
+          <option value="driver_unavailable">司机无法到岗</option>
+          <option value="vehicle_breakdown">车辆故障</option>
+          <option value="route_change">路线变更</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea v-model="exceptionRecord.remark" placeholder="可补充说明" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>附件上传</label>
+        <div class="file-upload">
+          <input type="file" @change="handleFileUpload" accept="image/*,.pdf" />
+          <span class="file-name" v-if="exceptionRecord.attachmentName">{{ exceptionRecord.attachmentName }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部提交确认按钮区 -->
+    <div class="submit-section">
+      <button
+        class="submit-btn"
+        :disabled="!canSubmit || loading"
+        @click="handleSubmit"
+      >
+        <span v-if="loading" class="loading-spinner"></span>
+        <span v-else>提交调整</span>
+      </button>
+    </div>
+
+    <!-- 二次确认弹窗 -->
+    <div v-if="showConfirm" class="confirm-overlay">
+      <div class="confirm-dialog">
+        <h5>确认操作</h5>
+        <div class="confirm-summary">
+          <p>操作类型：{{ selectedOperationLabel }}</p>
+          <p v-if="selectedOperation === 'reassign'">目标司机：{{ formData.targetDriverName }}</p>
+          <p v-if="selectedOperation === 'cancel'">取消原因：{{ formData.cancelReason }}</p>
+          <p v-if="selectedOperation === 'add'">作业地点：{{ formData.workLocation }}</p>
+          <p>异常处理原因：{{ exceptionRecord.reasonLabel || exceptionRecord.reason }}</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="cancel-btn" @click="showConfirm = false">取消</button>
+          <button class="confirm-btn" @click="confirmSubmit" :disabled="submitting">
+            <span v-if="submitting" class="loading-spinner"></span>
+            <span v-else>确定</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 全屏加载遮罩 -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner large"></div>
+    </div>
+
+    <!-- 成功提示 Toast -->
+    <div v-if="showSuccessToast" class="toast success-toast">操作成功！正在返回...</div>
+    <!-- 错误提示 -->
+    <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { nearbyVehicles } from '@/data/mockDispatch.js'
+import { ref, reactive, computed, inject, onMounted } from 'vue'
+import { fetchDispatchData, dispatchRecords } from '../data/mockDispatch.js'
+import prototypeContract from '../prototypeContract.js'
 
-const route = useRoute()
-const router = useRouter()
+const prototypeContext = inject('prototypeContext')
+const currentRole = computed(() => prototypeContext.currentRole || 'dispatcher')
+const currentRoleKey = computed(() => prototypeContext.currentRoleKey || 'dispatcher')
 
-// —— Data ——
-const isEmpty = ref(false)
-const isLoading = ref(false)
-const isSubmitting = ref(false)
-const errorMsg = ref('')
+// 页面状态
+const loading = ref(false)
+const empty = ref(false)
+const errorMessage = ref('')
+const submitting = ref(false)
+const showSuccessToast = ref(false)
+const showConfirm = ref(false)
 
-const vehicleInfo = ref({
-  plate: '',
-  driver: '',
-  taskDesc: ''
+// 当前任务/车辆数据
+const currentTask = ref(null)
+
+// 操作类型
+const operationTypes = [
+  { key: 'reassign', label: '改派' },
+  { key: 'cancel', label: '取消' },
+  { key: 'add', label: '加派' }
+]
+const selectedOperation = ref('')
+const selectedOperationLabel = computed(() => {
+  const op = operationTypes.find(o => o.key === selectedOperation.value)
+  return op ? op.label : ''
 })
 
-const actionType = ref('change')
+const formTitle = computed(() => {
+  if (!selectedOperation.value) return '请选择操作类型以显示表单'
+  const map = { reassign: '改派设置', cancel: '取消确认', add: '加派信息' }
+  return map[selectedOperation.value] || ''
+})
 
-// 改派
-const targetDriverName = ref('')
-const targetDriverId = ref('')
+// 表单数据
+const formData = reactive({
+  targetDriver: null,
+  targetDriverName: '',
+  targetDriverPlate: '',
+  cancelReason: '',
+  workLocation: '',
+  workTime: '',
+  workRequirement: ''
+})
 
-// 取消
-const cancelReason = ref('')
+// 异常处理记录
+const exceptionRecord = reactive({
+  reason: '',
+  reasonLabel: '',
+  remark: '',
+  attachmentName: ''
+})
 
-// 加派
-const addLocation = ref('')
-const addTime = ref('')
-const addRequirement = ref('')
-
-// 异常记录
-const exceptionReason = ref('')
-const remark = ref('')
-const files = ref([])
-
-// 弹窗
-const driverPickerVisible = ref(false)
-const locationPickerVisible = ref(false)
+// 司机选择
+const showDriverPicker = ref(false)
 const nearbyDrivers = ref([])
-const searchLocation = ref('')
-const selectedAddress = ref('')
 
-// 确认弹窗
-const confirmVisible = ref(false)
-const confirmContent = computed(() => {
-  let summary = `操作类型：${actionType.value === 'change' ? '改派' : actionType.value === 'cancel' ? '取消' : '加派'}\n`
-  if (actionType.value === 'change') summary += `目标司机：${targetDriverName.value}\n`
-  if (actionType.value === 'cancel') summary += `取消原因：${cancelReason.value}\n`
-  if (actionType.value === 'add') {
-    summary += `作业地点：${addLocation.value}\n`
-    summary += `作业时间：${addTime.value}\n`
-    summary += `作业要求：${addRequirement.value}\n`
-  }
-  summary += `异常处理原因：${exceptionReason.value}`
-  return summary
+// 地点选择
+const showLocationPicker = ref(false)
+const mockLocations = [
+  { value: 'A', label: 'A区卸货点' },
+  { value: 'B', label: 'B区装货点' },
+  { value: 'C', label: 'C区仓库' },
+  { value: 'D', label: 'D区临时停靠点' }
+]
+
+// 是否可以提交
+const canSubmit = computed(() => {
+  if (!selectedOperation.value) return false
+  if (selectedOperation.value === 'reassign' && !formData.targetDriver) return false
+  if (selectedOperation.value === 'cancel' && !formData.cancelReason.trim()) return false
+  if (selectedOperation.value === 'add' && (!formData.workLocation || !formData.workTime)) return false
+  if (!exceptionRecord.reason) return false
+  return true
 })
 
-// —— Lifecycle ——
-onMounted(() => {
-  const taskId = route.query.taskId
-  if (!taskId) {
-    isEmpty.value = true
-    return
+// 初始化数据
+onMounted(async () => {
+  loading.value = true
+  try {
+    const data = await fetchDispatchData()
+    // 从 mock 数据中提取第一个任务作为示例
+    if (data && data.dispatchTask) {
+      const task = data.dispatchTask
+      currentTask.value = {
+        plateNumber: task.vehiclePlate || '沪A12345',
+        driverName: task.driverName || '张三',
+        description: task.description || '运输物资至B区',
+        status: task.status || '进行中'
+      }
+    } else if (Array.isArray(data) && data.length > 0) {
+      // 如果返回数组取第一个
+      const first = data[0]
+      currentTask.value = {
+        plateNumber: first.vehiclePlate || first.plateNumber || '京B67890',
+        driverName: first.driverName || '李四',
+        description: first.description || '临时任务',
+        status: first.status || '待执行'
+      }
+    } else {
+      // 兜底数据
+      currentTask.value = {
+        plateNumber: '粤C34567',
+        driverName: '王五',
+        description: '运输钢材到D区',
+        status: '待执行'
+      }
+    }
+    // 加载周边司机
+    if (data && data.nearbyVehicles) {
+      nearbyDrivers.value = data.nearbyVehicles.map(v => ({
+        id: v.vehicleId || v.id,
+        name: v.driverName || '未知司机',
+        plateNumber: v.plateNumber || '未知车牌',
+        currentPosition: v.currentPosition || '未知位置'
+      }))
+    } else {
+      // 兜底司机
+      nearbyDrivers.value = [
+        { id: 'd1', name: '赵六', plateNumber: '沪B00001', currentPosition: 'A区' },
+        { id: 'd2', name: '钱七', plateNumber: '沪B00002', currentPosition: 'B区附近' }
+      ]
+    }
+    // 根据角色调整默认操作类型等（演示差异）
+    if (currentRoleKey.value === 'driver') {
+      // 司机角色不能改派和加派，只能取消
+      selectedOperation.value = 'cancel'
+    }
+  } catch (e) {
+    errorMessage.value = '加载数据失败，请重试'
+    empty.value = true
+  } finally {
+    loading.value = false
   }
-  // Simulate fetching vehicle info (here using mock)
-  vehicleInfo.value = {
-    plate: '京A12345',
-    driver: '张三',
-    taskDesc: '从A仓库运送货物到B站点'
-  }
-  // Load nearby drivers
-  nearbyDrivers.value = nearbyVehicles.map(v => ({
-    id: v.vehicleId,
-    name: v.driver || '未知',
-    plate: v.plate,
-    location: v.location || '未知',
-    distance: v.distance || '--'
-  }))
 })
 
-// —— Methods ——
-function openDriverPicker() {
-  driverPickerVisible.value = true
+function selectOperation(key) {
+  selectedOperation.value = key
+  // 切换时重置部分字段
+  if (key === 'reassign') {
+    formData.cancelReason = ''
+    formData.workLocation = ''
+    formData.workTime = ''
+    formData.workRequirement = ''
+  } else if (key === 'cancel') {
+    formData.targetDriver = null
+    formData.targetDriverName = ''
+  } else if (key === 'add') {
+    formData.targetDriver = null
+    formData.targetDriverName = ''
+    formData.cancelReason = ''
+  }
 }
 
-function selectDriver(row) {
-  targetDriverName.value = row.name + ' (' + row.plate + ')'
-  targetDriverId.value = row.id
-  driverPickerVisible.value = false
+function selectDriver(driver) {
+  formData.targetDriver = driver.id
+  formData.targetDriverName = driver.name
+  formData.targetDriverPlate = driver.plateNumber
+  showDriverPicker.value = false
 }
 
-function openLocationPicker() {
-  locationPickerVisible.value = true
+function selectLocation(loc) {
+  formData.workLocation = loc.label
+  showLocationPicker.value = false
 }
 
-function mockPick() {
-  selectedAddress.value = '北京市朝阳区望京SOHO'
-  addLocation.value = selectedAddress.value
-  locationPickerVisible.value = false
+function handleFileUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    exceptionRecord.attachmentName = file.name
+  }
 }
 
 function handleSubmit() {
-  // Validate
-  if (actionType.value === 'change' && !targetDriverName.value) {
-    ElMessage.warning('请选择目标司机')
-    return
+  showConfirm.value = true
+  // 填充异常原因标签
+  const reasonMap = {
+    driver_unavailable: '司机无法到岗',
+    vehicle_breakdown: '车辆故障',
+    route_change: '路线变更',
+    other: '其他'
   }
-  if (actionType.value === 'cancel' && !cancelReason.value) {
-    ElMessage.warning('请填写取消原因')
-    return
-  }
-  if (actionType.value === 'add' && (!addLocation.value || !addTime.value)) {
-    ElMessage.warning('请填写作业地点和作业时间')
-    return
-  }
-  if (!exceptionReason.value) {
-    ElMessage.warning('请填写异常处理原因')
-    return
-  }
-  // Show confirm dialog
-  confirmVisible.value = true
+  exceptionRecord.reasonLabel = reasonMap[exceptionRecord.reason] || exceptionRecord.reason
 }
 
-async function doSubmit() {
-  confirmVisible.value = false
-  isSubmitting.value = true
-  isLoading.value = true
+async function confirmSubmit() {
+  submitting.value = true
+  showConfirm.value = false
+  loading.value = true
   try {
-    // Simulate API call
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // 80% success for demo
-        if (Math.random() > 0.2) {
-          resolve()
-        } else {
-          reject(new Error('提交失败，请稍后重试'))
-        }
-      }, 1500)
-    })
-    ElMessage.success('操作成功')
-    router.push({ path: '/workbench', query: { refresh: Date.now() } })
+    // 模拟提交
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // 成功后
+    showSuccessToast.value = true
+    loading.value = false
+    submitting.value = false
+    // 模拟返回（原型中通过界面返回）
+    setTimeout(() => {
+      // 这里可以触发路由返回，但禁止引入vue-router，所以简单重置或提示
+      showSuccessToast.value = false
+      // 刷新任务列表（演示用）
+      window.dispatchEvent(new CustomEvent('refresh-task-list'))
+    }, 1500)
   } catch (e) {
-    errorMsg.value = e.message || '操作失败：未知错误'
-    ElMessage.error(errorMsg.value)
-  } finally {
-    isLoading.value = false
-    isSubmitting.value = false
+    errorMessage.value = `操作失败：${e.message || '未知错误'}`
+    loading.value = false
+    submitting.value = false
   }
 }
 </script>
 
 <style scoped>
 .task-adjust-view {
-  padding: 16px;
-  position: relative;
-  min-height: 100vh;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 80px;
+
+.section-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
 }
+
 .summary-section {
-  background: #f5f7fa;
+  background: #f7f9fc;
   border-radius: 8px;
-  padding: 12px;
+  padding: 16px;
   margin-bottom: 16px;
 }
-.summary-section p {
-  margin: 4px 0;
+
+.summary-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
-.action-section {
+
+.summary-item {
+  display: flex;
+  align-items: baseline;
+}
+
+.summary-item .label {
+  width: 80px;
+  flex-shrink: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.summary-item .value {
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-进行中 {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.status-待执行 {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.empty-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #999;
+  font-size: 14px;
+}
+
+.empty-icon {
+  font-size: 20px;
+}
+
+.operation-section {
   margin-bottom: 16px;
 }
+
+.operation-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.op-btn {
+  padding: 8px 24px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.op-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.op-btn.active {
+  background: #1890ff;
+  color: white;
+  border-color: #1890ff;
+}
+
 .form-section {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 16px;
   margin-bottom: 16px;
+  min-height: 120px;
 }
+
+.form-placeholder {
+  color: #ccc;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+input[type="text"],
+input[type="datetime-local"],
+textarea,
+select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.driver-selector,
+.location-selector {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.driver-selector input,
+.location-selector input {
+  flex: 1;
+  cursor: pointer;
+  background: #fafafa;
+}
+
+.selector-arrow {
+  margin-left: -30px;
+  color: #999;
+  font-size: 12px;
+}
+
+.driver-list-overlay,
+.location-list-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.driver-list-panel,
+.location-list-panel {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.driver-list-panel h5,
+.location-list-panel h5 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.driver-item,
+.location-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.driver-item:hover,
+.location-item:hover {
+  background: #f7f9fc;
+}
+
+.driver-item.selected,
+.location-item.selected {
+  background: #e6f7ff;
+}
+
+.driver-info {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.driver-name {
+  font-weight: 600;
+}
+
+.driver-plate {
+  color: #666;
+  font-size: 12px;
+}
+
+.check-mark {
+  color: #1890ff;
+  font-weight: bold;
+}
+
+.close-picker {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .exception-section {
+  background: #fff9e6;
+  border: 1px solid #ffe58f;
+  border-radius: 8px;
+  padding: 16px;
   margin-bottom: 16px;
 }
+
+.file-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-upload input[type="file"] {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 12px;
+  color: #666;
+}
+
 .submit-section {
   display: flex;
   justify-content: center;
-  padding: 16px 0;
+  margin-bottom: 40px;
 }
+
+.submit-btn {
+  padding: 12px 48px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit-btn:disabled {
+  background: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #40a9ff;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.large {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 200;
 }
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #409eff;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 300;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
+
+.success-toast {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
 }
-.mock-map {
+
+.error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 200px;
-  background: #e6f7ff;
+  padding: 12px;
+  background: #fff1f0;
+  color: #f5222d;
+  text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid #ffa39e;
+  z-index: 400;
+}
+
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 150;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.confirm-dialog h5 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+
+.confirm-summary p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  padding: 8px 24px;
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   cursor: pointer;
-  border: 1px dashed #91d5ff;
-  border-radius: 4px;
+}
+
+.confirm-btn {
+  padding: 8px 24px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

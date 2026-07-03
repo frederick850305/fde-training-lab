@@ -1,114 +1,117 @@
-export const pendingVehicle = {
-  vehicleId: 'V010',
-  plateNo: '京D·11111',
-  vehicleType: '半挂',
-  reservationInfo: { reservationId: 'R-001', time: '2025-06-15 08:00' },
-  certificateStatus: '有效',
-  entryPurpose: '送货'
-};
-
-export const entryRecord = {
-  recordId: 'REC-001',
-  plateNo: '京D·11111',
-  action: '放行',
-  operateTime: '2025-06-15 08:05',
-  operator: '门岗王',
-  rejectReason: null,
-  syncStatus: '已同步'
-};
-
-export const gateActionParams = {
-  vehicleId: 'V010',
-  actionType: '放行',
-  rejectReason: null,
-  remark: '正常放行',
-  operatorId: 'G001'
-};
-
-export const entryRecordFilter = {
-  startDate: '2025-06-01',
-  endDate: '2025-06-15',
-  plateNo: '京D·11111',
-  action: '放行',
-  syncStatus: '已同步'
-};
-
-function normalizePendingVehicle(source, overrides = {}) {
-  const id = overrides.id || source.id || source.vehicleId;
-  const plate = overrides.plate || source.plate || source.plateNo;
-  const status = overrides.status || source.status || 'pending';
-  const statusLabelMap = {
-    pending: '待核验',
-    approved: '已放行',
-    rejected: '已拒绝',
-  };
-  return {
-    ...source,
-    ...overrides,
-    id,
-    plate,
-    plateNumber: plate,
-    type: overrides.type || source.type || source.vehicleType,
-    appointment: overrides.appointment || `预约 ${source.reservationInfo?.reservationId || '-'} / ${source.reservationInfo?.time || '-'}`,
-    certStatus: overrides.certStatus || source.certStatus || source.certificateStatus,
-    intent: overrides.intent || source.intent || source.entryPurpose,
-    source: overrides.source || '预约同步',
-    status,
-    statusLabel: overrides.statusLabel || statusLabelMap[status] || status,
-    verificationStatus: overrides.verificationStatus || (source.certificateStatus === '有效' ? 'passed' : 'failed'),
-    verificationDetail: overrides.verificationDetail || `${plate} 预约信息、证照状态和入场意图已完成自动核验。`,
-  };
-}
-
-function normalizeEntryRecord(source, overrides = {}) {
-  const id = overrides.id || source.id || source.recordId;
-  const plate = overrides.plate || source.plate || source.plateNo;
-  return {
-    ...source,
-    ...overrides,
-    id,
-    plate,
-    plateNumber: plate,
-    actionLabel: overrides.actionLabel || source.action,
-    time: overrides.time || source.operateTime,
-    syncStatusLabel: overrides.syncStatusLabel || source.syncStatus,
-    snapshot: overrides.snapshot || { plateNo: plate, action: source.action, operator: source.operator },
-    apiResponse: overrides.apiResponse || { success: true, recordId: id, syncStatus: source.syncStatus },
-  };
-}
-
-const entryRecords = [
-  normalizeEntryRecord(entryRecord),
-  normalizeEntryRecord({ ...entryRecord, recordId: 'REC-002', plateNo: '京D·22222', action: '拒绝', rejectReason: '证照过期', syncStatus: '待同步' }),
-  normalizeEntryRecord({ ...entryRecord, recordId: 'REC-003', plateNo: '京D·33333', action: '放行', syncStatus: '同步失败' }),
+// 门禁管理 Mock 数据
+export const gateRecords = [
+  {
+    pendingVehicle: {
+      id: 'PV-001',
+      vehicleId: 'PV-001',
+      plate: '京A·12345',
+      plateNo: '京A·12345',
+      type: '卡车',
+      vehicleType: '卡车',
+      reservationInfo: {
+        id: 'RSV-001',
+        reservationId: 'RSV-001',
+        time: '2024-12-01 09:00:00'
+      },
+      licenseStatus: '已上传',
+      entryPurpose: '送货'
+    },
+    entryRecord: {
+      id: 'ER-001',
+      recordId: 'ER-001',
+      plate: '沪B·67890',
+      plateNo: '沪B·67890',
+      action: '放行',
+      actionResult: '放行',
+      time: '2024-12-01 08:30:00',
+      operator: '赵工',
+      operatorName: '赵工',
+      rejectReason: '',
+      syncStatus: '已同步'
+    },
+    gateActionParams: {
+      vehicleId: 'PV-001',
+      action: '放行',
+      rejectReason: '',
+      remark: '正常通行',
+      operatorId: 'G001'
+    },
+    entryRecordFilter: {
+      startDate: '2024-12-01',
+      endDate: '2024-12-07',
+      plate: '',
+      plateNo: '',
+      actionResult: '全部',
+      syncStatus: '全部'
+    }
+  },
+  {
+    pendingVehicle: {
+      id: 'PV-002',
+      vehicleId: 'PV-002',
+      plate: '粤C·00001',
+      plateNo: '粤C·00001',
+      type: '叉车',
+      vehicleType: '叉车',
+      reservationInfo: {
+        id: 'RSV-002',
+        reservationId: 'RSV-002',
+        time: '2024-12-01 10:00:00'
+      },
+      licenseStatus: '未上传',
+      entryPurpose: '维修'
+    },
+    entryRecord: {
+      id: 'ER-002',
+      recordId: 'ER-002',
+      plate: '浙D·11111',
+      plateNo: '浙D·11111',
+      action: '拒绝',
+      actionResult: '拒绝',
+      time: '2024-12-01 09:00:00',
+      operator: '赵工',
+      operatorName: '赵工',
+      rejectReason: '证照不全',
+      syncStatus: '未同步'
+    },
+    gateActionParams: {
+      vehicleId: 'PV-002',
+      action: '拒绝',
+      rejectReason: '证照不全',
+      remark: '请补充完整证照',
+      operatorId: 'G001'
+    },
+    entryRecordFilter: {
+      startDate: '2024-12-01',
+      endDate: '2024-12-07',
+      plate: '',
+      plateNo: '',
+      actionResult: '拒绝',
+      syncStatus: '未同步'
+    }
+  }
 ];
 
-export async function fetchEntryRecords() {
-  return {
-    list: entryRecords,
-    total: entryRecords.length,
-  };
+export function fetchGateData({ roleKey, currentUser, filters = {} } = {}) {
+  let data = gateRecords;
+  if (filters.type === 'pendingVehicle') {
+    data = data.map(r => r.pendingVehicle);
+  } else if (filters.type === 'entryRecord') {
+    data = data.map(r => r.entryRecord);
+  } else if (filters.type === 'gateActionParams') {
+    data = data.map(r => r.gateActionParams);
+  } else if (filters.type === 'entryRecordFilter') {
+    data = data.map(r => r.entryRecordFilter);
+  }
+  // 角色过滤：门岗看到待核验车辆，管理员看到全部入场记录（模拟）
+  if (roleKey === 'gate') {
+    if (filters.type === 'entryRecord') {
+      data = data.filter(r => r.actionResult === '放行');
+    }
+  } else if (roleKey === 'manager' || roleKey === 'admin') {
+    // 管理员看到更多
+  } else {
+    data = [];
+  }
+  return Promise.resolve(data);
 }
-
-export async function retrySyncRecord(recordId) {
-  return {
-    success: true,
-    recordId,
-    syncStatus: '已同步',
-  };
-}
-
-export const mockGate = {
-  pendingVehicle: normalizePendingVehicle(pendingVehicle),
-  pendingVehicles: [
-    normalizePendingVehicle(pendingVehicle),
-    normalizePendingVehicle(
-      { ...pendingVehicle, vehicleId: 'V011', plateNo: '京D·22222', certificateStatus: '即将过期', entryPurpose: '提货' },
-      { source: '人工登记', verificationStatus: 'failed', verificationDetail: '证照即将过期，需要门岗人工复核后决定是否放行。' }
-    ),
-  ],
-  entryRecord,
-  entryRecords,
-  gateActionParams,
-  entryRecordFilter,
-};

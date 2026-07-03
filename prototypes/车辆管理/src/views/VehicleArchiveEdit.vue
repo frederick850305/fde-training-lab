@@ -1,612 +1,457 @@
 <template>
   <div class="vehicle-archive-edit">
     <!-- 页面标题 -->
-    <div class="page-title">
-      <h2>{{ isEdit ? '编辑车辆 - ' + formData.plateNumber : '新增车辆' }}</h2>
+    <div class="page-header">
+      <h2>{{ isEdit ? '编辑车辆 - ' + vehicle.plate : '新增车辆' }}</h2>
+      <span class="role-badge" v-if="currentRoleKey !== 'admin'">当前角色：{{ currentRoleKey }}（只读模式）</span>
     </div>
 
-    <!-- Loading 状态 -->
-    <div v-if="pageLoading" class="loading-mask">
-      <div class="loading-indicator">加载中...</div>
+    <!-- Loadin状态 -->
+    <div v-if="loading" class="loading-state">加载中...</div>
+    <!-- Error状态 -->
+    <div v-else-if="error" class="error-state">
+      <p>{{ error }}</p>
+      <button @click="loadData">重试</button>
     </div>
-
-    <!-- Error 状态 -->
-    <div v-else-if="pageError" class="error-mask">
-      <p>加载失败：{{ pageErrorMessage }}</p>
-      <button @click="reloadPage">重试</button>
-    </div>
-
-    <!-- 主要内容区域 -->
-    <div v-else class="form-container">
+    <!-- Empty状态 + 正常内容 -->
+    <div v-else class="page-content">
       <!-- 基本信息区 -->
-      <section class="form-section">
+      <section class="zone basic-info">
         <h3>基本信息</h3>
         <div class="form-row">
-          <div class="form-item">
-            <label>车辆类型</label>
-            <select v-model="formData.vehicleType" required>
-              <option value="">请选择</option>
-              <option value="truck">卡车</option>
-              <option value="van">厢式货车</option>
-              <option value="trailer">挂车</option>
-            </select>
-          </div>
-          <div class="form-item">
-            <label>车牌号</label>
-            <input v-model="formData.plateNumber" placeholder="请输入车牌号" required />
-          </div>
-          <div class="form-item">
-            <label>所属单位</label>
-            <select v-model="formData.organization" required>
-              <option value="">请选择</option>
-              <option value="dept1">部门一</option>
-              <option value="dept2">部门二</option>
-            </select>
-          </div>
+          <label>车辆类型</label>
+          <select v-model="vehicle.type" :disabled="readonly">
+            <option value="重型卡车">重型卡车</option>
+            <option value="轻型货车">轻型货车</option>
+            <option value="罐车">罐车</option>
+          </select>
         </div>
         <div class="form-row">
-          <div class="form-item">
-            <label>司机姓名</label>
-            <input v-model="formData.driverName" placeholder="请输入司机姓名" />
-          </div>
-          <div class="form-item">
-            <label>司机电话</label>
-            <input v-model="formData.driverPhone" placeholder="请输入司机电话" />
-          </div>
+          <label>车牌号</label>
+          <input v-model="vehicle.plate" :disabled="readonly" />
+        </div>
+        <div class="form-row">
+          <label>所属单位</label>
+          <select v-model="vehicle.unit" :disabled="readonly">
+            <option value="一车间">一车间</option>
+            <option value="二车间">二车间</option>
+            <option value="后勤部">后勤部</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>司机姓名</label>
+          <input v-model="vehicle.driverName" :disabled="readonly" />
+        </div>
+        <div class="form-row">
+          <label>司机电话</label>
+          <input v-model="vehicle.driverPhone" :disabled="readonly" />
         </div>
       </section>
 
       <!-- 有效期设置区 -->
-      <section class="form-section">
+      <section class="zone validity">
         <h3>有效期设置</h3>
         <div class="form-row">
-          <div class="form-item">
-            <label>年检有效期</label>
-            <input type="date" v-model="formData.inspectionDate" />
-            <button v-if="formData.inspectionDate" @click="formData.inspectionDate = ''" class="clear-btn">清除</button>
-          </div>
-          <div class="form-item">
-            <label>保险有效期</label>
-            <input type="date" v-model="formData.insuranceDate" />
-            <button v-if="formData.insuranceDate" @click="formData.insuranceDate = ''" class="clear-btn">清除</button>
-          </div>
-          <div class="form-item">
-            <label>准入有效期</label>
-            <input type="date" v-model="formData.accessDate" />
-            <button v-if="formData.accessDate" @click="formData.accessDate = ''" class="clear-btn">清除</button>
-          </div>
+          <label>年检有效期</label>
+          <input type="date" v-model="vehicle.inspectionDate" :disabled="readonly" />
+          <button v-if="!readonly" @click="vehicle.inspectionDate = ''">清除</button>
+        </div>
+        <div class="form-row">
+          <label>保险有效期</label>
+          <input type="date" v-model="vehicle.insuranceDate" :disabled="readonly" />
+          <button v-if="!readonly" @click="vehicle.insuranceDate = ''">清除</button>
+        </div>
+        <div class="form-row">
+          <label>准入有效期</label>
+          <input type="date" v-model="vehicle.accessDate" :disabled="readonly" />
+          <button v-if="!readonly" @click="vehicle.accessDate = ''">清除</button>
         </div>
       </section>
 
       <!-- 证照图片管理区 -->
-      <section class="form-section">
-        <h3>证照图片</h3>
-        <div class="image-list">
-          <div v-for="(img, index) in certificateImages" :key="img.id || index" class="image-item">
-            <img :src="img.thumbnail || img.url" :alt="img.name" class="thumbnail" @click="previewImage(img)" />
-            <div class="image-info">
-              <span>{{ img.typeLabel }}</span>
-              <div class="image-actions">
-                <button @click="replaceImage(index)">替换</button>
-                <button @click="deleteImage(index)">删除</button>
-              </div>
+      <section class="zone certificates">
+        <h3>证照图片管理</h3>
+        <div v-if="certificates.length === 0" class="empty-cert-list">暂无证照图片</div>
+        <ul class="cert-list" v-else>
+          <li v-for="(cert, idx) in certificates" :key="idx" class="cert-item">
+            <span class="cert-type">{{ cert.type }}</span>
+            <img :src="cert.thumbnail || cert.url" class="cert-thumb" @click="previewCert(cert)" />
+            <div class="cert-actions">
+              <button @click="previewCert(cert)" :disabled="readonly">预览</button>
+              <button @click="replaceCert(idx)" :disabled="readonly">替换</button>
+              <button @click="deleteCert(idx)" :disabled="readonly">删除</button>
             </div>
-          </div>
-          <div v-if="certificateImages.length === 0" class="empty-hint">暂无证照图片</div>
-        </div>
-        <div class="upload-area">
-          <button @click="triggerUpload">上传图片</button>
-          <span class="hint">支持 JPG/PNG，单张不超过5MB</span>
-        </div>
-      </section>
-
-      <!-- 操作日志摘要区 -->
-      <section class="form-section" v-if="recentLogs.length > 0">
-        <h3>最近操作日志</h3>
-        <ul class="log-list">
-          <li v-for="log in recentLogs" :key="log.id" @click="viewLogDetail(log)">
-            <span class="log-time">{{ log.operateTime }}</span>
-            <span class="log-action">{{ log.action }}</span>
-            <span class="log-operator">{{ log.operatorName }}</span>
           </li>
         </ul>
+        <div class="upload-area" v-if="!readonly">
+          <input type="file" accept="image/*" @change="handleUpload" />
+          <span>选择证照类型：</span>
+          <select v-model="newCertType">
+            <option value="行驶证">行驶证</option>
+            <option value="驾驶证">驾驶证</option>
+            <option value="保险单">保险单</option>
+          </select>
+          <button @click="triggerUpload">上传</button>
+        </div>
       </section>
 
       <!-- 操作按钮区 -->
-      <div class="form-actions">
-        <button @click="handleSave" :disabled="saving" class="btn-save">
+      <section class="zone actions">
+        <button class="btn-save" @click="handleSave" :disabled="saving || readonly">
           {{ saving ? '保存中...' : '保存' }}
         </button>
-        <button @click="handleCancel" class="btn-cancel">取消</button>
-      </div>
+        <button class="btn-cancel" @click="handleCancel">取消</button>
+      </section>
 
-      <!-- 图片预览弹窗（简单实现） -->
-      <div v-if="previewVisible" class="preview-overlay" @click.self="closePreview">
-        <img :src="previewImgUrl" class="preview-img" />
-        <button @click="closePreview" class="close-preview">关闭</button>
-      </div>
+      <!-- 操作日志摘要区 -->
+      <section class="zone logs">
+        <h3>操作日志摘要</h3>
+        <div v-if="operationLogs.length === 0" class="empty-logs">暂无操作日志</div>
+        <ul v-else class="log-list">
+          <li v-for="log in operationLogs.slice(0, 4)" :key="log.id" class="log-item" @click="goToLogDetail(log)">
+            <span class="log-type">{{ log.type }}</span>
+            <span class="log-time">{{ log.time }}</span>
+            <span class="log-user">{{ log.user }}</span>
+          </li>
+        </ul>
+      </section>
+    </div>
 
-      <!-- 确认弹窗（简单实现） -->
-      <div v-if="confirmVisible" class="confirm-overlay" @click.self="cancelConfirm">
-        <div class="confirm-box">
-          <p>{{ confirmMessage }}</p>
-          <div class="confirm-actions">
-            <button @click="confirmCallback" class="confirm-yes">确定</button>
-            <button @click="cancelConfirm">取消</button>
-          </div>
-        </div>
-      </div>
+    <!-- 预览弹窗（简单模拟） -->
+    <div v-if="previewVisible" class="preview-overlay" @click.self="previewVisible = false">
+      <img :src="previewUrl" class="preview-image" />
+      <button @click="previewVisible = false">关闭</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, inject, onMounted, computed, reactive } from 'vue'
+import { fetchVehiclesData } from '../data/mockVehicles.js'
 
-// 假设 mock 数据在 src/data 中
-import { getVehicleDetail, saveVehicle, getOperationLogs } from '@/data/mockVehicles'
+// inject prototype context
+const prototypeContext = inject('prototypeContext')
+const currentRole = prototypeContext?.currentRole || ''
+const currentRoleKey = prototypeContext?.currentRoleKey || 'admin'
 
-const router = useRouter()
-const route = useRoute()
-
-// 页面状态
-const pageLoading = ref(true)
-const pageError = ref(false)
-const pageErrorMessage = ref('')
+// state
+const loading = ref(true)
+const error = ref('')
 const saving = ref(false)
+const isEdit = ref(false) // 假设编辑模式通过URL参数控制，这里简化
+const readonly = computed(() => currentRoleKey !== 'admin')
 
-// 是否为编辑模式
-const isEdit = computed(() => route.query.id || route.params.id)
-
-// 表单数据
-const formData = reactive({
-  vehicleType: '',
-  plateNumber: '',
-  organization: '',
+// 车辆表单数据（模拟 vehicleItem schema）
+const vehicle = reactive({
+  id: '',
+  plate: '',
+  type: '',
+  unit: '',
   driverName: '',
   driverPhone: '',
   inspectionDate: '',
   insuranceDate: '',
-  accessDate: ''
+  accessDate: '',
+  status: ''
 })
 
-// 证照图片列表
-const certificateImages = ref([])
-
-// 最近操作日志
-const recentLogs = ref([])
-
-// 预览控制
+// 证照列表（模拟）
+const certificates = ref([])
+const newCertType = ref('行驶证')
+const previewUrl = ref('')
 const previewVisible = ref(false)
-const previewImgUrl = ref('')
 
-// 确认弹窗控制
-const confirmVisible = ref(false)
-const confirmMessage = ref('')
-let confirmCallback = null
+// 操作日志列表（模拟）
+const operationLogs = ref([])
 
-// 加载页面数据
-async function loadPageData() {
-  pageLoading.value = true
-  pageError.value = false
-  pageErrorMessage.value = ''
+// 加载数据
+async function loadData() {
+  loading.value = true
+  error.value = ''
   try {
-    if (isEdit.value) {
-      const vehicleId = route.query.id || route.params.id
-      const detail = await getVehicleDetail(vehicleId)
-      // 填充表单
-      Object.assign(formData, {
-        vehicleType: detail.vehicleType,
-        plateNumber: detail.plateNumber,
-        organization: detail.organization,
-        driverName: detail.driverName,
-        driverPhone: detail.driverPhone,
-        inspectionDate: detail.inspectionDate,
-        insuranceDate: detail.insuranceDate,
-        accessDate: detail.accessDate
-      })
-      certificateImages.value = detail.certificateImages || []
+    const data = await fetchVehiclesData()
+    // 取第一条记录作为示例（编辑模式）
+    if (data && data.length > 0) {
+      const item = data[0]
+      isEdit.value = true
+      vehicle.id = item.vehicleId || item.id || ''
+      vehicle.plate = item.plate || '京A12345'
+      vehicle.type = item.type || '重型卡车'
+      vehicle.unit = item.unit || '一车间'
+      vehicle.driverName = item.driverName || '张三'
+      vehicle.driverPhone = item.driverPhone || '13800001111'
+      vehicle.inspectionDate = item.inspectionDate || '2025-06-01'
+      vehicle.insuranceDate = item.insuranceDate || '2025-12-31'
+      vehicle.accessDate = item.accessDate || '2025-09-30'
+      vehicle.status = item.status || '启用'
+      // 模拟证照数据（页面内normalize映射）
+      certificates.value = [
+        { id: 'c1', type: '行驶证', url: '', thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iMTUiIHk9IjM1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NjYiPlRodW1iPC90ZXh0Pjwvc3ZnPg==' },
+        { id: 'c2', type: '驾驶证', url: '', thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iMTUiIHk9IjM1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NjYiPlRodW1iPC90ZXh0Pjwvc3ZnPg==' }
+      ]
+      // 模拟操作日志（数据来源于mock schema中的operationLog字段）
+      operationLogs.value = [
+        { id: 'log1', type: '编辑', time: '2025-04-01 10:00', user: '管理员-周工' },
+        { id: 'log2', type: '启用', time: '2025-03-28 15:30', user: '管理员-周工' }
+      ]
     } else {
-      // 新增模式：清空表单（已初始化为空）
+      // 新增模式，字段为空
+      isEdit.value = false
     }
-    // 加载最近日志（可选）
-    if (isEdit.value) {
-      const logs = await getOperationLogs(route.query.id, { limit: 4 })
-      recentLogs.value = logs
-    }
-  } catch (e) {
-    pageError.value = true
-    pageErrorMessage.value = e.message || '加载数据失败'
+  } catch (err) {
+    error.value = '加载数据失败：' + (err.message || err)
   } finally {
-    pageLoading.value = false
+    loading.value = false
   }
 }
+onMounted(loadData)
 
-onMounted(loadPageData)
-
-// 重试加载
-function reloadPage() {
-  loadPageData()
-}
-
-// 保存
+// 保存处理
 async function handleSave() {
-  // 简单校验
-  if (!formData.plateNumber || !formData.vehicleType) {
-    alert('请填写必填字段')
+  saving.value = true
+  // 模拟校验
+  if (!vehicle.plate) {
+    alert('车牌号不能为空')
+    saving.value = false
     return
   }
-  saving.value = true
-  try {
-    await saveVehicle({ ...formData, certificateImages: certificateImages.value })
-    // 成功处理
-    router.push({ name: 'VehicleList', query: { refresh: Date.now() } })
-  } catch (e) {
-    alert('保存失败：' + (e.message || '未知错误'))
-  } finally {
-    saving.value = false
-  }
+  // 模拟保存请求
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  saving.value = false
+  alert('保存成功！')
+  // 实际项目跳转列表页，这里模拟
 }
 
-// 取消
+// 取消处理
 function handleCancel() {
-  // 检查是否有未保存修改（简化处理，直接返回并提示）
-  if (true) {
-    showConfirm('表单有未保存的修改，确定要离开吗？', () => {
-      router.back()
-    })
-  } else {
-    router.back()
+  if (confirm('取消将丢失未保存的修改，确定返回？')) {
+    // 返回上一页
+    window.history.back()
   }
 }
 
-// 上传图片
-function triggerUpload() {
-  // 模拟选择文件
-  const fileInput = document.createElement('input')
-  fileInput.type = 'file'
-  fileInput.accept = 'image/*'
-  fileInput.onchange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      // 模拟上传并添加
-      const imgObj = {
-        id: Date.now(),
-        url: URL.createObjectURL(file),
-        thumbnail: URL.createObjectURL(file),
-        name: file.name,
-        type: '行驶证', // 需要用户选择类型，这里简化
-        typeLabel: '行驶证'
-      }
-      certificateImages.value.push(imgObj)
-    }
-  }
-  fileInput.click()
-}
-
-// 预览
-function previewImage(img) {
-  previewImgUrl.value = img.url || img.thumbnail
+// 证照相关函数
+function previewCert(cert) {
+  previewUrl.value = cert.url || cert.thumbnail
   previewVisible.value = true
 }
 
-function closePreview() {
-  previewVisible.value = false
-}
-
-// 替换
-function replaceImage(index) {
-  const fileInput = document.createElement('input')
-  fileInput.type = 'file'
-  fileInput.accept = 'image/*'
-  fileInput.onchange = (e) => {
+function replaceCert(index) {
+  // 模拟替换：弹出文件选择器
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      // 模拟替换：生成新对象，旧图标记为历史（简化处理）
-      const oldImg = certificateImages.value[index]
-      const newImg = {
-        id: Date.now(),
-        url: URL.createObjectURL(file),
-        thumbnail: URL.createObjectURL(file),
-        name: file.name,
-        type: oldImg.type,
-        typeLabel: oldImg.typeLabel
-      }
-      certificateImages.value[index] = newImg
-      // 记录操作日志（此处省略）
+      // 模拟替换成功，更新缩略图为对象URL
+      const url = URL.createObjectURL(file)
+      certificates.value[index] = { ...certificates.value[index], thumbnail: url, url: url }
+      // 记录操作日志
+      operationLogs.value.unshift({ id: 'log' + Date.now(), type: '替换证照', time: new Date().toLocaleString(), user: currentRole?.userName || '未知' })
     }
   }
-  fileInput.click()
+  input.click()
 }
 
-// 删除
-function deleteImage(index) {
-  showConfirm('确定要删除该证照图片吗？', () => {
-    certificateImages.value.splice(index, 1)
-    // 记录操作日志（省略）
-  })
+function deleteCert(index) {
+  if (confirm('确认删除该证照图片？')) {
+    certificates.value.splice(index, 1)
+    operationLogs.value.unshift({ id: 'log' + Date.now(), type: '删除证照', time: new Date().toLocaleString(), user: currentRole?.userName || '未知' })
+  }
 }
 
-// 查看日志详情
-function viewLogDetail(log) {
-  router.push({ name: 'OperationLogDetail', params: { id: log.id } })
+function handleUpload(e) {
+  const file = e.target.files[0]
+  if (file) {
+    const url = URL.createObjectURL(file)
+    certificates.value.push({ id: 'c' + Date.now(), type: newCertType.value, url: url, thumbnail: url })
+    operationLogs.value.unshift({ id: 'log' + Date.now(), type: '上传证照', time: new Date().toLocaleString(), user: currentRole?.userName || '未知' })
+  }
 }
 
-// 通用确认弹窗
-function showConfirm(message, callback) {
-  confirmMessage.value = message
-  confirmCallback = callback
-  confirmVisible.value = true
+function triggerUpload() {
+  // 触发文件选择
+  const input = document.querySelector('.upload-area input[type="file"]')
+  input && input.click()
 }
 
-function cancelConfirm() {
-  confirmVisible.value = false
-  confirmCallback = null
+function goToLogDetail(log) {
+  // 模拟跳转到操作日志详情
+  alert('查看日志：' + log.type + ' - ' + log.time)
 }
 </script>
 
 <style scoped>
 .vehicle-archive-edit {
+  max-width: 800px;
+  margin: 0 auto;
   padding: 24px;
-  background: #fff;
-  min-height: 100vh;
-  position: relative;
+  font-family: Arial, sans-serif;
 }
-
-.page-title h2 {
-  margin: 0 0 24px;
-  font-size: 20px;
-}
-
-.loading-mask, .error-mask {
+.page-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  min-height: 200px;
+  margin-bottom: 20px;
 }
-
-.form-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-}
-
-.form-section h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.form-item {
-  flex: 1;
-  min-width: 200px;
-}
-
-.form-item label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.form-item input,
-.form-item select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.form-item input:focus,
-.form-item select:focus {
-  border-color: #409eff;
-  outline: none;
-}
-
-.clear-btn {
-  margin-left: 8px;
+.role-badge {
+  background: #e6a23c;
+  color: white;
   padding: 4px 8px;
-  border: 1px solid #ccc;
   border-radius: 4px;
-  background: #fff;
+  font-size: 12px;
+}
+.loading-state, .error-state {
+  text-align: center;
+  padding: 40px;
+  color: #909399;
+}
+.error-state button {
+  margin-top: 12px;
+  padding: 8px 16px;
   cursor: pointer;
 }
-
-.image-list {
+.zone {
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #fafafa;
+}
+.zone h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #303133;
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.form-row label {
+  width: 100px;
+  flex-shrink: 0;
+  color: #606266;
+}
+.form-row input, .form-row select {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+.cert-list {
+  list-style: none;
+  padding: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 12px;
 }
-
-.image-item {
-  width: 120px;
-  border: 1px solid #eee;
-  border-radius: 4px;
+.cert-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
   padding: 8px;
-  text-align: center;
+  background: white;
 }
-
-.thumbnail {
-  width: 100%;
-  height: 80px;
+.cert-type {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+.cert-thumb {
+  width: 80px;
+  height: 60px;
   object-fit: cover;
   cursor: pointer;
-}
-
-.image-info {
-  margin-top: 8px;
-  font-size: 12px;
-}
-
-.image-actions button {
-  margin: 2px;
-  padding: 2px 6px;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  background: #fafafa;
-  cursor: pointer;
-}
-
-.empty-hint {
-  color: #999;
-}
-
-.upload-area {
-  margin-top: 8px;
-}
-
-.upload-area button {
-  padding: 6px 16px;
-  border: 1px solid #409eff;
   border-radius: 4px;
-  background: #409eff;
-  color: #fff;
+}
+.cert-actions button {
+  margin: 4px 2px;
+  padding: 2px 8px;
+  font-size: 12px;
   cursor: pointer;
 }
-
-.hint {
-  margin-left: 12px;
-  color: #999;
-  font-size: 12px;
+.upload-area {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
+.actions {
+  display: flex;
+  gap: 12px;
+}
+.btn-save, .btn-cancel {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-save {
+  background: #409eff;
+  color: white;
+}
+.btn-save:disabled {
+  background: #a0cfff;
+  cursor: not-allowed;
+}
+.btn-cancel {
+  background: white;
+  border: 1px solid #dcdfe6;
+  color: #606266;
+}
 .log-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
-.log-list li {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
+.log-item {
   display: flex;
-  gap: 12px;
-}
-
-.log-list li:hover {
-  background: #f5f5f5;
-}
-
-.log-time {
-  color: #999;
-  font-size: 12px;
-}
-
-.log-action {
-  font-weight: 500;
-}
-
-.log-operator {
-  color: #666;
-}
-
-.form-actions {
-  margin-top: 24px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.btn-save {
-  padding: 8px 24px;
-  background: #409eff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid #ebeef5;
   cursor: pointer;
 }
-
-.btn-save:disabled {
-  background: #a0cfff;
-  cursor: not-allowed;
+.log-item:hover {
+  background: #f0f9eb;
 }
-
-.btn-cancel {
-  padding: 8px 24px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  cursor: pointer;
+.log-type, .log-time, .log-user {
+  color: #606266;
 }
-
-/* 预览弹窗 */
+.empty-cert-list, .empty-logs {
+  color: #c0c4cc;
+  padding: 12px 0;
+}
 .preview-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0,0,0,0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
-
-.preview-img {
+.preview-image {
   max-width: 80%;
   max-height: 80%;
-  border-radius: 4px;
+  border-radius: 8px;
 }
-
-.close-preview {
+.preview-overlay button {
   position: absolute;
   top: 20px;
   right: 20px;
   padding: 8px 16px;
-  background: #fff;
+  background: white;
   border: none;
   border-radius: 4px;
-  cursor: pointer;
-}
-
-/* 确认弹窗 */
-.confirm-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-}
-
-.confirm-box {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  min-width: 300px;
-  text-align: center;
-}
-
-.confirm-actions {
-  margin-top: 16px;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.confirm-yes {
-  padding: 6px 20px;
-  background: #409eff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-box button {
-  padding: 6px 20px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  background: #fff;
   cursor: pointer;
 }
 </style>

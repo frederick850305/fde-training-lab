@@ -81,9 +81,6 @@
               <strong class="step-title">{{ item.title }}</strong>
               <small class="step-desc">{{ item.output }}</small>
             </span>
-            <span class="step-connector" v-if="idx < steps.length - 1" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M14 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
           </button>
         </div>
       </aside>
@@ -430,13 +427,13 @@ function emitRuntimeUpdate() {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 12px 10px;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  padding: 8px 10px;
+  background: #ffffff;
 }
 
 .step-list {
   display: flex;
-  gap: 0;
+  gap: 6px;
   position: relative;
 }
 
@@ -444,32 +441,36 @@ function emitRuntimeUpdate() {
 .step-button {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
   flex: 1;
   min-width: 0;
-  padding: 10px 8px 10px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  text-align: center;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: left;
   cursor: pointer;
-  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .step-button:hover:not(:disabled) {
-  background: #f1f5f9;
-  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 
 .step-button.active {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.1);
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
 }
 
 .step-button.done {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #bbf7d0;
+  background: #f0fdf4;
 }
 
 .step-button:disabled {
@@ -483,8 +484,8 @@ function emitRuntimeUpdate() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #e2e8f0;
   transition: background 0.3s ease, box-shadow 0.3s ease;
@@ -493,21 +494,21 @@ function emitRuntimeUpdate() {
 
 .step-button.active .step-badge {
   background: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  box-shadow: none;
 }
 
 .step-button.done .step-badge {
   background: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  box-shadow: none;
 }
 
 .step-button.next .step-badge {
   background: #f1f5f9;
-  border: 2px dashed #cbd5e1;
+  border: 1px dashed #cbd5e1;
 }
 
 .step-num {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   color: #64748b;
   transition: color 0.3s ease;
@@ -527,8 +528,8 @@ function emitRuntimeUpdate() {
 
 /* ── Check Mark ── */
 .step-check {
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   color: #ffffff;
 }
 
@@ -536,17 +537,20 @@ function emitRuntimeUpdate() {
 .step-body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 1px;
   min-width: 0;
 }
 
 .step-title {
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   transition: color 0.3s ease;
 }
 
@@ -563,38 +567,15 @@ function emitRuntimeUpdate() {
   color: #64748b;
   font-size: 10px;
   font-weight: 500;
-  line-height: 1.3;
-  max-width: 140px;
+  line-height: 1.2;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .step-button.active .step-desc {
   display: block;
-}
-
-/* ── Connector Arrow ── */
-.step-connector {
-  position: absolute;
-  right: -2px;
-  top: 20px;
-  width: 16px;
-  height: 16px;
-  color: #cbd5e1;
-  transition: color 0.3s ease;
-  pointer-events: none;
-}
-
-.step-button.done .step-connector {
-  color: #86efac;
-}
-
-.step-button.active .step-connector,
-.step-button.next .step-connector {
-  color: #93c5fd;
-}
-
-.step-connector svg {
-  width: 100%;
-  height: 100%;
 }
 
 /* ── Responsive ── */
@@ -608,17 +589,14 @@ function emitRuntimeUpdate() {
     min-width: 140px;
   }
 
-  .step-connector {
-    display: none;
-  }
 }
 
 @media (max-width: 540px) {
   .step-button {
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 8px 10px;
     text-align: left;
   }
 
@@ -627,8 +605,8 @@ function emitRuntimeUpdate() {
   }
 
   .step-badge {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -681,17 +659,14 @@ function emitRuntimeUpdate() {
     min-width: 140px;
   }
 
-  .step-connector {
-    display: none;
-  }
 }
 
 @media (max-width: 540px) {
   .step-button {
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 8px 10px;
     text-align: left;
   }
 
@@ -700,8 +675,8 @@ function emitRuntimeUpdate() {
   }
 
   .step-badge {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
   }
 }
 </style>

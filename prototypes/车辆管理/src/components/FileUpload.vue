@@ -1,211 +1,129 @@
 <template>
-  <div class="file-upload-wrapper">
-    <!-- 触发上传按钮区域（通过插槽自定义） -->
-    <div v-if="$slots.trigger" class="upload-trigger" @click="$emit('triggerClick')">
+  <div class="file-upload">
+    <div class="upload-trigger" @click="handleTriggerClick">
       <slot name="trigger" />
     </div>
-    <div v-else class="upload-trigger default-trigger" @click="$emit('triggerClick')">
-      <span>点击上传</span>
+    <div class="file-list" v-if="fileList.length > 0">
+      <div
+        v-for="(file, index) in fileList"
+        :key="file.id"
+        class="file-card"
+        draggable="true"
+        @dragstart="handleDragStart($event, index)"
+        @dragover.prevent="handleDragOver($event, index)"
+        @dragend="handleDragEnd"
+      >
+        <slot name="fileCard" :file="file" :index="index">
+          <img v-if="file.thumbnail" :src="file.thumbnail" class="file-thumbnail" />
+          <span class="file-name">{{ file.name }}</span>
+          <div class="file-actions">
+            <button @click="emit('preview', file)">预览</button>
+            <button @click="emit('replace', file, index)">替换</button>
+            <button @click="emit('delete', file, index)">删除</button>
+          </div>
+        </slot>
+      </div>
     </div>
-
-    <!-- 文件列表（可拖拽排序） -->
-    <draggable
-      v-model="localFileList"
-      class="file-list"
-      item-key="id"
-      ghost-class="ghost"
-      @change="onSortChange"
-    >
-      <template #item="{ element, index }">
-        <div class="file-card">
-          <!-- 自定义文件卡片插槽 -->
-          <slot name="fileCard" :file="element" :index="index">
-            <!-- 默认渲染 -->
-            <div class="file-thumbnail" @click="$emit('preview', element)">
-              <img v-if="element.thumbnail" :src="element.thumbnail" alt="preview" />
-              <span v-else class="file-icon">{{ getFileIcon(element.name) }}</span>
-            </div>
-            <div class="file-info">
-              <span class="file-name" :title="element.name">{{ element.name }}</span>
-              <div class="file-actions">
-                <button @click.stop="$emit('preview', element)">预览</button>
-                <button @click.stop="$emit('replace', element)">替换</button>
-                <button @click.stop="$emit('delete', element)">删除</button>
-              </div>
-            </div>
-          </slot>
-        </div>
-      </template>
-    </draggable>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import draggable from 'vuedraggable'
+import { defineProps, defineEmits } from 'vue'
 
 const props = defineProps({
   fileList: {
     type: Array,
-    required: false,
     default: () => []
   },
   accept: {
     type: String,
-    required: false,
     default: 'image/*'
   },
   multiple: {
     type: Boolean,
-    required: false,
     default: true
   },
   maxCount: {
     type: Number,
-    required: false,
     default: 9
   },
   uploadUrl: {
     type: String,
-    required: true,
-    default: ''
+    required: true
   },
   headers: {
     type: Object,
-    required: false,
     default: () => ({})
   }
 })
 
-const emit = defineEmits(['update:fileList', 'uploadSuccess', 'uploadError', 'preview', 'replace', 'delete', 'triggerClick'])
+const emit = defineEmits(['update:fileList', 'uploadSuccess', 'uploadError', 'preview', 'replace', 'delete', 'dragSort'])
 
-const localFileList = ref([...props.fileList])
+let dragIndex = null
 
-watch(() => props.fileList, (newVal) => {
-  localFileList.value = [...newVal]
-})
-
-function onSortChange() {
-  emit('update:fileList', localFileList.value)
+function handleTriggerClick() {
+  // 纯展示组件，仅触发事件，由父组件处理文件选择
+  emit('triggerClick')
 }
 
-function getFileIcon(name) {
-  const ext = name.split('.').pop().toLowerCase()
-  const iconMap = {
-    pdf: '📄',
-    doc: '📝',
-    docx: '📝',
-    xls: '📊',
-    xlsx: '📊',
-    ppt: '📽',
-    pptx: '📽',
-    zip: '📦',
-    rar: '📦',
-    default: '📁'
+function handleDragStart(event, index) {
+  dragIndex = index
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+function handleDragOver(event, index) {
+  if (dragIndex !== null && dragIndex !== index) {
+    emit('dragSort', { from: dragIndex, to: index })
   }
-  return iconMap[ext] || iconMap.default
+}
+
+function handleDragEnd() {
+  dragIndex = null
 }
 </script>
 
 <style scoped>
-.file-upload-wrapper {
-  font-family: sans-serif;
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-
 .upload-trigger {
-  display: inline-block;
   cursor: pointer;
-  margin-bottom: 12px;
 }
-
-.default-trigger {
-  padding: 8px 16px;
-  background-color: #1890ff;
-  color: white;
-  border-radius: 4px;
-}
-
 .file-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  gap: 8px;
 }
-
 .file-card {
+  display: flex;
+  align-items: center;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
-  padding: 8px;
-  width: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: grab;
-}
-
-.file-card:active {
-  cursor: grabbing;
-}
-
-.ghost {
-  opacity: 0.4;
-}
-
-.file-thumbnail {
-  width: 80px;
-  height: 80px;
+  padding: 4px;
   background: #fafafa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  cursor: pointer;
 }
-
-.file-thumbnail img {
-  max-width: 100%;
-  max-height: 100%;
+.file-thumbnail {
+  width: 48px;
+  height: 48px;
   object-fit: cover;
+  margin-right: 8px;
 }
-
-.file-icon {
-  font-size: 32px;
-}
-
-.file-info {
-  margin-top: 8px;
-  text-align: center;
-  width: 100%;
-}
-
 .file-name {
-  display: block;
-  font-size: 12px;
-  white-space: nowrap;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
-
 .file-actions {
-  margin-top: 4px;
   display: flex;
   gap: 4px;
-  justify-content: center;
 }
-
 .file-actions button {
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 6px;
-  border: 1px solid #d9d9d9;
-  background: white;
-  border-radius: 2px;
   cursor: pointer;
-}
-
-.file-actions button:hover {
-  border-color: #1890ff;
-  color: #1890ff;
 }
 </style>

@@ -1,137 +1,98 @@
-export const demand = {
-  id: 'DEM-001',
-  applicantName: '张三',
-  applicantDept: '物流部',
-  departure: '厂区A门',
-  destination: '仓库B区',
-  demandTime: '2025-06-15 09:30',
-  vehicleType: '厢式货车',
-  priority: '正常'
-};
-
-export const vehicleList = [
+// 派车调度 Mock 数据
+export const dispatchRecords = [
   {
-    vehicleId: 'V001',
-    plateNo: '京A·12345',
-    vehicleType: '厢式货车',
-    currentPos: { lng: 116.397, lat: 39.908 },
-    driverName: '李四',
-    driverPhone: '13800138001',
-    onlineStatus: '在线'
+    demand: {
+      id: 'DEM-001',
+      demandId: 'DEM-001',
+      applicationTime: '2024-12-01 09:30:00',
+      applicant: '生产部-张工',
+      startAddress: '原料仓库A',
+      from: '原料仓库A',
+      destination: '车间C',
+      to: '车间C',
+      requiredTime: '2024-12-01 10:00:00',
+      vehicleType: '叉车',
+      type: '叉车'
+    },
+    vehicleList: [
+      { id: 'V001', plate: '京A·12345', vehicleId: 'V001', plateNo: '京A·12345', type: '叉车', vehicleType: '叉车', position: '仓库B', lat: 39.9042, lng: 116.4074, driver: '李师傅', driverName: '李师傅', phone: '13800000001', online: true },
+      { id: 'V002', plate: '沪B·67890', vehicleId: 'V002', plateNo: '沪B·67890', type: '卡车', vehicleType: '卡车', position: '厂区西门', lat: 39.9050, lng: 116.4080, driver: '王师傅', driverName: '王师傅', phone: '13800000002', online: false }
+    ],
+    dispatchTask: {
+      id: 'TSK-001',
+      taskId: 'TSK-001',
+      status: '待接单',
+      taskStatus: '待接单',
+      dispatchTime: '2024-12-01 09:35:00',
+      driverId: 'D001',
+      vehicleId: 'V001'
+    },
+    adjustmentOperation: {
+      type: '改派',
+      operationType: '改派',
+      reason: '原司机请假',
+      targetDriverId: 'D002',
+      extraLocation: '仓库C'
+    },
+    mobileAlert: {
+      id: 'ALR-001',
+      alertId: 'ALR-001',
+      type: '超速',
+      alertType: '超速',
+      vehicleId: 'V001',
+      plateNo: '京A·12345',
+      position: '厂区东门',
+      lat: 39.906, lng: 116.409,
+      time: '2024-12-01 09:40:00',
+      severity: '高'
+    },
+    nearbyVehicles: [
+      { id: 'V003', plate: '粤C·00001', vehicleId: 'V003', plateNo: '粤C·00001', position: '仓库A', lat: 39.903, lng: 116.406, distance: 200, driverStatus: '空闲' },
+      { id: 'V004', plate: '粤C·00002', vehicleId: 'V004', plateNo: '粤C·00002', position: '车间B', lat: 39.904, lng: 116.410, distance: 350, driverStatus: '执行中' }
+    ]
   },
   {
-    vehicleId: 'V002',
-    plateNo: '京B·67890',
-    vehicleType: '平板车',
-    currentPos: { lng: 116.410, lat: 39.920 },
-    driverName: '王五',
-    driverPhone: '13800138002',
-    onlineStatus: '离线'
+    demand: {
+      id: 'DEM-002',
+      demandId: 'DEM-002',
+      applicationTime: '2024-12-01 10:00:00',
+      applicant: '物流部-刘工',
+      startAddress: '成品库',
+      from: '成品库',
+      destination: '发货平台',
+      to: '发货平台',
+      requiredTime: '2024-12-01 10:30:00',
+      vehicleType: '卡车',
+      type: '卡车'
+    },
+    vehicleList: [
+      { id: 'V005', plate: '浙D·11111', vehicleId: 'V005', plateNo: '浙D·11111', type: '卡车', vehicleType: '卡车', position: '停车场', lat: 39.902, lng: 116.405, driver: '赵师傅', driverName: '赵师傅', phone: '13800000005', online: true }
+    ],
+    dispatchTask: null,
+    adjustmentOperation: null,
+    mobileAlert: null,
+    nearbyVehicles: []
   }
 ];
 
-export const dispatchTask = {
-  taskId: 'T-20250615001',
-  status: '已派车',
-  dispatchTime: '2025-06-15 09:35',
-  driverId: 'D001',
-  vehicleId: 'V001',
-  demandId: 'DEM-001'
-};
-
-export const adjustmentOperation = {
-  operationId: 'ADJ-001',
-  operationType: '改派',
-  reason: '原司机临时请假',
-  targetDriverId: 'D002',
-  additionalLocation: null,
-  taskId: 'T-20250615001'
-};
-
-export const mobileAlert = {
-  alertId: 'ALT-001',
-  alertType: '超速',
-  vehicleId: 'V001',
-  plateNo: '京A·12345',
-  latitude: 39.912,
-  longitude: 116.405,
-  time: '2025-06-15 10:00',
-  urgency: '高'
-};
-
-export const nearbyVehicles = [
-  {
-    vehicleId: 'V003',
-    plateNo: '京C·54321',
-    currentPos: { lng: 116.395, lat: 39.905 },
-    distance: 1.2,
-    driverStatus: '空闲',
-    driverName: '赵六',
-    driverPhone: '13800138003',
-    plate: '京C·54321',
-    driver: '赵六',
-    location: '厂区东侧环路',
-    status: '空闲',
+export function fetchDispatchData({ roleKey = 'dispatcher', currentUser, filters = {} } = {}) {
+  let data = dispatchRecords;
+  if (filters.type === 'demand') {
+    data = data.map(r => r.demand);
+  } else if (filters.type === 'vehicleList') {
+    data = data.flatMap(r => r.vehicleList || []);
+  } else if (filters.type === 'dispatchTask') {
+    data = data.map(r => r.dispatchTask).filter(Boolean);
+  } else if (filters.type === 'adjustmentOperation') {
+    data = data.map(r => r.adjustmentOperation).filter(Boolean);
+  } else if (filters.type === 'mobileAlert') {
+    data = data.map(r => r.mobileAlert).filter(Boolean);
+  } else if (filters.type === 'nearbyVehicles') {
+    data = data.flatMap(r => r.nearbyVehicles || []);
   }
-];
-
-const workbenchVehicles = vehicleList.map((vehicle, index) => ({
-  ...vehicle,
-  id: vehicle.vehicleId,
-  plate: vehicle.plateNo,
-  driver: vehicle.driverName,
-  status: index === 0 ? 'idle' : 'busy',
-  speed: index === 0 ? 32 : 0,
-  task: index === 0 ? '待派车' : '执行运输任务',
-}));
-
-const workbenchDemands = [
-  {
-    ...demand,
-    description: `${demand.departure} → ${demand.destination}`,
-  },
-  {
-    ...demand,
-    id: 'DEM-002',
-    destination: '堆场C区',
-    priority: '高',
-    description: `${demand.departure} → 堆场C区`,
-  },
-];
-
-export function mockVehicles() {
-  return workbenchVehicles;
+  // 角色过滤示例：非调度员只返回简单数据
+  if (roleKey !== 'dispatcher') {
+    data = data.slice(0, 1);
+  }
+  return Promise.resolve(data);
 }
-
-export function mockDemands() {
-  return workbenchDemands;
-}
-
-export const mockAlerts = [{
-  ...mobileAlert,
-  id: mobileAlert.alertId,
-  type: mobileAlert.alertType,
-  time: mobileAlert.time,
-  vehiclePlate: mobileAlert.plateNo,
-  location: '厂区东侧环路',
-  description: `${mobileAlert.plateNo} 触发${mobileAlert.alertType}告警`,
-}];
-
-const normalizedNearbyVehicles = nearbyVehicles.map(vehicle => ({
-  ...vehicle,
-  id: vehicle.vehicleId,
-  plate: vehicle.plateNo,
-  driver: vehicle.driverName,
-  name: vehicle.driverName,
-  location: `距当前位置 ${vehicle.distance} km`,
-  status: vehicle.driverStatus,
-}));
-
-export const mockDispatch = {
-  demand,
-  vehicleList,
-  dispatchTask,
-  adjustmentOperation,
-  mobileAlert,
-  nearbyVehicles: normalizedNearbyVehicles,
-};

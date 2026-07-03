@@ -1,7 +1,7 @@
 # 03 交互与API
 
 - 步骤标识：`interactionapi`
-- 保存时间：2026-07-03T07:41:14.312489+00:00
+- 保存时间：2026-07-03T10:00:36.590693+00:00
 - 用途：作为下一步工作台的输入来源。
 
 ## 内容摘要
@@ -6726,7 +6726,7 @@
       "requirementProjectName": "车辆管理"
     },
     "activeKey": "sc-7",
-    "savedAt": "2026-07-03T07:41:13.877Z"
+    "savedAt": "2026-07-03T10:00:35.940Z"
   },
   "selectedPage": {
     "key": "sc-1-page-1-0",
@@ -6991,7 +6991,7 @@
     "interactionReady": true,
     "apiReady": true
   },
-  "savedAt": "2026-07-03T07:41:14.303Z"
+  "savedAt": "2026-07-03T10:00:36.579Z"
 }
 ```
 <!-- FDE_STEP_RESULT_JSON_END -->
