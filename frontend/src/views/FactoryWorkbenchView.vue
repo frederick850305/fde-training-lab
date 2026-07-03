@@ -61,23 +61,31 @@
       <aside class="wizard-sidebar" aria-label="FDE 方法步骤">
         <div class="step-list">
           <button
-            v-for="item in steps"
+            v-for="(item, idx) in steps"
             :key="item.key"
             type="button"
             class="step-button"
-            :class="{ active: item.key === activeStepKey, done: item.isDone }"
+            :class="{
+              active: item.key === activeStepKey,
+              done: item.isDone,
+              next: !item.isDone && !(item.key === activeStepKey) && item.canOpen,
+            }"
             :disabled="!item.canOpen"
             @click="$emit('select-step', item.key)"
           >
-            <span class="step-index">{{ item.step }}</span>
-            <span class="step-main">
-              <strong>{{ item.title }}</strong>
-              <small>{{ item.output }}</small>
+            <span class="step-badge">
+              <span class="step-num">{{ item.step }}</span>
+              <svg v-if="item.isDone" class="step-check" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
-            <StatusTag :label="item.statusLabel" :type="item.statusType" />
+            <span class="step-body">
+              <strong class="step-title">{{ item.title }}</strong>
+              <small class="step-desc">{{ item.output }}</small>
+            </span>
+            <span class="step-connector" v-if="idx < steps.length - 1" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M14 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </button>
         </div>
-
       </aside>
 
       <section class="wizard-stage" aria-label="当前步骤工作台">
@@ -97,7 +105,6 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import StatusTag from '../components/StatusTag.vue'
 
 const props = defineProps({
   projectContext: {
@@ -423,77 +430,206 @@ function emitRuntimeUpdate() {
   position: sticky;
   top: 0;
   z-index: 5;
-  padding: 8px;
+  padding: 12px 10px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .step-list {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(110px, 1fr));
-  gap: 6px;
+  display: flex;
+  gap: 0;
+  position: relative;
 }
 
+/* ── Step Button ── */
 .step-button {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-height: 48px;
-  width: 100%;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 7px 8px;
-  background: #f8fafc;
-  text-align: left;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px 10px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.step-button:hover:not(:disabled) {
+  background: #f1f5f9;
+  transform: translateY(-2px);
 }
 
 .step-button.active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.1);
 }
 
 .step-button.done {
-  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
 .step-button:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.45;
 }
 
-.step-button :deep(.status-tag),
-.step-button > :last-child {
-  justify-self: start;
-  grid-column: 2;
-  margin-top: -2px;
-}
-
-.step-index {
-  display: inline-flex;
+/* ── Step Badge (圆环数字) ── */
+.step-badge {
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 12px;
-  font-weight: 900;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
 }
 
-.step-main {
-  display: grid;
+.step-button.active .step-badge {
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.step-button.done .step-badge {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.step-button.next .step-badge {
+  background: #f1f5f9;
+  border: 2px dashed #cbd5e1;
+}
+
+.step-num {
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+  transition: color 0.3s ease;
+}
+
+.step-button.active .step-num {
+  display: none;
+}
+
+.step-button.done .step-num {
+  display: none;
+}
+
+.step-button.next .step-num {
+  color: #94a3b8;
+}
+
+/* ── Check Mark ── */
+.step-check {
+  width: 15px;
+  height: 15px;
+  color: #ffffff;
+}
+
+/* ── Step Body (标题+描述) ── */
+.step-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 2px;
   min-width: 0;
 }
 
-.step-main strong {
-  color: #0f172a;
+.step-title {
+  color: #475569;
   font-size: 13px;
+  font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
-.step-main small {
+.step-button.active .step-title {
+  color: #1d4ed8;
+}
+
+.step-button.done .step-title {
+  color: #15803d;
+}
+
+.step-desc {
   display: none;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  max-width: 140px;
+}
+
+.step-button.active .step-desc {
+  display: block;
+}
+
+/* ── Connector Arrow ── */
+.step-connector {
+  position: absolute;
+  right: -2px;
+  top: 20px;
+  width: 16px;
+  height: 16px;
+  color: #cbd5e1;
+  transition: color 0.3s ease;
+  pointer-events: none;
+}
+
+.step-button.done .step-connector {
+  color: #86efac;
+}
+
+.step-button.active .step-connector,
+.step-button.next .step-connector {
+  color: #93c5fd;
+}
+
+.step-connector svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .step-list {
+    flex-wrap: wrap;
+  }
+
+  .step-button {
+    flex: 1 1 45%;
+    min-width: 140px;
+  }
+
+  .step-connector {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .step-button {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .step-body {
+    align-items: flex-start;
+  }
+
+  .step-badge {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .stage-strip {
@@ -518,12 +654,6 @@ function emitRuntimeUpdate() {
   line-height: 1.65;
 }
 
-@media (max-width: 1180px) {
-  .step-list {
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-  }
-}
-
 @media (max-width: 980px) {
   .runtime-panel,
   .stage-strip {
@@ -540,9 +670,38 @@ function emitRuntimeUpdate() {
   }
 }
 
-@media (max-width: 720px) {
+/* ── Responsive: Steps ── */
+@media (max-width: 860px) {
   .step-list {
-    grid-template-columns: 1fr 1fr;
+    flex-wrap: wrap;
+  }
+
+  .step-button {
+    flex: 1 1 45%;
+    min-width: 140px;
+  }
+
+  .step-connector {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .step-button {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .step-body {
+    align-items: flex-start;
+  }
+
+  .step-badge {
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

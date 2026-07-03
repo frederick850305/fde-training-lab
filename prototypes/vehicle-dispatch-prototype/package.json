@@ -1,0 +1,18 @@
+{
+  "name": "vehicle-dispatch-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HG 车辆管理原型系统 - 由 prototype.md 生成",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.2.7",
+    "vue": "^3.5.26"
+  },
+  "devDependencies": {}
+}

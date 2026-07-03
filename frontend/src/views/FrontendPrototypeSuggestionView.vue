@@ -4,20 +4,23 @@
       eyebrow="Frontend Prototype"
       title="前端原型建议模拟工作台"
       title-id="prototype-suggestion-title"
-      description="汇总页面、组件、mock 数据、生成顺序和代码生成 Prompt，为后续 Codex/Copilot 生成 Vue3 原型做准备。"
+      description="汇总页面规格、API 映射、组件契约、Mock 数据和生成任务包，为后续生成 Vue3 原型系统做准备。"
     />
 
     <p v-if="generationStatusMessage" class="gen-status" :class="{ error: generationStatusMessage.includes('失败') }">{{ generationStatusMessage }}</p>
 
     <div class="suggestion-tabs" aria-label="建议类型切换">
       <button
-        v-for="item in suggestionTabs"
+        v-for="(item, index) in suggestionTabs"
         :key="item.key"
         type="button"
-        :class="{ active: item.key === activeTab }"
+        class="suggestion-tab"
+        :class="{ active: item.key === activeTab, visited: index < activeTabIndex }"
+        :aria-current="item.key === activeTab ? 'step' : undefined"
         @click="activeTab = item.key"
       >
-        {{ item.label }}
+        <span class="tab-index">{{ String(index + 1).padStart(2, '0') }}</span>
+        <span class="tab-label">{{ item.label }}</span>
       </button>
     </div>
 
@@ -415,8 +418,8 @@
       <template v-else-if="activeTab === 'stepPrompts'">
         <div class="panel-heading inline-heading">
           <div>
-            <span>分步骤生成 Prompt</span>
-            <strong>按生成顺序拆分的独立 Prompt，每个步骤可直接复制给 LLM</strong>
+            <span>生成任务包</span>
+            <strong>按 Mock、组件、页面、路由/API 层拆分，供下一步生成原型系统</strong>
           </div>
           <button
             class="gen-btn"
@@ -441,7 +444,7 @@
             </button>
             <div v-if="activePromptStep === index" class="sp-body">
               <div class="sp-actions">
-                <button class="copy-btn" type="button" @click="copyPrompt(sp.prompt)">📋 复制 Prompt</button>
+                <button class="copy-btn" type="button" @click="copyPrompt(sp.prompt)">📋 复制任务 Prompt</button>
               </div>
               <pre>{{ sp.prompt }}</pre>
             </div>
@@ -467,15 +470,21 @@
     </section>
 
     <div class="next-action">
-      <button class="primary-button" type="button" @click="confirmAndNext">
-        确认前端原型方案
+      <p v-if="confirmStatus" class="confirm-msg" :class="{ error: confirmStatus.includes('失败') || confirmStatus.includes('❌') }">{{ confirmStatus }}</p>
+      <button
+        class="primary-button"
+        type="button"
+        :disabled="isConfirming"
+        @click="confirmAndNext"
+      >
+        {{ isConfirming ? '保存中...' : '确认前端原型方案' }}
       </button>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ViewHeading from '../components/ViewHeading.vue'
 
 const props = defineProps({
@@ -490,6 +499,9 @@ const emit = defineEmits(['suggestion-confirm', 'prototype-draft-update'])
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
 const activeTab = ref('views')
+const isConfirming = ref(false)
+const confirmStatus = ref('')
+const activeTabIndex = computed(() => suggestionTabs.findIndex((item) => item.key === activeTab.value))
 
 /* ===== 从 projectContext 恢复已保存的 LLM 生成数据 ===== */
 const initialProto = props.projectContext.stepResults?.prototype || null
@@ -588,16 +600,7 @@ async function requestLlmGeneration(stepKey, instruction, currentOutput) {
 
 /* ===== 保存当前结果到父组件 → 持久化到 MD ===== */
 function persistPrototypeResult() {
-  emit('prototype-draft-update', {
-    viewFiles: recommendedViewFiles.value,
-    pageDetailSpecs: generatedPageSpecs.value || [],
-    pageApiMapping: generatedPageApiMapping.value || [],
-    navigationRoutes: generatedNavigationRoutes.value || [],
-    componentFiles: generatedComponentFiles.value || [],
-    mockDataFiles: generatedMockDataFiles.value || [],
-    stepPrompts: generatedStepPrompts.value || [],
-    savedAt: new Date().toISOString(),
-  })
+  emit('prototype-draft-update', buildPrototypePayload())
 }
 
 function parseMaybeJson(raw) {
@@ -608,6 +611,81 @@ function parseMaybeJson(raw) {
     return JSON.parse(str)
   } catch {
     try { return JSON.parse(String(raw)) } catch { return null }
+  }
+}
+
+function summarizePageSpec(spec) {
+  return {
+    file: spec.file,
+    zones: (spec.layoutZones || []).slice(0, 6).map((zone) => ({
+      zone: zone.zone,
+      content: zone.content,
+    })),
+    states: (spec.uiStates || []).slice(0, 6).map((state) => ({
+      state: state.state,
+      content: state.content,
+    })),
+    keyInteractions: (spec.keyInteractions || []).slice(0, 8),
+  }
+}
+
+function summarizeApiContract(contract) {
+  const response = contract.successResponse || contract.response || {}
+  const data = response.data || response
+  const fields = Array.isArray(data.fields)
+    ? data.fields
+    : Array.isArray(data.schema)
+      ? data.schema
+      : []
+
+  return {
+    method: contract.method,
+    path: contract.path,
+    name: contract.name,
+    goal: contract.goal,
+    resourceGroupLabel: contract.resourceGroupLabel,
+    requestParams: (contract.requestParams || []).slice(0, 8).map((param) => ({
+      name: param.name,
+      type: param.type,
+      required: param.required,
+      description: param.description,
+    })),
+    responseFields: fields.slice(0, 12).map((field) => ({
+      name: field.name || field.field,
+      type: field.type,
+      description: field.description,
+    })),
+  }
+}
+
+function buildPrototypePayload() {
+  const pages = recommendedViewFiles.value.map((page) => ({
+    file: page.file,
+    responsibility: page.responsibility,
+    source: page.source,
+    priority: page.priority,
+  }))
+
+  return {
+    projectName: sourceSummary.value.projectName,
+    customerName: sourceSummary.value.customerName,
+    summary: `前端原型方案：${pages.length} 个页面、${pageDetailSpecs.value.length} 个页面规格、${pageApiMapping.value.length} 个页面 API 映射。`,
+    sourceRefs,
+    sourceSummary: sourceSummary.value,
+    pages,
+    viewFiles: pages,
+    pageDetailSpecs: pageDetailSpecs.value,
+    pageApiMapping: pageApiMapping.value,
+    navigationRoutes: navigationRoutes.value,
+    componentFiles: recommendedComponentFiles.value,
+    mockDataFiles: recommendedMockDataFiles.value,
+    generationPlan: recommendedSteps,
+    stepPrompts: stepPrompts.value,
+    implementationDefaults: {
+      projectStructure,
+      styleGuide,
+    },
+    savedAt: new Date().toISOString(),
   }
 }
 
@@ -632,6 +710,39 @@ const projectBackground = computed(() => {
     scenarioSummary: scenarioName
       ? `${scenarioName}${scenarioDesc ? '：' + scenarioDesc : ''}`
       : '',
+  }
+})
+
+const sourceRefs = {
+  requirement: 'prototype_factory/local_step_outputs/requirement.md',
+  scenarioPageDesign: 'prototype_factory/local_step_outputs/scenariopagedesign.md',
+  interactionApi: 'prototype_factory/local_step_outputs/interactionapi.md',
+}
+
+const sourceSummary = computed(() => {
+  const requirementAnalysis = requirementResult.value?.analysis || requirementResult.value || {}
+  const scenarios = scenarioPageResult.value?.scenarios || []
+  const roles = scenarioPageResult.value?.roles || requirementAnalysis.userRoles || []
+  const contracts = allApiContracts.value
+
+  return {
+    projectName: props.projectContext.projectName || requirementResult.value?.projectName || '',
+    customerName: props.projectContext.customerName || requirementResult.value?.customerName || '',
+    businessBackground: requirementAnalysis.businessBackground || '',
+    painPoints: (requirementAnalysis.painPoints || []).slice(0, 8),
+    businessGoals: (requirementAnalysis.businessGoals || requirementAnalysis.goals || []).slice(0, 8),
+    roles: roles.slice(0, 12).map((role) => ({
+      name: role.name || role.role,
+      focus: role.focus || role.responsibility || role.description || '',
+    })),
+    scenarioCount: scenarios.length,
+    scenarios: scenarios.slice(0, 12).map((scenario) => ({
+      key: scenario.key,
+      name: scenario.name,
+      priority: scenario.priority,
+      page: scenario.pageMapping?.page,
+    })),
+    apiContractCount: contracts.length,
   }
 })
 
@@ -769,12 +880,23 @@ async function doGeneratePageSpecs(allPages, pending, accumulated) {
 function buildPageSpecPagesInput() {
   var unified = extractAllPageDesigns(scenarioPageResult.value)
   var pages = unified.pages.length ? unified.pages : recommendedViewFiles.value
+  var interactionPages = extractInteractionPages(interactionApiResult.value)
 
   return pages.map(function (p, i) {
+    var file = p.vueFile || p.file
+    var interactionPage = interactionPages.find((item) => item.vueFile === file || item.file === file)
     return {
-      file: p.vueFile || p.file,
-      name: p.name || `页面 ${i + 1}`,
+      file,
+      name: p.name || interactionPage?.name || `页面 ${i + 1}`,
       goal: p.goal || p.responsibility || '',
+      features: (p.features || interactionPage?.features || []).slice(0, 8),
+      sections: (p.sections || interactionPage?.sections || []).slice(0, 8),
+      actions: (interactionPage?.actions || []).slice(0, 10).map((action) => ({
+        label: action.label,
+        trigger: action.trigger,
+        feedback: action.feedback,
+      })),
+      states: interactionPage?.states || {},
       priority: p.priority || assignPriority(i, pages.length),
     }
   })
@@ -966,7 +1088,7 @@ async function generateComponentContracts() {
     const specs = pageDetailSpecs.value
     const input = {
       pages: recommendedViewFiles.value.map((p) => ({ file: p.file, responsibility: p.responsibility })),
-      pageSpecs: specs.slice(0, 4),
+      pageSpecs: specs.map(summarizePageSpec),
     }
     const instruction = [
       `请根据 ${input.pages.length} 个页面和页面规格，设计通用组件及其 Props/Events/Slots 接口契约。`,
@@ -1022,14 +1144,16 @@ async function generateMockDataSchemas() {
   try {
     const apiContracts = contracts
     const input = {
-      apiContracts: apiContracts.slice(0, 15).map((c) => ({
-        method: c.method,
-        path: c.path,
-        name: c.name,
-        requestParams: c.requestParams || [],
-        successResponse: c.successResponse || {},
+      apiContracts: apiContracts.map(summarizeApiContract),
+      pages: recommendedViewFiles.value.map((p) => ({
+        file: p.file,
+        responsibility: p.responsibility,
+        priority: p.priority,
       })),
-      pages: recommendedViewFiles.value.map((p) => p.file),
+      pageStates: pageDetailSpecs.value.map((spec) => ({
+        file: spec.file,
+        states: (spec.uiStates || []).slice(0, 6),
+      })),
     }
     const instruction = [
       `请根据 API 契约和页面清单，设计 Mock 数据文件及其数据结构。`,
@@ -1056,7 +1180,7 @@ async function generateMockDataSchemas() {
   }
 }
 
-/* ===== 7. 分步 Prompt (全部产物汇总) - 增量生成 ===== */
+/* ===== 7. 生成任务包 (第 4 步轻量产物汇总) - 增量生成 ===== */
 const EXPECTED_PROMPT_STEPS = [1, 2, 3, 4]
 const stepPrompts = computed(() => generatedStepPrompts.value || [])
 
@@ -1076,7 +1200,7 @@ async function generateStepPrompts() {
 
     if (allCovered) {
       const shouldProceed = window.confirm(
-        `已生成全部 ${EXPECTED_PROMPT_STEPS.length} 个分步 Prompt。\n\n` +
+        `已生成全部 ${EXPECTED_PROMPT_STEPS.length} 个生成任务包。\n\n` +
         `点击「确定」将全部重新生成。\n` +
         `点击「取消」放弃本次操作。`
       )
@@ -1084,7 +1208,7 @@ async function generateStepPrompts() {
       accumulated = []
     } else {
       const doIncremental = window.confirm(
-        `已生成 ${existing.length}/${EXPECTED_PROMPT_STEPS.length} 个分步 Prompt，` +
+        `已生成 ${existing.length}/${EXPECTED_PROMPT_STEPS.length} 个生成任务包，` +
         `还差步骤：${missing.join('、')}。\n\n` +
         `点击「确定」仅补充遗漏的步骤。\n` +
         `点击「取消」将全部重新生成。`
@@ -1103,17 +1227,18 @@ async function generateStepPrompts() {
 
 async function doGenerateStepPrompts(pendingSteps, accumulated) {
   isGenerating.value.stepPrompts = true
-  generationStatusMessage.value = `正在生成分步骤 Prompt（步骤 ${pendingSteps.join('、')}）...`
+  generationStatusMessage.value = `正在生成原型生成任务包（步骤 ${pendingSteps.join('、')}）...`
 
   try {
     const input = {
-      projectBackground: projectBackground.value,
+      sourceSummary: sourceSummary.value,
       pages: recommendedViewFiles.value,
-      pageSpecs: pageDetailSpecs.value.slice(0, 4),
-      apiMapping: pageApiMapping.value.slice(0, 6),
+      pageSpecs: pageDetailSpecs.value.map(summarizePageSpec),
+      apiMapping: pageApiMapping.value,
       navigationRoutes: navigationRoutes.value,
-      componentFiles: recommendedComponentFiles.value.slice(0, 5),
-      mockDataFiles: recommendedMockDataFiles.value.slice(0, 4),
+      componentFiles: recommendedComponentFiles.value,
+      mockDataFiles: recommendedMockDataFiles.value,
+      generationPlan: recommendedSteps,
     }
     const instruction = [
       `请根据完整的原型设计方案，生成 ${pendingSteps.length} 个分步骤的代码生成 Prompt。只需生成步骤：${pendingSteps.join('、')}。`,
@@ -1148,7 +1273,7 @@ async function doGenerateStepPrompts(pendingSteps, accumulated) {
     const finalMissing = EXPECTED_PROMPT_STEPS.filter((s) => !coveredSteps.has(s))
 
     if (finalMissing.length) {
-      generationStatusMessage.value = `已生成 ${accumulated.length}/${EXPECTED_PROMPT_STEPS.length} 个分步 Prompt，缺少步骤：${finalMissing.join('、')}。可再次点击补充。`
+      generationStatusMessage.value = `已生成 ${accumulated.length}/${EXPECTED_PROMPT_STEPS.length} 个生成任务包，缺少步骤：${finalMissing.join('、')}。可再次点击补充。`
     } else {
       generationStatusMessage.value = `已生成全部 ${EXPECTED_PROMPT_STEPS.length} 个分步骤 Prompt。`
     }
@@ -1209,6 +1334,19 @@ const extractAllPageDesigns = (result) => {
   }
 
   return { pages: [], fileStructure: {}, navigation: [] }
+}
+
+function extractInteractionPages(result) {
+  if (!result) return []
+
+  if (result.generatedPagesByKey) {
+    return Object.values(result.generatedPagesByKey)
+  }
+
+  if (Array.isArray(result.pages)) return result.pages
+  if (result.page) return [result.page]
+
+  return []
 }
 
 const savedPageDesign = computed(() => {
@@ -1321,37 +1459,35 @@ function copyPrompt(prompt) {
 
 const suggestionTabs = [
   { key: 'views', label: '页面文件' },
-  { key: 'background', label: '业务背景' },
   { key: 'pageSpecs', label: '页面规格' },
   { key: 'apiMapping', label: '页面-API映射' },
   { key: 'navigation', label: '导航路由' },
   { key: 'components', label: '组件拆分' },
   { key: 'mockData', label: 'Mock 数据' },
-  { key: 'projectStructure', label: '目录结构' },
-  { key: 'styleGuide', label: '样式规范' },
-  { key: 'steps', label: '生成顺序' },
-  { key: 'stepPrompts', label: '分步 Prompt' },
+  { key: 'stepPrompts', label: '生成任务包' },
 ]
 
 function confirmAndNext() {
+  if (isConfirming.value) return
+  isConfirming.value = true
+  confirmStatus.value = '⏳ 正在保存前端原型方案到本地 prototype.md ...'
+
   emit('suggestion-confirm', {
-    suggestion: {
-      viewFiles: recommendedViewFiles.value,
-      pageDetailSpecs: pageDetailSpecs.value,
-      componentFiles: recommendedComponentFiles.value,
-      mockDataFiles: recommendedMockDataFiles.value,
-      generationSteps: recommendedSteps,
-      stepPrompts: stepPrompts.value,
-      pageApiMapping: pageApiMapping.value,
-      navigationRoutes: navigationRoutes.value,
-      projectBackground: projectBackground.value,
-      projectStructure,
-      styleGuide,
-      pageDesign: extractAllPageDesigns(scenarioPageResult.value),
-      apiContract: interactionApiResult.value || props.projectContext.selectedApiContract || null,
-    },
+    suggestion: buildPrototypePayload(),
   })
 }
+
+// Watch parent context for confirm result
+watch(() => props.projectContext.contextStatus, (status) => {
+  if (!isConfirming.value) return
+  if (status === '原型已保存') {
+    confirmStatus.value = props.projectContext.summary || '前端原型方案已保存。'
+    isConfirming.value = false
+  } else if (status === '保存失败') {
+    confirmStatus.value = props.projectContext.summary || '保存失败，请确认 FastAPI 后端已启动。'
+    isConfirming.value = false
+  }
+})
 
 function inferComponentResponsibility(file) {
   if (file.includes('Header')) return '承载页面标题、状态摘要和主操作入口。'
@@ -1416,27 +1552,102 @@ function inferComponentResponsibility(file) {
 .suggestion-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  column-gap: 28px;
+  row-gap: 12px;
   margin-bottom: 16px;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
-  padding: 12px;
-  background: #ffffff;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   box-shadow: 0 16px 40px rgb(15 23 42 / 0.06);
 }
 
-.suggestion-tabs button {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 10px 14px;
+.suggestion-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #d4deec;
+  border-radius: 999px;
+  padding: 8px 14px 8px 9px;
   background: #ffffff;
-  color: #1e293b;
+  color: #334155;
+  font-size: 14px;
   font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.suggestion-tabs button.active {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+.suggestion-tab:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  left: calc(100% + 9px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.suggestion-tab:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 8px 18px rgb(37 99 235 / 0.12);
+  transform: translateY(-1px);
+}
+
+.suggestion-tab:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 0.22);
+  outline-offset: 2px;
+}
+
+.tab-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tab-label {
+  white-space: nowrap;
+}
+
+.suggestion-tab.visited {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+  color: #1d4ed8;
+}
+
+.suggestion-tab.visited .tab-index {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.suggestion-tab.active {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgb(37 99 235 / 0.24);
+}
+
+.suggestion-tab.active::after {
+  color: #60a5fa;
+}
+
+.suggestion-tab.active .tab-index {
+  background: rgb(255 255 255 / 0.18);
   color: #ffffff;
 }
 
@@ -1834,6 +2045,29 @@ pre {
 }
 
 @media (max-width: 920px) {
+  .suggestion-tabs {
+    column-gap: 24px;
+    row-gap: 10px;
+    padding: 12px;
+  }
+
+  .suggestion-tab {
+    min-height: 38px;
+    padding: 7px 12px 7px 8px;
+    font-size: 13px;
+  }
+
+  .suggestion-tab:not(:last-child)::after {
+    left: calc(100% + 7px);
+    font-size: 16px;
+  }
+
+  .tab-index {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
   .suggestion-list {
     grid-template-columns: 1fr;
   }
@@ -2243,5 +2477,44 @@ pre {
   border-color: #1d4ed8;
   color: #1d4ed8;
   background: #eff6ff;
+}
+
+.next-action {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.confirm-msg {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.confirm-msg.error {
+  color: #dc2626;
+}
+
+.primary-button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #1d4ed8;
 }
 </style>

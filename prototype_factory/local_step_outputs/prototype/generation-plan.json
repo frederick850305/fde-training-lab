@@ -1,0 +1,22 @@
+[
+  {
+    "step": 1,
+    "title": "生成 Mock 数据",
+    "description": "先生成所有页面的 mock 数据文件和枚举常量，确保后续组件有数据可展示。"
+  },
+  {
+    "step": 2,
+    "title": "生成通用组件",
+    "description": "按组件接口契约生成 StatusTag、DataTable、MetricCard 等可复用组件。"
+  },
+  {
+    "step": 3,
+    "title": "生成页面（按优先级）",
+    "description": "先 P0 核心页面（调度看板、任务列表），再 P1 重要页面（入场核验、统计分析），最后 P2 辅助页面。"
+  },
+  {
+    "step": 4,
+    "title": "生成路由和 API 层",
+    "description": "配置 vue-router 路由表，创建 api/ 目录下的请求封装。"
+  }
+]

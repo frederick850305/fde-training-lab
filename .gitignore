@@ -28,5 +28,13 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
+# Prototype projects
+# Keep each prototype's source, package.json, package-lock.json, index.html,
+# and vite.config.js so it can be installed and run locally after checkout.
+prototypes/**/node_modules/
+prototypes/**/.vite/
+prototypes/**/.vite-temp/
+prototypes/**/dist/
+
 # Generated outputs
 output/

@@ -1,0 +1,190 @@
+[
+  {
+    "file": "mockDispatch.js",
+    "content": "调度派车相关Mock数据：包括派车确认、任务调整等API的请求与响应数据",
+    "usedBy": [
+      "DispatchWorkbenchView.vue",
+      "TaskAdjustView.vue",
+      "MobileDispatchView.vue"
+    ],
+    "schema": [
+      {
+        "field": "demand",
+        "type": "object",
+        "description": "用车需求详情，包含需求ID、申请时间、申请人、出发地、目的地、需求时间、车辆类型等"
+      },
+      {
+        "field": "vehicleList",
+        "type": "array",
+        "description": "可选车辆列表，每辆车包含车辆ID、车牌号、车辆类型、当前位置、司机姓名、司机电话、在线状态等"
+      },
+      {
+        "field": "dispatchTask",
+        "type": "object",
+        "description": "派车后生成的任务信息，包含任务ID、任务状态、派车时间、司机ID、车辆ID等"
+      },
+      {
+        "field": "adjustmentOperation",
+        "type": "object",
+        "description": "任务调整操作记录，包含操作类型（改派/取消/加派）、原因、目标司机ID、加派地点等"
+      },
+      {
+        "field": "mobileAlert",
+        "type": "object",
+        "description": "移动端告警消息，包含告警ID、类型、车辆信息、位置、时间、紧急程度"
+      },
+      {
+        "field": "nearbyVehicles",
+        "type": "array",
+        "description": "周边车辆信息列表，包含车辆ID、车牌号、当前位置、距离、司机状态"
+      }
+    ]
+  },
+  {
+    "file": "mockAlerts.js",
+    "content": "告警监控相关Mock数据：包括实时告警列表、告警处理等API的请求与响应数据",
+    "usedBy": [
+      "AlertAndTaskMonitorView.vue",
+      "MobileDispatchView.vue"
+    ],
+    "schema": [
+      {
+        "field": "alertItem",
+        "type": "object",
+        "description": "单条告警记录，包含告警ID、告警类型（超速/禁入/异常停留/司机反馈）、车辆ID、车牌号、告警时间、紧急程度、处理状态、处理备注"
+      },
+      {
+        "field": "taskProgress",
+        "type": "object",
+        "description": "已派发任务执行进度信息，包含任务ID、车辆ID、车牌号、司机、任务状态、当前阶段、预计完成时间"
+      },
+      {
+        "field": "alertFilterParams",
+        "type": "object",
+        "description": "告警列表筛选参数，包含告警类型、车辆类型、紧急程度、排序字段"
+      }
+    ]
+  },
+  {
+    "file": "mockTasks.js",
+    "content": "司机任务相关Mock数据：包括司机任务列表、任务完成确认等API的请求与响应数据",
+    "usedBy": [
+      "DriverTaskListView.vue",
+      "DriverTaskExecuteView.vue"
+    ],
+    "schema": [
+      {
+        "field": "taskItem",
+        "type": "object",
+        "description": "单条任务信息，包含任务ID、任务标题、车牌号、出发地、目的地、作业点、任务状态（待接单/进行中/已完成）、创建时间、预计时间"
+      },
+      {
+        "field": "taskDetail",
+        "type": "object",
+        "description": "任务完整详情，包含任务ID、车辆信息、司机信息、物资清单、导航信息、操作按钮（确认到达/完成）"
+      },
+      {
+        "field": "taskCompletion",
+        "type": "object",
+        "description": "任务完成提交数据，包含现场照片列表、完成时间、备注"
+      },
+      {
+        "field": "driverFeedback",
+        "type": "object",
+        "description": "司机反馈消息，包含反馈ID、类型、内容、时间、附件"
+      }
+    ]
+  },
+  {
+    "file": "mockGate.js",
+    "content": "门禁管理相关Mock数据：包括车辆入场操作、入场记录查询等API的请求与响应数据",
+    "usedBy": [
+      "GateAccessCheckView.vue",
+      "GateEntryRecordsView.vue"
+    ],
+    "schema": [
+      {
+        "field": "pendingVehicle",
+        "type": "object",
+        "description": "待核验车辆信息，包含车辆ID、车牌号、车辆类型、预约信息、证照状态、入场意图"
+      },
+      {
+        "field": "entryRecord",
+        "type": "object",
+        "description": "历史入场记录，包含记录ID、车牌号、操作结果（放行/拒绝）、操作时间、操作员、拒绝原因、同步状态"
+      },
+      {
+        "field": "gateActionParams",
+        "type": "object",
+        "description": "入场操作请求参数，包含车辆ID、操作类型、拒绝原因、备注、操作员ID"
+      },
+      {
+        "field": "entryRecordFilter",
+        "type": "object",
+        "description": "入场记录筛选条件，包含起始日期、结束日期、车牌号、操作结果、同步状态"
+      }
+    ]
+  },
+  {
+    "file": "mockReservations.js",
+    "content": "预约审批相关Mock数据：包括预约申请批准、授权码列表、历史预约查询等API的请求与响应数据",
+    "usedBy": [
+      "WorkspaceView.vue",
+      "AccessCodeView.vue",
+      "HistoryView.vue"
+    ],
+    "schema": [
+      {
+        "field": "reservationItem",
+        "type": "object",
+        "description": "预约申请单，包含申请ID、车牌号、车辆类型、所属单位、作业区域、预约时间、申请状态、超时标记"
+      },
+      {
+        "field": "approvalAction",
+        "type": "object",
+        "description": "审批操作参数，包含预约ID、是否通过、审批意见、是否强制通过"
+      },
+      {
+        "field": "accessCode",
+        "type": "object",
+        "description": "授权码信息，包含授权码ID、授权码值、关联车牌号、同步状态、有效期、使用状态"
+      },
+      {
+        "field": "historyRecord",
+        "type": "object",
+        "description": "历史预约记录，包含记录ID、车牌号、预约时间、审批状态、授权码、入场时间、出场时间、费用"
+      }
+    ]
+  },
+  {
+    "file": "mockVehicles.js",
+    "content": "车辆档案相关Mock数据：包括车辆列表查询、保存车辆档案、操作日志查询等API的请求与响应数据",
+    "usedBy": [
+      "VehicleArchiveList.vue",
+      "VehicleArchiveEdit.vue",
+      "VehicleArchiveLogs.vue"
+    ],
+    "schema": [
+      {
+        "field": "vehicleItem",
+        "type": "object",
+        "description": "单辆车档案信息，包含车辆ID、车牌号、车辆类型、所属单位、司机姓名、司机电话、年检有效期、保险有效期、状态"
+      },
+      {
+        "field": "vehicleSaveParams",
+        "type": "object",
+        "description": "保存车辆档案请求参数，包含车辆ID（编辑时）、车辆类型、车牌号、所属单位、司机信息、有效期"
+      },
+      {
+        "field": "operationLog",
+        "type": "object",
+        "description": "操作日志记录，包含日志ID、操作人、操作时间、操作类型（新增/编辑/停用等）、关联车辆ID、变更详情"
+      },
+      {
+        "field": "vehicleFilter",
+        "type": "object",
+        "description": "车辆列表筛选条件，包含车辆类型、所属单位、状态、有效期状态、关键字"
+      }
+    ]
+  }
+]

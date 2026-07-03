@@ -1,0 +1,212 @@
+[
+  {
+    "page": "DispatchWorkbenchView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/v1/tasks/dispatch",
+        "usage": "调度员在地图或看板上确认派车时，提交派车请求生成任务并通知司机"
+      },
+      {
+        "method": "POST",
+        "path": "/api/tasks/adjustment",
+        "usage": "调度员对已派发任务进行改派、取消或加派时，提交调整请求并记录操作日志"
+      }
+    ]
+  },
+  {
+    "page": "AlertAndTaskMonitorView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/v1/alerts/handle",
+        "usage": "监控人员对实时告警进行确认、忽略或转人工处理时，更新告警状态并记录备注"
+      },
+      {
+        "method": "GET",
+        "path": "/api/alerts/realtime",
+        "usage": "页面加载时或定时刷新，获取当前车辆异常告警和司机反馈列表，支撑告警面板和任务监控"
+      },
+      {
+        "method": "POST",
+        "path": "/api/tasks/adjustment",
+        "usage": "监控人员根据任务执行情况对异常任务进行改派或取消等干预操作"
+      }
+    ]
+  },
+  {
+    "page": "DriverTaskListView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/driver/tasks",
+        "usage": "司机进入任务列表页时，按状态筛选获取当前登录司机的任务列表，展示待接单、进行中、已完成任务"
+      }
+    ]
+  },
+  {
+    "page": "DriverTaskExecuteView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/driver/tasks/{taskId}/complete",
+        "usage": "司机到达作业点完成任务时，上传现场照片并提交完成确认，触发后续同步"
+      },
+      {
+        "method": "POST",
+        "path": "/api/tasks/adjustment",
+        "usage": "司机在执行过程中遇到异常情况时，发起异常反馈或请求任务调整"
+      }
+    ]
+  },
+  {
+    "page": "MobileDispatchView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/alerts/realtime",
+        "usage": "移动端页面打开时或定时刷新，获取实时告警和司机反馈消息，支撑告警及时响应"
+      },
+      {
+        "method": "POST",
+        "path": "/api/tasks/adjustment",
+        "usage": "移动端调度员对异常任务进行快速改派、加派或取消操作"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/tasks/dispatch",
+        "usage": "移动端调度员在收到用车需求后，直接发起派车操作并通知司机"
+      }
+    ]
+  },
+  {
+    "page": "TaskAdjustView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/tasks/adjustment",
+        "usage": "在点击提交调整操作（改派、取消或新增临时任务）并填写异常处理记录后，调用该接口将调整内容和异常处理记录一并提交。"
+      }
+    ]
+  },
+  {
+    "page": "GateAccessCheckView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/gate/vehicle-action",
+        "usage": "门岗人员在核验车辆后，点击放行或拒绝按钮时调用此接口执行入场操作，并触发相应的道闸控制或拒绝记录生成。"
+      }
+    ]
+  },
+  {
+    "page": "GateEntryRecordsView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/gate/entry-records",
+        "usage": "页面加载或切换筛选条件时，调用此接口获取历史入场处理记录列表，用于展示入场记录表格并支持后续手动重新同步操作。"
+      }
+    ]
+  },
+  {
+    "page": "ManagementReportsView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/reports/overview",
+        "usage": "页面初始化或筛选条件变更时，调用此接口获取运营报表概览数据，包括指标卡片和趋势图数据，用于渲染概览工作台。"
+      }
+    ]
+  },
+  {
+    "page": "ReportDetailView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/reports/detail",
+        "usage": "页面加载或用户切换明细类型、调整筛选条件、搜索、排序、分页时，调用此接口获取当前明细表格数据，用于展示和导出。"
+      }
+    ]
+  },
+  {
+    "page": "WorkspaceView.vue",
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/reservations/{id}/approve",
+        "usage": "审批人员点击通过按钮时调用，提交审批通过请求，系统生成授权码并触发门禁同步"
+      },
+      {
+        "method": "GET",
+        "path": "/api/access-codes",
+        "usage": "在审批通过后或手动刷新时调用，用于监控授权码同步状态"
+      }
+    ]
+  },
+  {
+    "page": "AccessCodeView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/access-codes",
+        "usage": "页面加载时调用，分页查询所有授权码列表，支持按同步状态筛选和车牌号搜索；手动刷新时也调用"
+      }
+    ]
+  },
+  {
+    "page": "HistoryView.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/reservations/history",
+        "usage": "页面加载时以及点击查询按钮时调用，根据筛选条件分页查询历史预约记录，用于列表展示和导出"
+      }
+    ]
+  },
+  {
+    "page": "VehicleArchiveList.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/vehicles",
+        "usage": "页面加载时调用，获取车辆档案列表，支持筛选、搜索和分页；停用/启用操作后刷新列表"
+      },
+      {
+        "method": "POST",
+        "path": "/api/vehicles",
+        "usage": "当管理员执行停用或启用操作时，调用此接口更新车辆状态字段（如启用/停用）"
+      },
+      {
+        "method": "GET",
+        "path": "/api/vehicles/logs",
+        "usage": "在查看操作记录或接收到期提醒时，调用此接口获取车辆相关操作日志"
+      }
+    ]
+  },
+  {
+    "page": "VehicleArchiveEdit.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/vehicles",
+        "usage": "编辑模式下打开页面时，根据车牌或ID筛选获取该车辆现有档案信息用于回显"
+      },
+      {
+        "method": "POST",
+        "path": "/api/vehicles",
+        "usage": "点击保存按钮时调用，新增或更新车辆档案信息，包括证照图片上传和有效期设置"
+      }
+    ]
+  },
+  {
+    "page": "VehicleArchiveLogs.vue",
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/vehicles/logs",
+        "usage": "页面加载时，根据筛选条件分页查询操作日志列表"
+      }
+    ]
+  }
+]
