@@ -34,13 +34,24 @@
           @interaction-api-confirm="handleInteractionApiConfirm"
         />
         <FrontendPrototypeSuggestionView
-          v-else
+          v-else-if="activeMethodStepKey === 'frontendSuggestion'"
           :project-context="projectContext"
           @suggestion-confirm="handleSuggestionConfirm"
           @prototype-draft-update="handlePrototypeDraftUpdate"
         />
+        <PrototypeGenerateView
+          v-else
+          :project-context="projectContext"
+          @prototype-generated="handlePrototypeGenerated"
+          @prototype-draft-update="handlePrototypeGenerateDraftUpdate"
+        />
       </FactoryWorkbenchView>
     </template>
+
+    <PrototypeCenterView
+      v-else-if="activeMainTab === 'prototypeCenter'"
+      :project-context="projectContext"
+    />
 
     <section v-else-if="activeMainTab === 'progress'" class="section-block progress-panel" aria-labelledby="progress-title">
       <div class="section-heading">
@@ -72,6 +83,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import FactoryWorkbenchView from './views/FactoryWorkbenchView.vue'
 import FrontendPrototypeSuggestionView from './views/FrontendPrototypeSuggestionView.vue'
+import PrototypeCenterView from './views/PrototypeCenterView.vue'
+import PrototypeGenerateView from './views/PrototypeGenerateView.vue'
 import InteractionApiView from './views/InteractionApiView.vue'
 import RequirementInputView from './views/RequirementInputView.vue'
 import ScenarioPageDesignView from './views/ScenarioPageDesignView.vue'
@@ -95,6 +108,7 @@ const createEmptyStepResults = () => ({
   scenarioPageDesign: null,
   interactionApi: null,
   prototype: null,
+  prototypeGenerate: null,
 })
 
 const createDefaultProjectContext = () => ({
@@ -294,7 +308,15 @@ const methodStepDefinitions = [
     step: '04',
     title: '前端原型方案',
     input: '页面、交互和 API 契约',
-    output: '页面、组件、测试数据、API 和 Prompt 建议',
+    output: '页面规格、组件契约、Mock 数据、路由和生成任务包',
+  },
+  {
+    key: 'prototypeGenerate',
+    resultKey: 'prototypeGenerate',
+    step: '05',
+    title: '生成原型',
+    input: '前端原型方案',
+    output: 'Vue3 原型项目文件和目录结构',
   },
 ]
 
@@ -473,6 +495,10 @@ const applyStoredStepResult = (stepKey, result) => {
     nextContext.selectedPrototypeSuggestion = result.suggestion || result
   }
 
+  if (stepKey === 'prototypeGenerate') {
+    nextContext.prototypeGenerateResult = result
+  }
+
   projectContext.value = nextContext
 }
 
@@ -511,6 +537,11 @@ const applyStepResultToContext = (stepKey, result) => {
   if (stepKey === 'prototype') {
     nextContext.selectedPrototypeSuggestion = result.suggestion || result
     nextContext.summary = '前端原型方案已由大模型修改并保存到本地版本。'
+  }
+
+  if (stepKey === 'prototypeGenerate') {
+    nextContext.prototypeGenerateResult = result
+    nextContext.summary = `原型生成结果已保存：${result?.generatedFiles?.length || 0} 个文件。`
   }
 
   projectContext.value = nextContext
@@ -757,18 +788,80 @@ const handlePrototypeDraftUpdate = (result) => {
 }
 
 const handleSuggestionConfirm = async ({ suggestion } = {}) => {
-  const savePromise = writeStepResult('prototype', suggestion || { confirmed: true })
+  const payload = suggestion || { confirmed: true }
   projectContext.value = {
     ...projectContext.value,
-    projectStage: '前端原型方案已确认',
+    projectStage: '正在保存前端原型方案...',
     currentStepLabel: '前端原型建议',
-    contextStatus: '原型已生成',
-    summary: 'FDE 方法链路已闭环。原型已生成到 prototypes/sea-industry-dispatch/，可独立启动：cd prototypes/sea-industry-dispatch && npm run dev → http://127.0.0.1:5180',
-    selectedPrototypeSuggestion: suggestion || { confirmed: true },
+    contextStatus: '保存中',
+    summary: '正在将前端原型方案写入本地 prototyp.md...',
   }
 
-  await savePromise
+  try {
+    await writeStepResult('prototype', payload)
+    projectContext.value = {
+      ...projectContext.value,
+      projectStage: '前端原型方案已确认',
+      currentStepLabel: '前端原型建议',
+      contextStatus: '原型已保存',
+      summary: '✅ 前端原型方案已保存到本地 prototype.md。方法链路已闭环。',
+      selectedPrototypeSuggestion: payload,
+    }
+  } catch (err) {
+    projectContext.value = {
+      ...projectContext.value,
+      projectStage: '前端原型方案保存失败',
+      currentStepLabel: '前端原型建议',
+      contextStatus: '保存失败',
+      summary: '❌ 保存失败：' + ((err && err.message) || '未知错误，请确认 FastAPI 后端是否已启动（bash scripts/start_api.sh）。'),
+    }
+    return
+  }
+
   activeMainTab.value = 'method'
+  await selectWorkspace('prototypeGenerate')
+}
+
+const handlePrototypeGenerateDraftUpdate = (result) => {
+  writeStepResult('prototypeGenerate', result)
+  projectContext.value = {
+    ...projectContext.value,
+    currentStepLabel: '生成原型',
+    contextStatus: '已覆盖保存原型生成草稿',
+    summary: `原型生成草稿已更新：${result?.generatedFiles?.length || 0} 个文件。`,
+  }
+}
+
+const handlePrototypeGenerated = async (result) => {
+  const payload = result || { confirmed: true }
+  projectContext.value = {
+    ...projectContext.value,
+    projectStage: '正在保存原型生成结果...',
+    currentStepLabel: '生成原型',
+    contextStatus: '保存中',
+    summary: '正在将原型生成结果写入本地...',
+  }
+
+  try {
+    await writeStepResult('prototypeGenerate', payload)
+    projectContext.value = {
+      ...projectContext.value,
+      projectStage: '原型已生成',
+      currentStepLabel: '生成原型',
+      contextStatus: '原型已生成',
+      summary: '✅ 原型项目已生成，已进入原型中心。',
+      prototypeGenerateResult: payload,
+    }
+    activeMainTab.value = 'prototypeCenter'
+  } catch (err) {
+    projectContext.value = {
+      ...projectContext.value,
+      projectStage: '原型生成保存失败',
+      currentStepLabel: '生成原型',
+      contextStatus: '保存失败',
+      summary: '❌ 保存失败：' + ((err && err.message) || '请确认 FastAPI 后端已启动。'),
+    }
+  }
 }
 
 const workspaceStepLabelMap = {
@@ -777,6 +870,7 @@ const workspaceStepLabelMap = {
   scenarioPageDesign: '场景→页面设计',
   interactionApi: '交互与API设计',
   frontendSuggestion: '前端原型建议',
+  prototypeGenerate: '生成原型',
   prototypeWorkflow: '原型生成流程总览',
   requirementSummary: '客户需求分析',
 }

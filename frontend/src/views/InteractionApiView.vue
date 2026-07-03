@@ -46,7 +46,7 @@
           :disabled="isGenerating || !selectedPageDesign"
           @click="generateForSelectedPage"
         >
-          {{ isGenerating ? '⏳ 生成中...' : hasGeneratedCurrent ? '🔄 重新生成' : '⚡ 生成交互与API' }}
+          {{ primaryGenerateLabel }}
         </button>
       </div>
     </div>
@@ -54,6 +54,20 @@
     <!-- Current page info + status -->
     <div class="page-context" v-if="selectedPageDesign">
       <p class="page-goal" v-if="selectedPageDesign.goal">{{ selectedPageDesign.goal }}</p>
+      <div v-if="selectedPageModuleHints.length" class="api-hint-strip" aria-label="接口线索">
+        <strong>来自功能模块的接口线索</strong>
+        <span v-for="hint in selectedPageModuleHints" :key="hint.key">
+          {{ hint.name }}：{{ hint.apiHint || '未提供路径' }}
+        </span>
+      </div>
+      <div class="generation-steps" aria-label="生成进度">
+        <span :class="{ done: hasGeneratedInteractionCurrent, active: generationPhase === 'interaction' }">
+          1. 交互设计
+        </span>
+        <span :class="{ done: hasGeneratedApiCurrent, active: generationPhase === 'api' }">
+          2. API 契约
+        </span>
+      </div>
       <p v-if="generationMessage" class="gen-status" :class="{ error: generationError }">{{ generationMessage }}</p>
     </div>
 
@@ -66,7 +80,7 @@
           <strong>{{ currentGeneratedPage.name || '选择页面' }}</strong>
         </div>
 
-        <template v-if="hasGeneratedCurrent">
+        <template v-if="hasGeneratedInteractionCurrent">
           <section class="card-section" aria-label="字段设计">
             <h4>字段设计</h4>
             <div class="field-row header">
@@ -117,10 +131,10 @@
       <article class="result-panel api-panel">
         <div class="panel-heading">
           <span>🔌 API 契约</span>
-          <strong>{{ hasGeneratedCurrent ? currentApiContract.name : '待生成' }}</strong>
+          <strong>{{ hasGeneratedApiCurrent ? currentApiContract.name : '待生成' }}</strong>
         </div>
 
-        <template v-if="hasGeneratedCurrent">
+        <template v-if="hasGeneratedApiCurrent">
           <section class="card-section" aria-label="基础信息">
             <h4>基础信息</h4>
             <div class="api-meta-strip">
@@ -168,7 +182,8 @@
 
         <div v-else class="panel-placeholder">
           <span>🔧</span>
-          <p>点击上方「生成交互与API」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
+          <p v-if="hasGeneratedInteractionCurrent">交互设计已生成。点击上方「生成 API 契约」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
+          <p v-else>点击上方「生成交互与API」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
         </div>
       </article>
     </div>
@@ -203,6 +218,7 @@ const generatedApiByPageKey = ref({})
 const selectedScenarioKey = ref('')
 const selectedKey = ref('')
 const isGenerating = ref(false)
+const generationPhase = ref('')
 const generationMessage = ref('')
 const generationError = ref(false)
 
@@ -230,6 +246,10 @@ const scenarioPageGroups = computed(() => {
   })
 })
 
+const modulesByScenarioKey = computed(() =>
+  scenarioPageResult.value?.modulesByScenarioKey || {}
+)
+
 const savedPageList = computed(() =>
   scenarioPageGroups.value.flatMap((g) => g.pages)
 )
@@ -256,6 +276,18 @@ const selectedPageDesign = computed(
   () => recommendedPages.value.find((item) => item.key === selectedKey.value) || recommendedPages.value[0] || null
 )
 
+const selectedPageModuleHints = computed(() => {
+  const scenario = selectedScenario.value
+  const page = selectedPageDesign.value
+  if (!scenario || !page) return []
+
+  const modules = modulesByScenarioKey.value[scenario.key] || []
+  const matched = modules.filter((module) => isModuleRelatedToPage(module, page))
+  const source = matched.length ? matched : modules
+
+  return source.slice(0, 5).map(sanitizeModuleHint)
+})
+
 // --- Computed: Generated results ---
 const currentGeneratedPage = computed(() => {
   const gen = generatedPagesByKey.value[selectedKey.value]
@@ -269,7 +301,19 @@ const currentApiContract = computed(() => {
   return createEmptyApiContract(selectedPageDesign.value || { key: '', name: '未选择' })
 })
 
-const hasGeneratedCurrent = computed(() => Boolean(generatedPagesByKey.value[selectedKey.value]))
+const hasGeneratedInteractionCurrent = computed(() => Boolean(generatedPagesByKey.value[selectedKey.value]))
+const hasGeneratedApiCurrent = computed(() => Boolean(generatedApiByPageKey.value[selectedKey.value]))
+const hasGeneratedCurrent = computed(() => hasGeneratedInteractionCurrent.value && hasGeneratedApiCurrent.value)
+const primaryGenerateLabel = computed(() => {
+  if (isGenerating.value) {
+    if (generationPhase.value === 'interaction') return '⏳ 步骤 1/2：生成交互设计...'
+    if (generationPhase.value === 'api') return '⏳ 步骤 2/2：生成 API 契约...'
+    return '⏳ 生成中...'
+  }
+  if (hasGeneratedCurrent.value) return '🔄 重新生成交互与API'
+  if (hasGeneratedInteractionCurrent.value && !hasGeneratedApiCurrent.value) return '⚡ 生成 API 契约'
+  return '⚡ 生成交互与API'
+})
 
 const stateLabels = { empty: '空状态', loading: '加载中', success: '成功', error: '失败' }
 
@@ -322,6 +366,12 @@ function buildDraft() {
     pageDesign: scenarioPageResult.value,
     selectedPage: currentGeneratedPage.value,
     selectedApiContract: currentApiContract.value,
+    selectedModuleApiHints: selectedPageModuleHints.value,
+    generationStatus: {
+      selectedPageKey: selectedKey.value,
+      interactionReady: hasGeneratedInteractionCurrent.value,
+      apiReady: hasGeneratedApiCurrent.value,
+    },
     savedAt: new Date().toISOString(),
   }
 }
@@ -414,6 +464,79 @@ function splitTextList(value) {
   return String(value || '').split(/[、,，;；\n]/).map((s) => s.trim()).filter(Boolean)
 }
 
+function truncateText(value, max = 300) {
+  const text = String(value || '').trim()
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
+function normalizeLimitedList(value, maxItems = 6, itemMax = 140) {
+  const items = Array.isArray(value) ? value : splitTextList(value)
+  return items.map((item) => truncateText(item, itemMax)).filter(Boolean).slice(0, maxItems)
+}
+
+function sanitizeModuleHint(module, index) {
+  return {
+    key: module.key || `module-hint-${index}`,
+    name: truncateText(module.name || `模块${index + 1}`, 80),
+    description: truncateText(module.description, 260),
+    features: normalizeLimitedList(module.features, 6, 120),
+    pageSuggestion: truncateText(module.pageSuggestion || module.pageTitleSuggestion || '', 120),
+    apiHint: truncateText(module.apiHint || module.apiSuggestion || module.interfaceHint || '', 220),
+    dataNeeds: normalizeLimitedList(module.dataNeeds, 6, 120),
+    stateRules: normalizeLimitedList(module.stateRules, 6, 140),
+  }
+}
+
+function buildPageLlmContext(page, featureItems, sectionItems) {
+  return {
+    key: page.key,
+    name: truncateText(page.name, 100),
+    vueFile: page.vueFile,
+    goal: truncateText(page.goal, 300),
+    type: page.type,
+    priority: page.priority,
+    features: featureItems,
+    sections: sectionItems,
+    states: normalizeLimitedList(page.states, 6, 120),
+    keyInteractions: normalizeLimitedList(page.keyInteractions, 6, 140),
+    dataInputs: normalizeLimitedList(page.dataInputs, 6, 120),
+  }
+}
+
+function sanitizeInteractionForApi(interactionPage) {
+  return {
+    fields: (interactionPage.fields || []).slice(0, 12).map((f) => ({
+      name: f.name,
+      label: truncateText(f.label || f.name, 80),
+      type: f.type || 'string',
+      required: Boolean(f.required),
+      description: truncateText(f.description, 180),
+    })),
+    actions: (interactionPage.actions || []).slice(0, 8).map((a) => ({
+      label: truncateText(a.label || a.name || '操作', 80),
+      trigger: truncateText(a.trigger, 160),
+      feedback: truncateText(a.feedback, 160),
+    })),
+    validations: normalizeLimitedList(interactionPage.validations, 8, 180),
+    states: Object.fromEntries(
+      Object.entries(interactionPage.states || {}).map(([key, value]) => [key, truncateText(value, 180)])
+    ),
+  }
+}
+
+function isModuleRelatedToPage(module, page) {
+  const pageFeatures = Array.isArray(page.features) ? page.features : splitTextList(page.featureText)
+  const moduleFeatures = Array.isArray(module.features) ? module.features : splitTextList(module.features)
+  const pageFile = String(page.vueFile || '').trim()
+  const modulePage = String(module.pageSuggestion || module.pageTitleSuggestion || '').trim()
+  const moduleName = String(module.name || '').trim()
+  if (pageFile && modulePage && modulePage === pageFile) return true
+  if (moduleName && pageFeatures.some((feature) => feature === moduleName || String(feature).includes(moduleName))) return true
+  return moduleFeatures.some((feature) =>
+    pageFeatures.some((pageFeature) => String(pageFeature).includes(feature) || String(feature).includes(pageFeature))
+  )
+}
+
 // --- Field/Action/Validation/State builders (fallbacks) ---
 function buildFallbackFields(page, featureItems, sectionItems) {
   const source = sectionItems.length ? sectionItems : featureItems
@@ -457,7 +580,17 @@ async function generateForSelectedPage() {
 
   isGenerating.value = true
   generationError.value = false
-  generationMessage.value = `正在生成「${selectedPageDesign.value.name}」的交互设计...`
+  generationPhase.value = ''
+
+  if (hasGeneratedInteractionCurrent.value && !hasGeneratedApiCurrent.value) {
+    await generateApiForCurrentPage(currentGeneratedPage.value)
+    isGenerating.value = false
+    generationPhase.value = ''
+    return
+  }
+
+  generationPhase.value = 'interaction'
+  generationMessage.value = `步骤 1/2：正在生成「${selectedPageDesign.value.name}」的交互设计...`
 
   // Step 1: Generate interaction
   let interactionResult
@@ -467,14 +600,27 @@ async function generateForSelectedPage() {
       ...generatedPagesByKey.value,
       [interactionResult.key]: interactionResult,
     }
-    generationMessage.value = `交互设计完成，正在生成 API 契约...`
+    emitDraftUpdate()
+    generationPhase.value = 'api'
+    generationMessage.value = `步骤 1/2 完成。步骤 2/2：正在生成 API 契约...`
   } catch (err) {
     setGenError(err.message || '交互设计生成失败。')
     isGenerating.value = false
+    generationPhase.value = ''
     return
   }
 
-  // Step 2: Generate API contract based on interaction
+  await generateApiForCurrentPage(interactionResult)
+  isGenerating.value = false
+  generationPhase.value = ''
+}
+
+async function generateApiForCurrentPage(interactionResult) {
+  if (!interactionResult || !selectedPageDesign.value) return
+  generationPhase.value = 'api'
+  generationError.value = false
+  generationMessage.value = `步骤 2/2：正在生成「${interactionResult.name}」的 API 契约...`
+
   try {
     const apiResult = await callLlmForApiContract(interactionResult)
     generatedApiByPageKey.value = {
@@ -485,17 +631,16 @@ async function generateForSelectedPage() {
     generationMessage.value = `「${interactionResult.name}」的交互设计与 API 契约已生成。`
   } catch (err) {
     generationError.value = true
-    generationMessage.value = `交互已生成，但 API 契约生成失败：${err.message || '请重试。'}`
+    generationMessage.value = `交互设计已保留，但 API 契约生成失败：${err.message || '请重试。'} 可点击上方「生成 API 契约」单独重试。`
     emitDraftUpdate()
   }
-
-  isGenerating.value = false
 }
 
 async function callLlmForInteraction() {
   const page = selectedPageDesign.value
-  const featureItems = page.features?.length ? page.features : splitTextList(page.featureText)
-  const sectionItems = page.sections?.length ? page.sections : featureItems
+  const featureItems = normalizeLimitedList(page.features?.length ? page.features : page.featureText, 8, 140)
+  const sectionItems = normalizeLimitedList(page.sections?.length ? page.sections : featureItems, 8, 140)
+  const pageContext = buildPageLlmContext(page, featureItems, sectionItems)
 
   const response = await fetch(`${API_BASE_URL}/llm/revise-step`, {
     method: 'POST',
@@ -503,13 +648,19 @@ async function callLlmForInteraction() {
     body: JSON.stringify({
       step_key: 'interactionApi',
       step_title: '交互与API一体化：交互设计',
-      instruction: '请根据当前页面的页面目标、承载功能、页面区域，生成当前页面的交互设计。只返回严格 JSON：{"interactionDesign":{"fields":[],"actions":[],"validations":[],"states":{}}}。fields 每项含 name,label,type,required,description。actions 每项含 label,trigger,feedback。validations 为字符串数组。states 含 empty,loading,success,error。',
+      instruction: [
+        '请根据当前页面的页面目标、承载功能、页面区域，生成当前页面的交互设计。',
+        '如果 current_output.moduleApiHints 中有来自“场景->页面/功能模块”的接口线索、数据需求和状态规则，请优先吸收，不要重新发明冲突的业务动作。',
+        '只返回严格 JSON：{"interactionDesign":{"fields":[],"actions":[],"validations":[],"states":{}}}。',
+        'fields 每项含 name,label,type,required,description。actions 每项含 label,trigger,feedback。validations 为字符串数组。states 含 empty,loading,success,error。',
+      ].join('\n'),
       current_output: {
         scenario: selectedScenario.value ? { key: selectedScenario.value.key, name: selectedScenario.value.name } : null,
-        page,
-        pageGoal: page.goal,
+        page: pageContext,
+        pageGoal: pageContext.goal,
         features: featureItems,
         sections: sectionItems,
+        moduleApiHints: selectedPageModuleHints.value,
       },
       project_context: buildProjectContext(),
     }),
@@ -524,7 +675,13 @@ async function callLlmForInteraction() {
 
 async function callLlmForApiContract(interactionPage) {
   const page = selectedPageDesign.value
-  const requestParams = (interactionPage.fields || []).map((f) => ({
+  const pageContext = buildPageLlmContext(
+    page,
+    normalizeLimitedList(page.features?.length ? page.features : page.featureText, 8, 140),
+    normalizeLimitedList(page.sections?.length ? page.sections : page.features || page.featureText, 8, 140)
+  )
+  const interactionContext = sanitizeInteractionForApi(interactionPage)
+  const requestParams = interactionContext.fields.map((f) => ({
     name: f.name, type: mapFieldTypeToApi(f.type), required: Boolean(f.required), description: f.description,
   }))
 
@@ -536,6 +693,8 @@ async function callLlmForApiContract(interactionPage) {
       step_title: '交互与API一体化：API契约',
       instruction: [
         '请根据当前页面的交互设计（字段、按钮、状态），生成该页面对应的核心 API 契约。',
+        'current_output.moduleApiHints 是上一步“场景->页面/功能模块”产生的接口线索，只是候选方向，不是正式契约。',
+        '生成正式契约时应优先沿用 moduleApiHints 中的业务资源、候选路径、数据需求和状态规则；只有与当前页面交互冲突时才调整。',
         '只返回严格 JSON：{"apiContract":{"method":"GET|POST|PUT","name":"接口名称","path":"/api/...","goal":"接口目标","trigger":"调用时机","requestParams":[],"successResponse":{},"errorResponse":{},"errorCodes":[]}}。',
         'requestParams 每项含 name,type,required,description；errorCodes 每项含 code,meaning,frontendAdvice。',
         'successResponse 和 errorResponse 符合统一结构：{code,message,data,traceId}。',
@@ -544,14 +703,10 @@ async function callLlmForApiContract(interactionPage) {
         '本次只生成 1 个核心接口，选择页面最重要的操作。',
       ].join('\n'),
       current_output: {
-        page: { key: page.key, name: page.name, goal: page.goal, vueFile: page.vueFile },
-        interaction: {
-          fields: interactionPage.fields,
-          actions: interactionPage.actions,
-          validations: interactionPage.validations,
-          states: interactionPage.states,
-        },
+        page: pageContext,
+        interaction: interactionContext,
         suggestedParams: requestParams,
+        moduleApiHints: selectedPageModuleHints.value,
       },
       project_context: buildProjectContext(),
     }),
@@ -776,6 +931,64 @@ function getApiErrorMessage(payload, fallback) {
   font-size: 13px;
   line-height: 1.5;
   margin-bottom: 6px;
+}
+
+.api-hint-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.api-hint-strip strong {
+  color: #64748b;
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+.api-hint-strip span {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 4px 9px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.generation-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.generation-steps span {
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 4px 10px;
+}
+
+.generation-steps span.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.generation-steps span.done {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
 }
 
 .gen-status {

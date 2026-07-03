@@ -4,7 +4,7 @@
       eyebrow="Scenario → Page"
       title="场景→页面一体化设计工作台"
       title-id="spd-title"
-      description="从需求直接生成用户角色、业务场景、功能模块和页面设计，在一个视图中完成原 02-04 三步的全部工作。"
+      description="分阶段调用 LLM：先基于 requirement.md 生成业务场景，再逐个场景生成功能模块，最后按模块生成页面设计，避免单次输出过大。"
     />
 
     <!-- Requirement Summary (collapsible) -->
@@ -25,10 +25,10 @@
     <div class="gen-bar">
       <div>
         <strong>{{ editableScenarios.length ? editableScenarios.length + ' 个场景' : '尚未生成场景' }}</strong>
-        <p>基于第一步的用户角色和需求信息，为每个角色生成一个贴合业务的具体场景。</p>
+        <p>仅读取 requirement.md 完整内容生成业务场景数量、场景详情和建议页面模块；功能模块与页面设计在场景内逐个生成。</p>
       </div>
       <button class="gen-btn" type="button" :disabled="isGenBusy" @click="generateAllScenarios">
-        {{ isGenBusy ? '⏳ 生成中...' : '⚡ 生成场景' }}
+        {{ isGenBusy ? '⏳ 生成中...' : '⚡ 生成业务场景' }}
       </button>
     </div>
     <p v-if="genMessage" class="gen-msg" :class="{ error: genError }">{{ genMessage }}</p>
@@ -57,11 +57,19 @@
           <button
             class="mini-gen"
             type="button"
-            :disabled="genModulesKey === s.key"
-            @click.stop="generateScenarioModules(s)"
-            :title="'调用大模型为此场景生成功能模块'"
+            :disabled="genScenarioKey === s.key"
+            @click.stop="generateScenarioDetail(s)"
+            :title="'调用大模型生成/更新此场景详情'"
           >
-            {{ genModulesKey === s.key ? '⏳' : '⚡' }}
+            {{ genScenarioKey === s.key ? '⏳' : '⚡' }}
+          </button>
+          <button
+            class="mini-delete"
+            type="button"
+            @click.stop="deleteScenario(s)"
+            title="删除此业务场景及其功能模块、页面设计"
+          >
+            ×
           </button>
         </button>
       </nav>
@@ -103,13 +111,36 @@
             </label>
           </div>
           <button class="secondary-btn small" type="button" @click="addWorkflowStep">+ 新增步骤</button>
+          <div v-if="!isScenarioDetailReady(activeScenario)" class="stage-action">
+            <p>先点击左侧当前业务场景右侧的 ⚡，生成/更新「场景详情」页内容。详情写入成功后，才可继续生成功能模块。</p>
+            <button
+              class="gen-btn"
+              type="button"
+              :disabled="genScenarioKey === activeScenario.key"
+              @click="generateScenarioDetail(activeScenario)"
+            >
+              {{ genScenarioKey === activeScenario.key ? '⏳ 生成中...' : '⚡ 生成/更新场景详情' }}
+            </button>
+          </div>
+          <div v-else class="stage-action">
+            <p>下一步：基于当前场景详情，单独调用 LLM 生成功能模块设计。</p>
+            <button
+              class="gen-btn"
+              type="button"
+              :disabled="genModulesKey === activeScenario.key"
+              @click="generateScenarioModules(activeScenario)"
+            >
+              {{ genModulesKey === activeScenario.key ? '⏳ 生成中...' : '⚡ 生成此场景功能模块' }}
+            </button>
+          </div>
         </article>
 
         <!-- Tab: 功能模块 -->
         <article v-if="activeTab === 'modules'" class="tab-content">
           <div v-if="!activeModules(activeScenario).length" class="empty-hint">
             <strong>暂无功能模块</strong>
-            <p>点击左侧场景旁的 ⚡ 按钮，根据场景详情调用大模型生成功能模块。</p>
+            <p v-if="!isScenarioDetailReady(activeScenario)">请先在「场景详情」中生成/更新场景详情，再生成功能模块。</p>
+            <p v-else>根据当前场景详情单独调用 LLM 生成功能模块，避免和其他场景混在一次请求里导致超时。</p>
           </div>
           <template v-else>
             <div class="module-grid">
@@ -124,7 +155,7 @@
                 </ul>
                 <div class="module-meta">
                   <span>页面：{{ m.pageSuggestion || m.pageTitleSuggestion }}</span>
-                  <span>API：{{ m.apiSuggestion }}</span>
+                  <span v-if="resolveModuleApiHint(m)">接口线索：{{ resolveModuleApiHint(m) }}</span>
                 </div>
               </div>
             </div>
@@ -144,7 +175,11 @@
 
         <!-- Tab: 页面设计 -->
         <article v-if="activeTab === 'pages'" class="tab-content">
-          <div class="page-layout">
+          <div v-if="!activePages(activeScenario).length" class="empty-hint">
+            <strong>暂无页面设计</strong>
+            <p>请先在「功能模块」标签页生成模块，再点击底部按钮生成页面设计。</p>
+          </div>
+          <div v-else class="page-layout">
             <div class="page-list-panel">
               <strong>页面清单 ({{ activePages(activeScenario).length }})</strong>
               <button
@@ -159,9 +194,6 @@
                 <strong>{{ p.name }}</strong>
                 <small>{{ p.type }} / {{ p.vueFile }}</small>
               </button>
-              <div v-if="!activePages(activeScenario).length" class="empty-hint">
-                <p>请先在「功能模块」标签页生成模块，再点击底部按钮生成页面设计。</p>
-              </div>
             </div>
             <div v-if="selectedPage" class="page-detail">
               <div class="detail-head">
@@ -175,7 +207,26 @@
                 <label><span>优先级</span><input v-model.trim="selectedPage.priority" type="text" @input="markDirty" /></label>
               </div>
               <label class="full"><span>页面目标</span><textarea v-model.trim="selectedPage.goal" rows="2" @input="markDirty"></textarea></label>
-              <label class="full"><span>承载功能</span><input v-model.trim="selectedPage.featureText" type="text" @input="markDirty" /></label>
+
+              <div class="full feature-area">
+                <span>承载功能</span>
+                <p class="feature-summary">{{ derivedFeatureText || '尚未关联功能模块' }}</p>
+                <div v-if="mappedModules.length" class="mapped-modules">
+                  <div v-for="m in mappedModules" :key="m.key" class="mapped-chip">
+                    <strong>{{ m.name }}</strong>
+                    <small v-if="m.features?.length">{{ m.features.slice(0, 3).join(' · ') }}{{ m.features.length > 3 ? '…' : '' }}</small>
+                  </div>
+                </div>
+                <input
+                  v-if="showFeatureTextInput"
+                  v-model.trim="selectedPage.featureText"
+                  type="text"
+                  class="mt-xs"
+                  placeholder="自定义摘要（留空则自动生成）"
+                  @input="markDirty"
+                />
+                <button v-else class="text-btn mt-xs" type="button" @click="showFeatureTextInput = true">✎ 手动编辑摘要</button>
+              </div>
               <div class="section-area">
                 <div class="section-head">
                   <h4>页面区域</h4>
@@ -205,8 +256,8 @@
     <!-- No scenarios yet -->
     <div v-else class="empty-hero">
       <span>🚀</span>
-      <strong>点击「生成场景」开始</strong>
-      <p>系统将基于第一步的用户角色和需求信息，为每个角色生成一个贴合业务的具体场景。</p>
+      <strong>点击「生成业务场景」开始</strong>
+      <p>系统将读取 requirement.md 的完整结构化输入，只规划业务场景，不在这一步生成全部模块和页面。</p>
     </div>
 
     <!-- Confirm -->
@@ -243,6 +294,7 @@ const isReqOpen = ref(false)
 const isGenBusy = ref(false)
 const genMessage = ref('')
 const genError = ref(false)
+const genScenarioKey = ref('')
 const genModulesKey = ref('')
 const genPagesKey = ref('')
 
@@ -254,21 +306,26 @@ const pendingRoleDialogOpen = ref(false)
 
 // Feature design state (mirrors FeatureDesignView.revisedModulesByScenarioKey)
 const modulesByScenarioKey = ref({})
+const scenarioDetailReadyByKey = ref({})
 
 // Page design state (mirrors PageDesignView.revisedDesignsByScenarioKey)
 const pageDesignsByScenarioKey = ref({})
+const scenarioGenerationMeta = ref(null)
 
 // UI state
 const activeKey = ref('')
 const activeTab = ref('scenario')
 const selectedPageKey = ref('')
 const dirty = ref(false)
+const showFeatureTextInput = ref(false)
 
 let messageClearTimer = null
 let activeGenController = null
+let draftSaveTimer = null
 
 onUnmounted(() => {
   if (messageClearTimer) clearTimeout(messageClearTimer)
+  if (draftSaveTimer) clearTimeout(draftSaveTimer)
   if (activeGenController) activeGenController.abort('component unmounted')
 })
 
@@ -281,27 +338,53 @@ const tabs = [
 // ============================================================
 // Computed: Read from step 01 (requirement)
 // ============================================================
+const requirementStepResult = computed(() =>
+  props.projectContext.stepResults?.requirement || {
+    projectName: props.projectContext.projectName || '',
+    customerName: props.projectContext.customerName || '',
+    projectStage: props.projectContext.projectStage || '',
+    sourceRequirement: props.projectContext.sourceRequirement || '',
+    manualRequirement: props.projectContext.manualRequirement || '',
+    attachmentText: props.projectContext.attachmentText || '',
+    attachments: props.projectContext.requirementAttachments || [],
+    analysis: props.projectContext.requirementAnalysis || null,
+  }
+)
+
+const requirementAnalysis = computed(() =>
+  requirementStepResult.value?.analysis || props.projectContext.requirementAnalysis || {}
+)
+
 const requirementText = computed(() => {
-  const a = props.projectContext.requirementAnalysis || {}
+  const a = requirementAnalysis.value || {}
+  const questionResponses = (a.questionResponses || [])
+    .map((item) => `${item.question || '问题'}：${item.answer || ''}`)
+    .join(' ')
+  const clarificationInsights = (a.clarificationInsights || [])
+    .map((item) => `${item.category || '业务补充'}：${item.title || ''}，${item.detail || ''}，场景价值：${item.scenarioValue || ''}`)
+    .join(' ')
   return [
-    props.projectContext.sourceRequirement || '',
+    requirementStepResult.value?.sourceRequirement || props.projectContext.sourceRequirement || '',
+    requirementStepResult.value?.manualRequirement || '',
+    requirementStepResult.value?.attachmentText || '',
     a.businessBackground || '',
     (a.painPoints || []).map((p) => p.description || p).join(' '),
     (a.businessGoals || a.goals || []).join(' '),
     (a.userRoles || []).map((r) => `${r.name}:${r.responsibility}`).join(' '),
+    questionResponses,
+    clarificationInsights,
   ].join(' ')
 })
 
 const requirementSummary = computed(() => {
-  const a = props.projectContext.requirementAnalysis || {}
+  const a = requirementAnalysis.value || {}
   return a.businessBackground || '暂无业务背景摘要'
 })
 
-const analysisRoles = computed(() => props.projectContext.requirementAnalysis?.userRoles || [])
+const analysisRoles = computed(() => requirementAnalysis.value?.userRoles || [])
 
 const requirementSignature = computed(() => JSON.stringify({
-  sourceRequirement: props.projectContext.sourceRequirement || '',
-  requirementAnalysis: props.projectContext.requirementAnalysis || null,
+  requirementResult: requirementStepResult.value || null,
 }))
 
 // ============================================================
@@ -333,11 +416,13 @@ function applySavedOutput(output) {
   if (output.modulesByScenarioKey) {
     modulesByScenarioKey.value = output.modulesByScenarioKey
   }
+  scenarioDetailReadyByKey.value = output.scenarioDetailReadyByKey || {}
 
   // Restore page designs
   if (output.pageDesignsByScenarioKey) {
     pageDesignsByScenarioKey.value = output.pageDesignsByScenarioKey
   }
+  scenarioGenerationMeta.value = output.scenarioGenerationMeta || null
 
   // Restore active key
   const key = output.selectedScenarioKey || output.activeKey || editableScenarios.value[0]?.key
@@ -385,7 +470,9 @@ watch(
     editableRoles.value = []
     editableScenarios.value = []
     modulesByScenarioKey.value = {}
+    scenarioDetailReadyByKey.value = {}
     pageDesignsByScenarioKey.value = {}
+    scenarioGenerationMeta.value = null
     activeKey.value = ''
     pendingRoles.value = []
     pendingRoleDialogOpen.value = false
@@ -431,10 +518,40 @@ function hasModules(scenario) {
   return activeModules(scenario).length > 0
 }
 
+function isScenarioDetailReady(scenario) {
+  return Boolean(scenario && scenarioDetailReadyByKey.value[scenario.key])
+}
+
 const selectedPage = computed(() => {
   const pages = activePages(activeScenario.value)
   return pages.find((p) => p.key === selectedPageKey.value) || pages[0] || null
 })
+
+// Derived: modules that map to this page (by name matching)
+const mappedModules = computed(() => {
+  const page = selectedPage.value
+  if (!page || !activeScenario.value) return []
+  const allModules = activeModules(activeScenario.value)
+  const featureNames = (page.features || []).map((f) => (f.name || f).toString().trim())
+  return allModules.filter((m) => featureNames.includes(m.name.toString().trim()))
+})
+
+const derivedFeatureText = computed(() => {
+  const page = selectedPage.value
+  if (!page) return ''
+  // If user has edited manually, prefer that
+  if (showFeatureTextInput.value && page.featureText) return page.featureText
+  const mods = mappedModules.value
+  if (!mods.length) return page.featureText || ''
+  // Auto-generate: module names + key descriptions
+  return mods.map((m) => {
+    const desc = m.description ? `（${m.description.slice(0, 40)}${m.description.length > 40 ? '…' : ''}）` : ''
+    return `${m.name}${desc}`
+  }).join('；')
+})
+
+// Reset feature text input when switching pages
+watch(selectedPageKey, () => { showFeatureTextInput.value = false })
 
 // ============================================================
 // Domain detection (from original ScenarioIdentificationView)
@@ -530,10 +647,15 @@ function buildModules(scenario) {
       features: ['展示' + mod + '数据', '支持' + mod + '操作', '反馈处理结果'],
       pageTitleSuggestion: scenario.name + '工作台',
       pageSuggestion: pm.page || 'WorkspaceView.vue',
+      apiHint: 'GET/POST /api/' + (scenario.key.split('-')[1] || 'business'),
       apiSuggestion: 'GET/POST /api/' + (scenario.key.split('-')[1] || 'business'),
       scopeNote: '基于场景「' + scenario.name + '」生成',
     }
   })
+}
+
+function resolveModuleApiHint(module) {
+  return module && (module.apiHint || module.apiSuggestion || module.interfaceHint || '')
 }
 
 function buildPageDesign(scenario) {
@@ -619,6 +741,8 @@ async function generateAllScenarios() {
   if (isGenBusy.value) return
   isGenBusy.value = true
   genError.value = false
+  const requirementPayload = requirementStepResult.value || {}
+  const hasRequirementPayload = Boolean(requirementPayload.analysis || requirementPayload.sourceRequirement || requirementPayload.manualRequirement)
 
   // Step 1: 使用第一步已生成的用户角色（不再重复生成）
   var inputRoles = analysisRoles.value
@@ -635,40 +759,67 @@ async function generateAllScenarios() {
   }
   setGenMsg('已读取第一步的 ' + editableRoles.value.length + ' 个角色，正在为每个角色生成业务场景...')
 
-  // Step 2: 基于第一步的角色和需求信息，生成每个业务场景
-  if (props.projectContext.executionMode === 'llm-ready' && props.projectContext.llmConfigured) {
-    try {
-      var sResult = await requestLlm(
-        'scenarioPageDesignScenarios',
-        '场景→页面一体化：基于角色与需求生成业务场景',
-        [
-          '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-          '根据左侧的用户角色列表和第一步传来的需求信息，为每个角色生成一个贴合业务的具体场景。',
-          '返回严格JSON：{"scenarios":[{"key":"sc-序号","name":"场景名称（要具体，如"调度员现场调度派车"而非"调度员车辆处理"）","priority":"P0或P1","description":"详细场景说明（20字以上，描述该角色在什么情况下做什么）","workflow":["步骤1","步骤2","步骤3"],"pageMapping":{"role":"对应的角色名","page":"建议的Vue文件名.vue","modules":["页面模块1","页面模块2"]}}]}',
-          '场景必须紧密结合需求原文中的业务背景、痛点、目标。一般每个角色一个场景。',
-        ].join('\n'),
-        {
-          roles: editableRoles.value.map(function (r) { return { name: r.name, focus: r.focus, tags: splitTags(r.tagText) } }),
-          requirement: requirementText.value.substring(0, 3000),
-          existingScenarios: buildScenariosFromRoles(editableRoles.value),
-        },
-        90000
-      )
-      var llmScenarios = (sResult.scenarios || []).map(normalizeScenarioInput)
-      if (llmScenarios.length) {
-        editableScenarios.value = llmScenarios
-        setGenMsg('已生成 ' + llmScenarios.length + ' 个场景。点击左侧场景旁的 ⚡ 为该场景生成功能模块。')
-      } else {
-        throw new Error('大模型未返回有效场景')
-      }
-    } catch (err) {
-      genError.value = true
-      setGenMsg('LLM 场景生成失败，使用本地规则：' + (err.message || ''), true)
-      editableScenarios.value = buildScenariosFromRoles(editableRoles.value)
+  if (!hasRequirementPayload) {
+    genError.value = true
+    setGenMsg('未读取到 requirement.md 的完整需求拆解结果，请先完成并确认「需求拆解」。', true)
+    isGenBusy.value = false
+    return
+  }
+
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    genError.value = true
+    setGenMsg('生成场景需要调用 LLM。请在顶部切换「大模型生成」并保存 DeepSeek Key 后重试。', true)
+    isGenBusy.value = false
+    return
+  }
+
+  // Step 2: 基于 requirement.md 的完整结构化内容，生成每个业务场景
+  try {
+    var sResult = await requestLlm(
+      'scenarioPageDesignScenarios',
+      '场景→页面一体化：基于 requirement.md 完整内容生成业务场景',
+      [
+        '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
+        '你将收到上一阶段写入 requirement.md 的完整结构化结果，包括原始需求、附件文本、需求拆解草案、待确认问题回复，以及业务澄清对话整理出的补充信息。',
+        '请基于这些完整输入，完成业务场景规划和页面前置设计，不要只按角色机械生成。',
+        '必须充分使用 analysis.questionResponses 与 analysis.clarificationInsights 中的补充信息，把接口方式、弱网/移动端、异常阈值、费用口径、系统集成等内容转化为具体场景、流程步骤和页面模块。',
+        '返回严格JSON：{"roles":[{"name":"角色名","focus":"职责边界","tags":["标签1"]}],"scenarios":[{"key":"sc-序号","name":"场景名称（要具体，如\\"调度员现场调度派车与异常处理\\"）","priority":"P0或P1","description":"详细场景说明（30字以上，描述该角色在什么业务触发条件下完成什么目标）","workflow":["触发/进入","查看/判断","操作/协同","确认/留痕"],"pageMapping":{"role":"对应角色名","page":"建议的Vue文件名.vue","modules":["页面模块1","页面模块2","异常处理模块"]}}],"planningNotes":["规划依据1"]}',
+        '场景数量由业务复杂度决定：每个核心角色至少一个 P0/P1 场景；如果同一角色存在明显不同闭环，可拆成多个场景。',
+        '页面模块名要能直接指导下一步页面设计，避免“管理模块”“查询模块”这类泛化名称。',
+        '不要编造 requirement.md 中没有依据的外部系统或规则；推断项要在 description 或 planningNotes 中说明需确认。',
+      ].join('\n'),
+      {
+        requirementMarkdownResult: requirementPayload,
+        normalizedRequirementText: requirementText.value.substring(0, 8000),
+        rolesFromRequirement: editableRoles.value.map(function (r) { return { name: r.name, focus: r.focus, tags: splitTags(r.tagText) } }),
+        existingScenarios: buildScenariosFromRoles(editableRoles.value),
+      },
+      90000
+    )
+    if (Array.isArray(sResult.roles) && sResult.roles.length) {
+      editableRoles.value = sResult.roles.map(normalizeRoleInput)
     }
-  } else {
-    editableScenarios.value = buildScenariosFromRoles(editableRoles.value)
-    setGenMsg('已使用本地规则生成 ' + editableScenarios.value.length + ' 个场景。点击左侧场景旁的 ⚡ 为该场景生成功能模块。')
+    var llmScenarios = (sResult.scenarios || []).map(normalizeScenarioInput)
+    if (llmScenarios.length) {
+      editableScenarios.value = llmScenarios
+      scenarioDetailReadyByKey.value = Object.fromEntries(llmScenarios.map(function (scenario) { return [scenario.key, false] }))
+      scenarioGenerationMeta.value = {
+        source: 'llm',
+        basedOn: 'prototype_factory/local_step_outputs/requirement.md',
+        generatedAt: new Date().toISOString(),
+        planningNotes: Array.isArray(sResult.planningNotes) ? sResult.planningNotes : [],
+        requirementSavedAt: requirementPayload?.savedAt || requirementPayload?.analysis?.savedAt || '',
+        requirementProjectName: requirementPayload?.projectName || props.projectContext.projectName || '',
+      }
+      setGenMsg('已基于 requirement.md 完整内容生成 ' + llmScenarios.length + ' 个场景，并写入 scenariopagedesign.md。')
+    } else {
+      throw new Error('大模型未返回有效场景')
+    }
+  } catch (err) {
+    genError.value = true
+    setGenMsg('LLM 场景生成失败，未更新场景草稿：' + (err.message || ''), true)
+    isGenBusy.value = false
+    return
   }
 
   activeKey.value = editableScenarios.value[0] && editableScenarios.value[0].key || ''
@@ -677,64 +828,149 @@ async function generateAllScenarios() {
 }
 
 // ============================================================
-// Per-scenario: generate function modules via LLM (Button 2)
+// Per-scenario: generate/update scenario detail via LLM (Button 2)
+// ============================================================
+async function generateScenarioDetail(scenario) {
+  if (!scenario || genScenarioKey.value) return
+  genScenarioKey.value = scenario.key
+  genError.value = false
+  setGenMsg('正在生成/更新「' + scenario.name + '」的场景详情...')
+
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    genError.value = true
+    setGenMsg('生成场景详情需要调用 LLM。请先配置 DeepSeek Key。', true)
+    genScenarioKey.value = ''
+    return
+  }
+
+  try {
+    var result = await requestLlm(
+      'scenarioPageDesignScenarioDetail',
+      '场景→页面：生成/更新单个业务场景详情',
+      [
+        '[更新当前场景] 只返回当前目标场景的完整详情 JSON，不要返回功能模块或页面设计。',
+        '你将收到 requirement.md 完整输入、全部业务场景摘要，以及当前目标场景草稿。',
+        '请基于 requirement.md 中的业务背景、痛点、角色、待确认问题回复、业务澄清补充，生成/更新当前场景详情页内容。',
+        '返回严格JSON：',
+        '{"scenario":{"key":"保持原key","name":"具体场景名称","priority":"P0或P1","description":"详细场景说明，说明触发条件、角色目标、关键判断和闭环结果","workflow":["步骤1","步骤2","步骤3","步骤4"],"pageMapping":{"role":"对应角色名","page":"建议Vue文件名.vue","modules":["建议页面模块1","建议页面模块2"]}}}',
+        '要求：',
+        '1. key 必须保持 currentScenario.key，不要改成新 key。',
+        '2. description 要比场景列表摘要更具体，能直接支撑后续功能模块设计。',
+        '3. workflow 必须体现业务触发、查看判断、操作协同、结果同步/留痕。',
+        '4. pageMapping.modules 只是页面模块建议，不要生成详细功能模块字段。',
+        '5. 不要生成 pageDesign，不要生成 components，不要生成 API 细节。',
+      ].join('\n'),
+      {
+        requirementMarkdownResult: requirementStepResult.value,
+        normalizedRequirementText: requirementText.value.substring(0, 8000),
+        allScenarios: editableScenarios.value,
+        currentScenario: scenario,
+      },
+      90000
+    )
+
+    var nextScenario = normalizeScenarioInput(Object.assign({}, result.scenario || {}, { key: scenario.key }))
+    editableScenarios.value = editableScenarios.value.map(function (item) {
+      return item.key === scenario.key ? nextScenario : item
+    })
+    scenarioDetailReadyByKey.value = Object.assign({}, scenarioDetailReadyByKey.value, (_a = {}, _a[scenario.key] = true, _a))
+    modulesByScenarioKey.value = Object.assign({}, modulesByScenarioKey.value, (_b = {}, _b[scenario.key] = [], _b))
+    pageDesignsByScenarioKey.value = Object.assign({}, pageDesignsByScenarioKey.value, (_c = {}, _c[scenario.key] = { pages: [] }, _c))
+    activeKey.value = scenario.key
+    activeTab.value = 'scenario'
+    setGenMsg('「' + nextScenario.name + '」的场景详情已生成并写入 scenariopagedesign.md，可继续生成功能模块。')
+    emitDraft()
+    var _a, _b, _c
+  } catch (err) {
+    genError.value = true
+    setGenMsg('LLM 场景详情生成失败，未更新场景草稿：' + (err.message || ''), true)
+  } finally {
+    genScenarioKey.value = ''
+  }
+}
+
+// ============================================================
+// Per-scenario: generate function modules via LLM (Button 3)
 // ============================================================
 async function generateScenarioModules(scenario) {
   if (!scenario || genModulesKey.value) return
+  if (!isScenarioDetailReady(scenario)) {
+    setGenMsg('请先生成/更新该业务场景的「场景详情」，再生成功能模块。', true)
+    return
+  }
   genModulesKey.value = scenario.key
   setGenMsg('正在为「' + scenario.name + '」生成功能模块...')
 
-  if (props.projectContext.executionMode === 'llm-ready' && props.projectContext.llmConfigured) {
-    try {
-      var result = await requestLlm(
-        'scenarioPageDesignModules',
-        '场景→页面：根据场景详情生成功能模块',
-        [
-          '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-          '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
-          '场景说明：' + (scenario.description || ''),
-          '任务流程：' + (scenario.workflow || []).join(' → '),
-          '请根据以上场景详情，生成该场景对应的功能模块列表。返回严格JSON：',
-          '{"modules":[{"key":"mod-序号","priority":"P0/P1","name":"模块名","description":"模块说明（这个模块做什么）","features":["功能点1","功能点2"],"pageSuggestion":"建议的Vue页面文件名","apiSuggestion":"建议的API方向"}]}',
-          '重要要求：',
-          '1. 模块数量不要固定，根据该角色的职责复杂度决定：',
-          '   - 简单角色（职责单一，如只看报表）→ 1-2 个模块',
-          '   - 中等角色（有查看+操作两种行为）→ 2-4 个模块',
-          '   - 复杂角色（多子流程、跨系统交互、异常处理分支多）→ 3-6 个模块',
-          '2. 模块名要具体（如"车辆实时地图监控"而非"地图"）。',
-          '3. 每个模块的 features 列出 2-4 个具体功能点，描述该模块实际要完成的操作。',
-          '4. pageSuggestion 给出该模块适合放在哪个 Vue 页面中，不同模块可以放在同一页面。',
-          '5. 如果该角色职责确实简单，不要为了凑数而编造不必要的模块。',
-        ].join('\n'),
-        {
-          scenario: scenario,
-          requirement: requirementText.value.substring(0, 2000),
-          existingModules: buildModules(scenario),
-        }
-      )
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    genError.value = true
+    setGenMsg('生成功能模块需要调用 LLM。请先配置 DeepSeek Key。', true)
+    genModulesKey.value = ''
+    return
+  }
 
-      if (result.modules && result.modules.length) {
-        modulesByScenarioKey.value = Object.assign({}, modulesByScenarioKey.value, (_a = {}, _a[scenario.key] = result.modules, _a))
-        setGenMsg('「' + scenario.name + '」的功能模块已生成，共 ' + result.modules.length + ' 个模块。可在功能模块标签页查看，并点击底部按钮生成页面设计。')
-      } else {
-        throw new Error('大模型未返回有效模块')
-      }
-    } catch (err) {
-      genError.value = true
-      setGenMsg('LLM 模块生成失败，使用本地规则：' + (err.message || ''), true)
-      modulesByScenarioKey.value = Object.assign({}, modulesByScenarioKey.value, (_b = {}, _b[scenario.key] = buildModules(scenario), _b))
+  try {
+    var result = await requestLlm(
+      'scenarioPageDesignModules',
+      '场景→页面：根据单个场景详情生成功能模块',
+      [
+        '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
+        '你将收到 requirement.md 完整输入、全部业务场景摘要，以及当前目标场景详情。',
+        '请只为当前目标场景生成功能模块，不要生成其他场景的模块，也不要生成页面设计。',
+        '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
+        '场景说明：' + (scenario.description || ''),
+        '任务流程：' + (scenario.workflow || []).join(' → '),
+        '返回严格JSON：',
+        '{"modules":[{"key":"mod-序号","priority":"P0/P1","name":"模块名","description":"模块说明（这个模块做什么）","features":["功能点1","功能点2"],"pageSuggestion":"建议的Vue页面文件名","apiHint":"接口线索，如 GET /api/vehicles 查询车辆列表，不要展开完整请求响应契约","dataNeeds":["需要的数据1"],"stateRules":["状态/异常规则1"]}]}',
+        '重要要求：',
+        '1. 模块数量不要固定，根据该场景职责复杂度决定。',
+        '2. 模块名要具体，如“车辆实时地图监控”“异常告警分级处理”。',
+        '3. 每个模块 features 列出 2-4 个真实操作能力。',
+        '4. dataNeeds/stateRules 要吸收 requirement.md 中的待确认回复和业务澄清补充。',
+        '5. apiHint 只输出接口方向或候选路径，正式字段、参数、响应和错误码由下一步“交互与API”生成。',
+        '6. 如果某些规则来自推断，请在 description 或 stateRules 中标注“建议确认”。',
+      ].join('\n'),
+      {
+        requirementMarkdownResult: requirementStepResult.value,
+        normalizedRequirementText: requirementText.value.substring(0, 6000),
+        allScenarios: editableScenarios.value,
+        targetScenario: scenario,
+        existingModules: buildModules(scenario),
+      },
+      90000
+    )
+
+    if (result.modules && result.modules.length) {
+      var normalizedModules = result.modules.map(normalizeGeneratedModule)
+      modulesByScenarioKey.value = Object.assign({}, modulesByScenarioKey.value, (_a = {}, _a[scenario.key] = normalizedModules, _a))
+      setGenMsg('「' + scenario.name + '」的功能模块已生成，共 ' + result.modules.length + ' 个模块，并写入 scenariopagedesign.md。')
+    } else {
+      throw new Error('大模型未返回有效模块')
     }
-    var _a, _b
-  } else {
-    modulesByScenarioKey.value = Object.assign({}, modulesByScenarioKey.value, (_c = {}, _c[scenario.key] = buildModules(scenario), _c))
-    setGenMsg('已使用本地规则生成「' + scenario.name + '」的功能模块。')
-    var _c
+    var _a
+  } catch (err) {
+    genError.value = true
+    setGenMsg('LLM 模块生成失败，未更新场景草稿：' + (err.message || ''), true)
+    genModulesKey.value = ''
+    return
   }
 
   activeTab.value = 'modules'
   dirty.value = false
   emitDraft()
   genModulesKey.value = ''
+}
+
+function normalizeGeneratedModule(module, index) {
+  var apiHint = resolveModuleApiHint(module)
+  return Object.assign({}, module, {
+    key: module.key || 'mod-' + (index + 1),
+    priority: module.priority || 'P1',
+    features: Array.isArray(module.features) ? module.features : splitTags(module.features),
+    dataNeeds: Array.isArray(module.dataNeeds) ? module.dataNeeds : splitTags(module.dataNeeds),
+    stateRules: Array.isArray(module.stateRules) ? module.stateRules : splitTags(module.stateRules),
+    apiHint: apiHint,
+    apiSuggestion: module.apiSuggestion || apiHint,
+  })
 }
 
 // ============================================================
@@ -750,50 +986,52 @@ async function generatePageDesignForScenario(scenario) {
   genPagesKey.value = scenario.key
   setGenMsg('正在为「' + scenario.name + '」根据功能模块生成页面设计...')
 
-  if (props.projectContext.executionMode === 'llm-ready' && props.projectContext.llmConfigured) {
-    try {
-      var result = await requestLlm(
-        'scenarioPageDesignPages',
-        '场景→页面：根据功能模块生成页面设计',
-        [
-          '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-          '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
-          '已生成的功能模块：' + JSON.stringify(modules.map(function (m) { return { name: m.name, description: m.description, features: m.features } })),
-          '请根据以上功能模块，为该场景生成页面设计方案。返回严格JSON：',
-          '{"pageDesign":{"pages":[{"key":"page-序号","priority":"P0/P1","type":"工作台页|列表页|详情页|看板页","name":"页面名","vueFile":"xxx.vue","goal":"页面目标（一句话）","features":["承载的功能模块名"],"sections":["页面布局区域"]}],"navigation":[{"label":"导航标签","target":"vue文件","default":true}],"fileStructure":{"views":["vue文件"],"components":["组件"],"data":["mock数据文件"]}}}',
-          '重要要求：',
-          '1. 页面数量由模块复杂度决定，不要固定为1个：',
-          '   - 如果所有模块功能紧密相关、可在同一视图完成 → 1 个主工作台页',
-          '   - 如果模块之间有明显的流程分界或角色切换 → 拆为 2-3 个页面',
-          '   - 每个页面承载的模块数不宜超过 4 个',
-          '2. page.features 列出该页面承载的功能模块名称（与上一步模块名对应）。',
-          '3. page.sections 列出页面主要 UI 布局区域，数量取决于该页面承载的模块数（2-6个为宜）。',
-          '4. page.goal 用一句话描述页面目标，说明使用者在这个页面能完成什么。',
-          '5. page.type 根据页面用途选择：工作台页（综合操作）、列表页（查询浏览）、详情页（单对象详情）、看板页（图表监控）。',
-        ].join('\n'),
-        {
-          scenario: scenario,
-          modules: modules,
-          existingPageDesign: buildPageDesign(scenario),
-        }
-      )
+  if (props.projectContext.executionMode !== 'llm-ready' || !props.projectContext.llmConfigured) {
+    genError.value = true
+    setGenMsg('生成页面设计需要调用 LLM。请先配置 DeepSeek Key。', true)
+    genPagesKey.value = ''
+    return
+  }
 
-      if (result.pageDesign) {
-        pageDesignsByScenarioKey.value = Object.assign({}, pageDesignsByScenarioKey.value, (_a = {}, _a[scenario.key] = result.pageDesign, _a))
-        setGenMsg('「' + scenario.name + '」的页面设计已生成。')
-      } else {
-        throw new Error('大模型未返回有效页面设计')
-      }
-    } catch (err) {
-      genError.value = true
-      setGenMsg('LLM 页面设计生成失败，使用本地规则：' + (err.message || ''), true)
-      pageDesignsByScenarioKey.value = Object.assign({}, pageDesignsByScenarioKey.value, (_b = {}, _b[scenario.key] = buildPageDesign(scenario), _b))
+  try {
+    var result = await requestLlm(
+      'scenarioPageDesignPages',
+      '场景→页面：根据单个场景功能模块生成页面设计',
+      [
+        '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
+        '你将收到 requirement.md 完整输入、当前目标场景，以及该场景已经生成的功能模块。',
+        '请只为当前场景生成详细页面设计，不要生成代码，不要生成其他场景页面。',
+        '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
+        '已生成的功能模块：' + JSON.stringify(modules.map(function (m) { return { name: m.name, description: m.description, features: m.features, apiHint: resolveModuleApiHint(m), dataNeeds: m.dataNeeds, stateRules: m.stateRules } })),
+        '返回严格JSON：',
+        '{"pageDesign":{"pages":[{"key":"page-序号","priority":"P0/P1","type":"工作台页|列表页|详情页|看板页","name":"页面名","vueFile":"xxx.vue","goal":"页面目标（一句话）","features":["承载的功能模块名"],"sections":["页面布局区域"],"states":["正常态","空态","加载态","异常态"],"keyInteractions":["关键交互1"],"dataInputs":["数据输入1"]}],"navigation":[{"label":"导航标签","target":"vue文件","default":true}],"fileStructure":{"views":["vue文件"],"components":["组件"],"data":["mock数据文件"]}}}',
+        '重要要求：',
+        '1. 页面数量由模块复杂度决定，不要固定为1个。',
+        '2. page.features 必须对应上一步功能模块名称。',
+        '3. sections/states/keyInteractions/dataInputs 要足够具体，能支撑下一步交互与 API 设计。',
+        '4. 每个页面承载的模块不宜超过 4 个；模块流程分界明显时拆页。',
+      ].join('\n'),
+      {
+        requirementMarkdownResult: requirementStepResult.value,
+        targetScenario: scenario,
+        modules: modules,
+        existingPageDesign: buildPageDesign(scenario),
+      },
+      90000
+    )
+
+    if (result.pageDesign) {
+      pageDesignsByScenarioKey.value = Object.assign({}, pageDesignsByScenarioKey.value, (_a = {}, _a[scenario.key] = result.pageDesign, _a))
+      setGenMsg('「' + scenario.name + '」的页面设计已生成，并写入 scenariopagedesign.md。')
+    } else {
+      throw new Error('大模型未返回有效页面设计')
     }
-    var _a, _b
-  } else {
-    pageDesignsByScenarioKey.value = Object.assign({}, pageDesignsByScenarioKey.value, (_c = {}, _c[scenario.key] = buildPageDesign(scenario), _c))
-    setGenMsg('已使用本地规则生成「' + scenario.name + '」的页面设计。')
-    var _c
+    var _a
+  } catch (err) {
+    genError.value = true
+    setGenMsg('LLM 页面设计生成失败，未更新场景草稿：' + (err.message || ''), true)
+    genPagesKey.value = ''
+    return
   }
 
   activeTab.value = 'pages'
@@ -806,8 +1044,19 @@ async function generatePageDesignForScenario(scenario) {
 // ============================================================
 // UI actions
 // ============================================================
-function selectScenario(key) { activeKey.value = key }
-function markDirty() { dirty.value = true }
+function selectScenario(key) { activeKey.value = key; activeTab.value = 'scenario' }
+function scheduleDraftSave() {
+  if (draftSaveTimer) clearTimeout(draftSaveTimer)
+  draftSaveTimer = setTimeout(function () {
+    emitDraft()
+    draftSaveTimer = null
+  }, 600)
+}
+
+function markDirty() {
+  dirty.value = true
+  scheduleDraftSave()
+}
 
 function onModuleTextChange(e) {
   if (!activeScenario.value || !activeScenario.value.pageMapping) return
@@ -841,6 +1090,34 @@ function removePageSection(i) {
   })
 }
 
+function deleteScenario(scenario) {
+  if (!scenario) return
+  var ok = window.confirm('确认删除「' + scenario.name + '」吗？该场景的场景详情、功能模块和页面设计会一并删除，并同步更新 scenariopagedesign.md。')
+  if (!ok) return
+
+  editableScenarios.value = editableScenarios.value.filter(function (item) { return item.key !== scenario.key })
+
+  var nextModules = Object.assign({}, modulesByScenarioKey.value)
+  var nextPages = Object.assign({}, pageDesignsByScenarioKey.value)
+  var nextReady = Object.assign({}, scenarioDetailReadyByKey.value)
+  delete nextModules[scenario.key]
+  delete nextPages[scenario.key]
+  delete nextReady[scenario.key]
+  modulesByScenarioKey.value = nextModules
+  pageDesignsByScenarioKey.value = nextPages
+  scenarioDetailReadyByKey.value = nextReady
+
+  if (activeKey.value === scenario.key) {
+    activeKey.value = editableScenarios.value[0]?.key || ''
+    selectedPageKey.value = activePages(activeScenario.value)[0]?.key || ''
+    activeTab.value = activeKey.value ? 'scenario' : 'scenario'
+  }
+
+  dirty.value = false
+  emitDraft()
+  setGenMsg('已删除「' + scenario.name + '」，并同步更新 scenariopagedesign.md。')
+}
+
 function updateSelectedPage(updater) {
   if (!activeScenario.value) return
   var key = activeScenario.value.key
@@ -866,7 +1143,10 @@ function buildDraft() {
     availableScenarios: editableScenarios.value,
     selectedScenarioKey: activeKey.value,
     modulesByScenarioKey: modulesByScenarioKey.value,
+    scenarioDetailReadyByKey: scenarioDetailReadyByKey.value,
     pageDesignsByScenarioKey: pageDesignsByScenarioKey.value,
+    requirementInputSnapshot: requirementStepResult.value,
+    scenarioGenerationMeta: scenarioGenerationMeta.value,
     activeKey: activeKey.value,
     savedAt: new Date().toISOString(),
   }
@@ -919,6 +1199,8 @@ function confirmAndNext() {
 .s-priority { border-radius: 999px; padding: 2px 7px; background: #dbeafe; color: #1d4ed8; font-size: 10px; font-weight: 900; flex-shrink: 0; }
 .mini-gen { flex-shrink: 0; border: 1px solid #2563eb; border-radius: 6px; padding: 3px 8px; background: #fff; color: #2563eb; font-size: 12px; cursor: pointer; }
 .mini-gen:disabled { opacity: 0.5; cursor: not-allowed; }
+.mini-delete { flex-shrink: 0; border: 1px solid #fecaca; border-radius: 6px; padding: 3px 8px; background: #fff; color: #dc2626; font-size: 13px; font-weight: 900; cursor: pointer; }
+.mini-delete:hover { background: #fef2f2; }
 
 /* --- Detail Area --- */
 .detail-area { border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
@@ -1000,4 +1282,70 @@ h4 { font-size: 13px; color: #0f172a; margin: 14px 0 8px; }
 
 .secondary-btn { background: #fff; color: #2563eb; border: 1px solid #2563eb; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .secondary-btn.small { padding: 4px 10px; font-size: 11px; }
+
+.stage-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fbff;
+}
+
+.stage-action p {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* --- Feature Area --- */
+.feature-area { display: flex; flex-direction: column; gap: 6px; }
+.feature-area > span { color: #2563eb; font-size: 12px; font-weight: 900; }
+
+.feature-summary {
+  margin: 0;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mapped-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mapped-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  max-width: 260px;
+}
+
+.mapped-chip strong {
+  color: #1d4ed8;
+  font-size: 12px;
+}
+
+.mapped-chip small {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.mt-xs { margin-top: 6px; }
+.text-btn { background: none; border: none; color: #2563eb; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+.text-btn:hover { text-decoration: underline; }
 </style>

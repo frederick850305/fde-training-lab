@@ -1,0 +1,461 @@
+[
+  {
+    "file": "StatusTag.vue",
+    "responsibility": "显示不同状态的颜色标签，支持自定义颜色和文本",
+    "reusedBy": [
+      "DispatchWorkbenchView.vue",
+      "AlertAndTaskMonitorView.vue",
+      "DriverTaskListView.vue",
+      "GateEntryRecordsView.vue",
+      "WorkspaceView.vue",
+      "AccessCodeView.vue",
+      "HistoryView.vue",
+      "VehicleArchiveList.vue"
+    ],
+    "props": [
+      {
+        "name": "status",
+        "type": "String",
+        "required": true,
+        "default": "",
+        "description": "状态标识，用于关联预设的颜色映射，如'空闲'、'任务中'、'成功'、'失败'等"
+      },
+      {
+        "name": "text",
+        "type": "String",
+        "required": false,
+        "default": "",
+        "description": "显示的标签文本，如果未设置则使用 status 值"
+      },
+      {
+        "name": "size",
+        "type": "String",
+        "required": false,
+        "default": "default",
+        "description": "标签尺寸，可选 'small'、'default'、'large'"
+      },
+      {
+        "name": "customClass",
+        "type": "String",
+        "required": false,
+        "default": "",
+        "description": "自定义 CSS 类名，用于覆盖默认样式"
+      }
+    ],
+    "events": [],
+    "slots": []
+  },
+  {
+    "file": "DataFilterBar.vue",
+    "responsibility": "提供筛选条件的组合区域，包含时间范围选择器、下拉选择器、搜索输入框等，支持自定义筛选项",
+    "reusedBy": [
+      "ManagementReportsView.vue",
+      "ReportDetailView.vue",
+      "HistoryView.vue",
+      "VehicleArchiveList.vue",
+      "VehicleArchiveLogs.vue",
+      "GateEntryRecordsView.vue"
+    ],
+    "props": [
+      {
+        "name": "filters",
+        "type": "Array",
+        "required": true,
+        "default": "[]",
+        "description": "筛选配置项数组，每个项包含 { type: 'dateRange'|'select'|'input', label, key, options(select类型), placeholder }"
+      },
+      {
+        "name": "modelValue",
+        "type": "Object",
+        "required": true,
+        "default": "{}",
+        "description": "当前筛选值对象，键为 filter key，值为选中的值"
+      },
+      {
+        "name": "showSearchButton",
+        "type": "Boolean",
+        "required": false,
+        "default": true,
+        "description": "是否显示查询按钮，若为 false 则自动触发查询（防抖）"
+      },
+      {
+        "name": "autoSearchDelay",
+        "type": "Number",
+        "required": false,
+        "default": 300,
+        "description": "自动触发查询的防抖延迟毫秒数"
+      }
+    ],
+    "events": [
+      {
+        "name": "update:modelValue",
+        "payload": "Object 新的筛选值对象",
+        "description": "当任何筛选字段值变化时触发，传递更新后的筛选值对象"
+      },
+      {
+        "name": "search",
+        "payload": "Object 当前筛选值对象",
+        "description": "用户点击查询按钮或自动触发搜索时发出，传递当前筛选值"
+      },
+      {
+        "name": "reset",
+        "payload": "",
+        "description": "用户点击重置按钮时发出，清空所有筛选条件"
+      }
+    ],
+    "slots": [
+      {
+        "name": "extra",
+        "description": "用于在筛选栏末尾插入额外操作按钮或自定义内容"
+      }
+    ]
+  },
+  {
+    "file": "DataTable.vue",
+    "responsibility": "通用数据表格组件，支持列配置、排序、分页、搜索、展开行、自定义插槽",
+    "reusedBy": [
+      "AlertAndTaskMonitorView.vue",
+      "GateEntryRecordsView.vue",
+      "ReportDetailView.vue",
+      "AccessCodeView.vue",
+      "HistoryView.vue",
+      "VehicleArchiveList.vue",
+      "VehicleArchiveLogs.vue",
+      "WorkspaceView.vue"
+    ],
+    "props": [
+      {
+        "name": "columns",
+        "type": "Array",
+        "required": true,
+        "default": "[]",
+        "description": "列定义数组，每项包含 { key, title, sortable, width, align, customRender }"
+      },
+      {
+        "name": "data",
+        "type": "Array",
+        "required": true,
+        "default": "[]",
+        "description": "表格数据数组"
+      },
+      {
+        "name": "loading",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "是否显示加载状态"
+      },
+      {
+        "name": "emptyText",
+        "type": "String",
+        "required": false,
+        "default": "暂无数据",
+        "description": "数据为空时显示的文本提示"
+      },
+      {
+        "name": "pagination",
+        "type": "Object",
+        "required": false,
+        "default": null,
+        "description": "分页配置，如果设置为 null 则不显示分页；包含 { current, pageSize, total }"
+      },
+      {
+        "name": "rowKey",
+        "type": "String",
+        "required": false,
+        "default": "id",
+        "description": "用于标识行的唯一键字段名"
+      },
+      {
+        "name": "expandable",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "是否支持展开行"
+      }
+    ],
+    "events": [
+      {
+        "name": "sortChange",
+        "payload": "{ key, order }",
+        "description": "点击排序列头时触发，返回排序列的 key 和排序方向 'asc' 或 'desc'"
+      },
+      {
+        "name": "pageChange",
+        "payload": "Number 新页码",
+        "description": "切换页码时触发，返回目标页码"
+      },
+      {
+        "name": "pageSizeChange",
+        "payload": "Number 新每页条数",
+        "description": "修改每页条数时触发"
+      },
+      {
+        "name": "rowClick",
+        "payload": "Object 当前行数据",
+        "description": "点击某一行时触发，传递该行数据"
+      },
+      {
+        "name": "expandChange",
+        "payload": "{ row, expanded }",
+        "description": "展开行状态变化时触发，返回行数据和展开/收起状态"
+      }
+    ],
+    "slots": [
+      {
+        "name": "empty",
+        "description": "自定义空状态内容"
+      },
+      {
+        "name": "expandRow",
+        "description": "展开行的内容插槽，作用域插槽可获取行数据"
+      },
+      {
+        "name": "cell",
+        "description": "自定义单元格渲染，作用域插槽包含 { column, row, value }"
+      }
+    ]
+  },
+  {
+    "file": "DetailPanel.vue",
+    "responsibility": "通用详情展示面板，支持抽屉或弹窗模式，可配置标题、分组信息、自定义内容区块",
+    "reusedBy": [
+      "DispatchWorkbenchView.vue",
+      "AlertAndTaskMonitorView.vue",
+      "DriverTaskExecuteView.vue",
+      "MobileDispatchView.vue",
+      "TaskAdjustView.vue",
+      "GateAccessCheckView.vue",
+      "GateEntryRecordsView.vue",
+      "WorkspaceView.vue",
+      "AccessCodeView.vue",
+      "HistoryView.vue",
+      "VehicleArchiveEdit.vue"
+    ],
+    "props": [
+      {
+        "name": "visible",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "是否显示详情面板"
+      },
+      {
+        "name": "title",
+        "type": "String",
+        "required": false,
+        "default": "",
+        "description": "面板标题"
+      },
+      {
+        "name": "mode",
+        "type": "String",
+        "required": false,
+        "default": "drawer",
+        "description": "展示模式，可选 'drawer'（抽屉）、'modal'（弹窗）"
+      },
+      {
+        "name": "width",
+        "type": "String",
+        "required": false,
+        "default": "400px",
+        "description": "面板宽度，支持 CSS 单位"
+      },
+      {
+        "name": "closable",
+        "type": "Boolean",
+        "required": false,
+        "default": true,
+        "description": "是否显示关闭按钮"
+      }
+    ],
+    "events": [
+      {
+        "name": "close",
+        "payload": "",
+        "description": "用户关闭面板时触发"
+      }
+    ],
+    "slots": [
+      {
+        "name": "default",
+        "description": "面板主体内容，通常包含多个 info-group"
+      },
+      {
+        "name": "header",
+        "description": "自定义头部区域，覆盖 title 和关闭按钮"
+      },
+      {
+        "name": "footer",
+        "description": "面板底部操作区，通常放置确认/取消按钮"
+      }
+    ]
+  },
+  {
+    "file": "ConfirmDialog.vue",
+    "responsibility": "通用确认对话框，用于二次确认操作，支持自定义标题、内容和按钮文本",
+    "reusedBy": [
+      "AlertAndTaskMonitorView.vue",
+      "DriverTaskListView.vue",
+      "MobileDispatchView.vue",
+      "TaskAdjustView.vue",
+      "GateAccessCheckView.vue",
+      "WorkspaceView.vue",
+      "VehicleArchiveList.vue",
+      "VehicleArchiveEdit.vue"
+    ],
+    "props": [
+      {
+        "name": "visible",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "是否显示对话框"
+      },
+      {
+        "name": "title",
+        "type": "String",
+        "required": false,
+        "default": "确认操作",
+        "description": "对话框标题"
+      },
+      {
+        "name": "content",
+        "type": "String",
+        "required": false,
+        "default": "",
+        "description": "确认提示内容文本"
+      },
+      {
+        "name": "confirmText",
+        "type": "String",
+        "required": false,
+        "default": "确定",
+        "description": "确认按钮文本"
+      },
+      {
+        "name": "cancelText",
+        "type": "String",
+        "required": false,
+        "default": "取消",
+        "description": "取消按钮文本"
+      },
+      {
+        "name": "loading",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "确认按钮是否显示加载中状态"
+      },
+      {
+        "name": "danger",
+        "type": "Boolean",
+        "required": false,
+        "default": false,
+        "description": "是否为危险操作（如删除），确认按钮显示红色"
+      }
+    ],
+    "events": [
+      {
+        "name": "confirm",
+        "payload": "",
+        "description": "用户点击确认按钮时触发"
+      },
+      {
+        "name": "cancel",
+        "payload": "",
+        "description": "用户点击取消或关闭时触发"
+      }
+    ],
+    "slots": [
+      {
+        "name": "default",
+        "description": "自定义对话框内容，如果提供则覆盖 content prop"
+      }
+    ]
+  },
+  {
+    "file": "FileUpload.vue",
+    "responsibility": "通用文件/图片上传组件，支持多文件、预览、删除、替换，集成拖拽排序（可选）",
+    "reusedBy": [
+      "DriverTaskExecuteView.vue",
+      "VehicleArchiveEdit.vue"
+    ],
+    "props": [
+      {
+        "name": "fileList",
+        "type": "Array",
+        "required": false,
+        "default": "[]",
+        "description": "已上传的文件列表，每项包含 { id, url, name, type, thumbnail }"
+      },
+      {
+        "name": "accept",
+        "type": "String",
+        "required": false,
+        "default": "image/*",
+        "description": "允许的文件 MIME 类型，如 'image/*'、'.pdf,.doc'"
+      },
+      {
+        "name": "multiple",
+        "type": "Boolean",
+        "required": false,
+        "default": true,
+        "description": "是否允许选择多个文件"
+      },
+      {
+        "name": "maxCount",
+        "type": "Number",
+        "required": false,
+        "default": 9,
+        "description": "最大上传文件数量"
+      },
+      {
+        "name": "uploadUrl",
+        "type": "String",
+        "required": true,
+        "default": "",
+        "description": "文件上传接口地址"
+      },
+      {
+        "name": "headers",
+        "type": "Object",
+        "required": false,
+        "default": "{}",
+        "description": "上传请求的额外头部"
+      }
+    ],
+    "events": [
+      {
+        "name": "update:fileList",
+        "payload": "Array 新的文件列表",
+        "description": "文件列表发生变化时触发，包括上传、删除、替换"
+      },
+      {
+        "name": "uploadSuccess",
+        "payload": "{ file, response }",
+        "description": "单个文件上传成功时触发，传递文件对象和后端响应"
+      },
+      {
+        "name": "uploadError",
+        "payload": "{ file, error }",
+        "description": "单个文件上传失败时触发"
+      },
+      {
+        "name": "preview",
+        "payload": "Object 点击的文件对象",
+        "description": "用户点击预览按钮时触发"
+      }
+    ],
+    "slots": [
+      {
+        "name": "trigger",
+        "description": "用于自定义触发上传的按钮区域"
+      },
+      {
+        "name": "fileCard",
+        "description": "自定义文件卡片渲染，作用域插槽包含 { file, index }"
+      }
+    ]
+  }
+]

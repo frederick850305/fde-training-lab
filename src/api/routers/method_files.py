@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_DIR = PROJECT_ROOT / "prototype_factory" / "local_step_outputs"
+PROTOTYPE_ASSET_DIR = OUTPUT_DIR / "prototype"
 JSON_START = "<!-- FDE_STEP_RESULT_JSON_START -->"
 JSON_END = "<!-- FDE_STEP_RESULT_JSON_END -->"
 
@@ -23,9 +24,21 @@ STEP_LABELS = {
     "scenariopagedesign": "02 场景→页面",
     "interactionapi": "03 交互与API",
     "prototype": "04 前端原型方案",
+    "prototypegenerate": "05 生成原型",
 }
 
 router = APIRouter(prefix="/method-files", tags=["method-files"])
+
+PROTOTYPE_ASSET_KEYS = {
+    "pages": "pages.json",
+    "pageDetailSpecs": "page-specs.json",
+    "pageApiMapping": "page-api-mapping.json",
+    "navigationRoutes": "navigation.json",
+    "componentFiles": "components.json",
+    "mockDataFiles": "mocks.json",
+    "generationPlan": "generation-plan.json",
+    "stepPrompts": "prompts.json",
+}
 
 
 class StepFilePayload(BaseModel):
@@ -136,6 +149,23 @@ def _extract_saved_at(markdown: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def _write_prototype_assets(result: dict[str, Any]) -> dict[str, str]:
+    PROTOTYPE_ASSET_DIR.mkdir(parents=True, exist_ok=True)
+    written: dict[str, str] = {}
+
+    for key, filename in PROTOTYPE_ASSET_KEYS.items():
+        if key not in result:
+            continue
+        file_path = PROTOTYPE_ASSET_DIR / filename
+        file_path.write_text(
+            json.dumps(result.get(key), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        written[key] = str(file_path)
+
+    return written
+
+
 @router.get("")
 def list_method_step_files() -> dict[str, Any]:
     files = []
@@ -175,12 +205,14 @@ def save_method_step_file(step_key: str, payload: StepFilePayload) -> dict[str, 
     markdown = _build_markdown(safe_key, title, payload.result, saved_at)
     file_path = _step_file_path(safe_key)
     file_path.write_text(markdown, encoding="utf-8")
+    asset_files = _write_prototype_assets(payload.result) if safe_key == "prototype" else {}
 
     return {
         "step_key": safe_key,
         "title": title,
         "saved_at": saved_at,
         "file_path": str(file_path),
+        "asset_files": asset_files,
         "markdown": markdown,
         "result": payload.result,
     }

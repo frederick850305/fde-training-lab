@@ -1,0 +1,98 @@
+[
+  {
+    "file": "DispatchWorkbenchView.vue",
+    "responsibility": "调度员集中管理实时车辆状态、接收用车需求、执行派车操作，以地图和状态看板为核心支撑高效调度。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "AlertAndTaskMonitorView.vue",
+    "responsibility": "实时监控车辆异常告警（超速、禁入、异常停留）并处理，同时跟踪已派发任务的执行进度，支持干预操作。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "DriverTaskListView.vue",
+    "responsibility": "司机查看并确认接单，管理待接单、进行中、已完成的任务",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "DriverTaskExecuteView.vue",
+    "responsibility": "司机查看任务完整详情、导航到作业点、确认到达与完成、发起异常反馈",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "MobileDispatchView.vue",
+    "responsibility": "实时接收异常告警与司机反馈，查看周边车辆状态，并与司机即时通讯，快速发起任务调整。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "TaskAdjustView.vue",
+    "responsibility": "对选中车辆/任务执行改派、取消或新增临时任务，并填写异常处理记录提交上报。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "GateAccessCheckView.vue",
+    "responsibility": "门岗人员在固定终端上实时查看待核验车辆、查看核验详情、执行放行或拒绝操作，并在接口异常时进行降级处理。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "GateEntryRecordsView.vue",
+    "responsibility": "门岗或管理员查看历史入场处理记录（放行/拒绝），追踪记录同步状态，对同步失败的记录进行手动重新同步。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "ManagementReportsView.vue",
+    "responsibility": "管理人员通过该页面查看实时关键运营指标，按时间、车辆类型、作业区域等维度筛选数据，通过指标卡片和趋势图快速掌握整体状况，并可导出报表或下钻到明细详情。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "ReportDetailView.vue",
+    "responsibility": "展示从概览工作台下钻的明细数据，包括外协车辆费用明细、异常入场记录、排班排队分析等，支持进一步搜索、排序、分页以及当前明细的导出。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "WorkspaceView.vue",
+    "responsibility": "集中处理外协/临时车辆预约申请，支持待办列表浏览、快速筛选、查看详情和审批操作（通过/驳回），以及审批通过后授权码同步状态监控。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P0"
+  },
+  {
+    "file": "AccessCodeView.vue",
+    "responsibility": "查看所有已生成授权码的列表及状态，监控门禁同步情况，处理同步失败记录，并查看授权码使用详情。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "HistoryView.vue",
+    "responsibility": "提供外协/临时车辆预约历史记录的多维度查询、详情追溯和导出，支持费用统计对账。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P2"
+  },
+  {
+    "file": "VehicleArchiveList.vue",
+    "responsibility": "管理员查看全厂车辆档案列表，执行筛选、搜索、停用/启用操作，并接收到期提醒。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "VehicleArchiveEdit.vue",
+    "responsibility": "管理员新增或编辑车辆的全部基础档案信息，包括证照图片上传及有效期设置。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P1"
+  },
+  {
+    "file": "VehicleArchiveLogs.vue",
+    "responsibility": "管理员查询和导出所有车辆档案的关键操作日志，用于审计追溯。",
+    "source": "页面设计：页面清单 + 页面详情",
+    "priority": "P2"
+  }
+]
