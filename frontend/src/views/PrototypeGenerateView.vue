@@ -31,10 +31,14 @@
       <div class="section-label">🏗 项目骨架</div>
       <ItemCard v-for="sk in skelItems" :key="sk.key" :item="sk" :busy="isBusy" @gen="genSkel(sk)" @retry="genSkel(sk)" />
 
+      <!-- ====== Contract ====== -->
+      <div class="section-label">📐 运行契约</div>
+      <ItemCard :item="contractItem" :busy="isBusy" :disable="!skelDone" :disableHint="skelDone?'':'请先生成骨架'" @gen="genContract" @retry="genContract" />
+
       <!-- ====== Pages ====== -->
       <div class="section-label">📄 页面文件（每页一次调用）</div>
       <div class="item-grid">
-        <ItemCard v-for="pi in pageItems" :key="pi.key" :item="pi" :busy="isBusy" :disable="!skelDone" :disableHint="skelDone?'':'请先生成骨架'" @gen="genPage(pi)" @retry="genPage(pi)" />
+        <ItemCard v-for="pi in pageItems" :key="pi.key" :item="pi" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genPage(pi)" @retry="genPage(pi)" />
       </div>
 
       <!-- ====== Components ====== -->
@@ -45,7 +49,7 @@
 
       <!-- ====== Mock ====== -->
       <div class="section-label">📦 Mock 数据</div>
-      <ItemCard :item="mockItem" :busy="isBusy" :disable="!skelDone" :disableHint="skelDone?'':'请先生成骨架'" @gen="genMock" @retry="genMock" />
+      <ItemCard :item="mockItem" :busy="isBusy" :disable="!contractDone" :disableHint="contractDone?'':'请先生成运行契约'" @gen="genMock" @retry="genMock" />
 
       <!-- ====== App Shell ====== -->
       <div class="section-label">🧭 应用壳与导航</div>
@@ -102,7 +106,7 @@ function mkItem(key, label, desc, n) { return { key, label, desc, n, st: 'idle',
 
 const skelItems = ref([
   mkItem('skel_config', '① 项目配置', 'package.json、vite.config.js、index.html、main.js 和兼容 shim', 8),
-  mkItem('skel_app',    '② App.vue + CSS', '根组件 App.vue 和全局样式 style.css — 骨架核心', 2),
+  mkItem('skel_app',    '② 全局样式', '固定高度布局、角色选择器、手风琴导航和基础组件样式', 1),
 ])
 const skelDone = computed(() => skelItems.value.every(s => s.st === 'done'))
 
@@ -127,10 +131,13 @@ watch(sug, s => {
 const mockItem = ref(mkItem('mock', 'Mock 数据与 API', '各页面 mock 数据 + api/index.js', 2))
 watch(sug, s => { if (s) { const mf = s.mockDataFiles || []; mockItem.value.n = mf.length + (s.pageApiMapping?.length ? 1 : 0); mockItem.value.desc = mockItem.value.n + ' 个文件' } })
 
-const appItem = ref(mkItem('app_shell', 'App.vue 应用壳', '根据导航结构接入所有页面组件', 1))
-const coreDone = computed(() => skelDone.value && mockItem.value.st === 'done' && pageItems.value.every(i => i.st === 'done') && compItems.value.every(i => i.st === 'done'))
+const contractItem = ref(mkItem('contract', 'Prototype Contract', '统一角色、导航、页面和 mock 入口契约', 1))
+const contractDone = computed(() => contractItem.value.st === 'done')
 
-const allItems = computed(() => [...skelItems.value, mockItem.value, ...compItems.value, ...pageItems.value, appItem.value])
+const appItem = ref(mkItem('app_shell', 'App.vue 应用壳', '本地模板生成角色选择和手风琴导航', 1))
+const coreDone = computed(() => contractDone.value && mockItem.value.st === 'done' && pageItems.value.every(i => i.st === 'done') && compItems.value.every(i => i.st === 'done'))
+
+const allItems = computed(() => [...skelItems.value, contractItem.value, mockItem.value, ...compItems.value, ...pageItems.value, appItem.value])
 const total = computed(() => allItems.value.length)
 const done  = computed(() => allItems.value.filter(i => i.st === 'done').length)
 const pct   = computed(() => total.value ? Math.round(done.value / total.value * 100) : 0)
@@ -160,12 +167,13 @@ function restoreSavedState() {
   restore(skelItems.value)
   restore(pageItems.value)
   restore(compItems.value)
-  restore([mockItem.value, appItem.value])
+  restore([contractItem.value, mockItem.value, appItem.value])
 }
 
 function expectedFilesForItem(item) {
   if (item.key === 'skel_config') return buildProjectConfigFiles().map(f => f.path)
   if (item.key === 'skel_app') return buildBaseStyleFiles().map(f => f.path)
+  if (item.key === contractItem.value.key) return [projectPath('src/prototypeContract.js')]
   if (item.key === mockItem.value.key) {
     const mockFiles = (sug.value?.mockDataFiles || []).map(m => projectPath(`src/data/${m.file}`))
     return [...mockFiles, projectPath('src/api/index.js')]
@@ -323,8 +331,277 @@ async function writeStaticTask(it, files) {
   }
 }
 
+function currentGeneratedFiles() {
+  return allItems.value.flatMap(item => item._rawFiles || item.files || [])
+    .filter(file => file?.path && typeof file.content === 'string')
+}
+
+function fileContentMap(files = currentGeneratedFiles()) {
+  return Object.fromEntries(files.filter(file => file.content).map(file => [file.path, file.content]))
+}
+
+function extractNamedImports(content = '') {
+  const imports = []
+  const pattern = /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g
+  let match = pattern.exec(content)
+  while (match) {
+    imports.push({
+      names: match[1].split(',').map(name => name.trim().split(/\s+as\s+/)[0]).filter(Boolean),
+      source: match[2],
+    })
+    match = pattern.exec(content)
+  }
+  return imports
+}
+
+function validateGeneratedFiles() {
+  const generatedFiles = currentGeneratedFiles()
+  const filePaths = new Set(generatedFiles.map(file => file.path))
+  const files = fileContentMap(generatedFiles)
+  const contract = buildPrototypeContract()
+  const issues = []
+
+  const contractPath = projectPath('src/prototypeContract.js')
+  if (!filePaths.has(contractPath)) issues.push('缺少 src/prototypeContract.js 运行契约文件')
+
+  const indexContent = files[projectPath('index.html')]
+  if (indexContent && !/charset=["']?UTF-8/i.test(indexContent)) issues.push('index.html 缺少 UTF-8 charset')
+
+  const appContent = files[projectPath('src/App.vue')]
+  if (appContent) {
+    if (!appContent.includes('currentRoleKey') || !appContent.includes('role-panel')) issues.push('App.vue 缺少角色选择运行时')
+    if (!appContent.includes('expandedGroups') || !appContent.includes('toggleGroup')) issues.push('App.vue 缺少手风琴导航状态')
+    for (const page of contract.pages) {
+      if (!appContent.includes(`./views/${page.file}`)) issues.push(`App.vue 未导入页面 ${page.file}`)
+    }
+  }
+
+  for (const mock of contract.mocks) {
+    const content = files[projectPath(`src/data/${mock.file}`)]
+    if (!content) continue
+    if (!new RegExp(`export\\s+(const|let|var)\\s+${mock.dataExport}\\b`).test(content)) {
+      issues.push(`${mock.file} 缺少数据导出 ${mock.dataExport}`)
+    }
+    if (!new RegExp(`export\\s+(async\\s+)?function\\s+${mock.readFunction}\\b`).test(content)
+      && !new RegExp(`export\\s+const\\s+${mock.readFunction}\\b`).test(content)) {
+      issues.push(`${mock.file} 缺少读取函数 ${mock.readFunction}`)
+    }
+  }
+
+  const allowedDataImports = new Map()
+  for (const page of contract.pages) {
+    allowedDataImports.set(page.file, new Set((page.mocks || []).map(mock => mock.importPath)))
+  }
+
+  for (const page of contract.pages) {
+    const content = files[projectPath(`src/views/${page.file}`)]
+    if (!content) continue
+    const imports = extractNamedImports(content)
+    const dataImports = imports.filter(item => item.source.includes('/data/') || item.source.startsWith('../data/'))
+    const allowed = allowedDataImports.get(page.file) || new Set()
+    for (const item of dataImports) {
+      if (!allowed.has(item.source)) issues.push(`${page.file} 使用了 contract 未声明的数据源 ${item.source}`)
+    }
+    if ((page.mocks || []).length && !content.includes('prototypeContract')) {
+      issues.push(`${page.file} 未导入 prototypeContract，角色上下文和 mock 契约可能失效`)
+    }
+  }
+
+  return issues
+}
+
+function updateValidationStatus() {
+  const hasContent = currentGeneratedFiles().some(file => file.content)
+  const issues = validateGeneratedFiles()
+  if (issues.length) {
+    writeStatus.value = `❌ 原型静态校验未通过：${issues.slice(0, 4).join('；')}${issues.length > 4 ? `；另有 ${issues.length - 4} 项` : ''}`
+    return false
+  }
+  if (!hasContent) {
+    writeStatus.value = `⚠️ 已恢复生成状态；文件内容未保存在草稿中，跳过内容级静态校验`
+    return true
+  }
+  writeStatus.value = `✅ 原型静态校验通过：角色、导航、mock 契约和页面导入一致`
+  return true
+}
+
 function projectPath(path) {
   return `prototypes/${slug.value}/${path}`
+}
+
+function stripVueExt(file = '') {
+  return file.replace(/\.vue$/i, '')
+}
+
+function stripJsExt(file = '') {
+  return file.replace(/\.js$/i, '')
+}
+
+function toPascalName(text = 'Prototype') {
+  const cleaned = String(text).replace(/\.(vue|js)$/i, '').replace(/[^a-zA-Z0-9\u4e00-\u9fff]+/g, ' ')
+  const ascii = cleaned
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+  return ascii || 'Prototype'
+}
+
+function toCamelName(text = 'prototype') {
+  const pascal = toPascalName(text)
+  return pascal.charAt(0).toLowerCase() + pascal.slice(1)
+}
+
+function uniq(arr) {
+  return [...new Set((arr || []).filter(Boolean))]
+}
+
+function inferRouteRoles(route = {}, groupName = '') {
+  const source = `${route.title || ''} ${route.path || ''} ${route.component || ''} ${groupName}`.toLowerCase()
+  const roles = []
+  if (/司机|driver|task\/list|task\/execute/.test(source)) roles.push('driver')
+  if (/门岗|gate|入场|核验/.test(source)) roles.push('gate')
+  if (/外协|预约|授权|审批|reservation|access-code|external/.test(source)) roles.push('approver')
+  if (/调度|dispatch|告警|monitor|调整/.test(source)) roles.push('dispatcher')
+  if (/管理|报表|档案|report|vehicle-archive|management/.test(source)) roles.push('manager', 'admin')
+  return uniq(roles.length ? roles : ['admin'])
+}
+
+function inferPrimaryRole(group = {}, routes = []) {
+  const counts = new Map()
+  for (const route of routes) {
+    for (const role of route.roles || inferRouteRoles(route, group.group)) {
+      counts.set(role, (counts.get(role) || 0) + 1)
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'admin'
+}
+
+function roleCatalog() {
+  return [
+    { key: 'dispatcher', label: '调度员', userName: '调度员-王敏', description: '处理派车、监控告警和任务调整' },
+    { key: 'driver', label: '司机', userName: '司机-李师傅', description: '查看并执行本人运输任务' },
+    { key: 'gate', label: '门岗', userName: '门岗-赵工', description: '车辆入场核验与放行记录处理' },
+    { key: 'approver', label: '审批人员', userName: '审批-陈主管', description: '审批外协预约和授权码同步' },
+    { key: 'manager', label: '管理层', userName: '管理层-刘总', description: '查看运营报表和管理分析' },
+    { key: 'admin', label: '系统管理员', userName: '管理员-周工', description: '维护车辆档案和系统配置' },
+  ]
+}
+
+function fallbackNavigationGroups() {
+  const pages = sug.value?.viewFiles || []
+  return [{
+    group: '原型页面',
+    icon: '📄',
+    routes: pages.map((page, index) => ({
+      path: `/${stripVueExt(page.file).replace(/View$/i, '').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`,
+      component: page.file,
+      title: page.title || page.name || stripVueExt(page.file),
+      default: index === 0,
+    })),
+  }]
+}
+
+function buildPrototypeContract() {
+  const groupsSource = sug.value?.navigationRoutes?.length ? sug.value.navigationRoutes : fallbackNavigationGroups()
+  const mockFiles = sug.value?.mockDataFiles || []
+  const pageSpecs = sug.value?.pageDetailSpecs || []
+  const apiMappings = sug.value?.pageApiMapping || []
+
+  const mockContracts = mockFiles.map(mock => {
+    const base = stripJsExt(mock.file)
+    const domain = base.replace(/^mock/i, '') || base
+    const dataExport = `${toCamelName(domain)}Records`
+    const readFunction = `fetch${toPascalName(domain)}Data`
+    return {
+      file: mock.file,
+      domain,
+      dataExport,
+      readFunction,
+      usedBy: mock.usedBy || [],
+      schema: mock.schema || [],
+      description: mock.content || '',
+    }
+  })
+
+  const routeGroups = groupsSource.map((group, groupIndex) => {
+    const routes = (group.routes || []).map((route, routeIndex) => {
+      const componentFile = route.component?.endsWith('.vue') ? route.component : `${route.component || ''}.vue`
+      const roles = inferRouteRoles({ ...route, component: componentFile }, group.group)
+      return {
+        path: route.path || `/${stripVueExt(componentFile).toLowerCase()}`,
+        component: toPascalName(componentFile),
+        file: componentFile,
+        title: route.title || stripVueExt(componentFile),
+        default: Boolean(route.default || (groupIndex === 0 && routeIndex === 0)),
+        roles,
+      }
+    })
+    return {
+      group: group.group || `分组 ${groupIndex + 1}`,
+      icon: group.icon || '▸',
+      defaultRole: inferPrimaryRole(group, routes),
+      routes,
+    }
+  })
+
+  const pages = (sug.value?.viewFiles || []).map(page => {
+    const relatedMocks = mockContracts.filter(mock => (mock.usedBy || []).includes(page.file))
+    return {
+      file: page.file,
+      component: toPascalName(page.file),
+      title: page.title || page.name || stripVueExt(page.file),
+      responsibility: pageSpecs.find(spec => spec.file === page.file)?.responsibility || page.responsibility || '',
+      mocks: relatedMocks.map(mock => ({
+        file: mock.file,
+        importPath: `../data/${mock.file}`,
+        dataExport: mock.dataExport,
+        readFunction: mock.readFunction,
+        schema: mock.schema || [],
+        description: mock.description || '',
+      })),
+      apis: apiMappings.find(mapping => mapping.page === page.file)?.apis || [],
+    }
+  })
+
+  const routeRoles = uniq(routeGroups.flatMap(group => group.routes.flatMap(route => route.roles || [])))
+  const roles = roleCatalog().filter(role => routeRoles.includes(role.key) || role.key === 'admin')
+  const defaultRoute = routeGroups.flatMap(group => group.routes).find(route => route.default) || routeGroups[0]?.routes?.[0]
+
+  return {
+    version: 1,
+    projectName: props.projectContext.projectName || sug.value?.projectName || '原型系统',
+    customerName: props.projectContext.customerName || sug.value?.customerName || '',
+    defaultRole: defaultRoute?.roles?.[0] || roles[0]?.key || 'admin',
+    roles,
+    navigationGroups: routeGroups,
+    pages,
+    mocks: mockContracts,
+  }
+}
+
+function buildPrototypeContractFiles() {
+  const contract = buildPrototypeContract()
+  return [{
+    path: projectPath('src/prototypeContract.js'),
+    content: `export const prototypeContract = ${JSON.stringify(contract, null, 2)}\n\nexport default prototypeContract\n`,
+  }]
+}
+
+function buildAppShellFiles() {
+  const contract = buildPrototypeContract()
+  const pages = contract.pages || []
+  const imports = pages
+    .map(page => `import ${page.component} from './views/${page.file}'`)
+    .join('\n')
+  const componentEntries = pages
+    .map(page => `  ${page.component},`)
+    .join('\n')
+
+  return [{
+    path: projectPath('src/App.vue'),
+    content: `<` + `script setup>\nimport { computed, provide, ref, watch } from 'vue'\n${imports}\nimport { installPrototypeRouter } from './routerShim.js'\nimport { prototypeContract } from './prototypeContract.js'\n\nconst components = {\n${componentEntries}\n}\n\nconst navigationGroups = prototypeContract.navigationGroups || []\nconst roles = prototypeContract.roles || []\nconst currentRoleKey = ref(prototypeContract.defaultRole || roles[0]?.key || 'admin')\nconst currentRoute = ref(findDefaultRoute(currentRoleKey.value)?.path || navigationGroups[0]?.routes?.[0]?.path || '/')\nconst routeHistory = ref([currentRoute.value])\nconst expandedGroups = ref(new Set())\n\nconst currentRole = computed(() => roles.find(role => role.key === currentRoleKey.value) || roles[0] || { key: 'admin', label: '系统管理员', userName: '演示用户' })\nconst visibleGroups = computed(() => navigationGroups\n  .map(group => ({\n    ...group,\n    routes: (group.routes || []).filter(route => canAccess(route, currentRoleKey.value)),\n  }))\n  .filter(group => group.routes.length))\nconst currentRouteMeta = computed(() => findRouteByPath(currentRoute.value) || findDefaultRoute(currentRoleKey.value))\nconst currentComponent = computed(() => components[currentRouteMeta.value?.component] || Object.values(components)[0])\n\nprovide('prototypeContext', {\n  currentRole,\n  currentRoleKey,\n  currentRoute,\n  contract: prototypeContract,\n})\n\nfunction canAccess(route, roleKey) {\n  return !route.roles?.length || route.roles.includes(roleKey) || roleKey === 'admin'\n}\n\nfunction findRouteByPath(path) {\n  return navigationGroups.flatMap(group => group.routes || []).find(route => route.path === path)\n}\n\nfunction findDefaultRoute(roleKey) {\n  return navigationGroups.flatMap(group => group.routes || []).find(route => route.default && canAccess(route, roleKey))\n    || navigationGroups.flatMap(group => group.routes || []).find(route => canAccess(route, roleKey))\n}\n\nfunction groupKey(group) {\n  return group.group\n}\n\nfunction groupHasRoute(group, path) {\n  return (group.routes || []).some(route => route.path === path)\n}\n\nfunction ensureExpandedForRoute(path) {\n  const group = navigationGroups.find(item => groupHasRoute(item, path))\n  if (!group) return\n  expandedGroups.value = new Set([...expandedGroups.value, groupKey(group)])\n}\n\nfunction toggleGroup(group) {\n  const next = new Set(expandedGroups.value)\n  const key = groupKey(group)\n  if (next.has(key)) next.delete(key)\n  else next.add(key)\n  expandedGroups.value = next\n}\n\nfunction isGroupExpanded(group) {\n  return expandedGroups.value.has(groupKey(group))\n}\n\nfunction switchRoute(route) {\n  currentRoute.value = route.path\n  if (routeHistory.value[routeHistory.value.length - 1] !== route.path) routeHistory.value.push(route.path)\n  ensureExpandedForRoute(route.path)\n}\n\nfunction navigateRoute(target) {\n  if (target.path === '__back__') {\n    routeHistory.value.pop()\n    const previous = routeHistory.value[routeHistory.value.length - 1] || findDefaultRoute(currentRoleKey.value)?.path\n    const route = findRouteByPath(previous)\n    if (route && canAccess(route, currentRoleKey.value)) switchRoute(route)\n    return\n  }\n  const route = findRouteByPath(target.path)\n  if (route && canAccess(route, currentRoleKey.value)) switchRoute(route)\n}\n\nwatch(currentRoleKey, roleKey => {\n  const active = findRouteByPath(currentRoute.value)\n  if (!active || !canAccess(active, roleKey)) {\n    const nextRoute = findDefaultRoute(roleKey)\n    if (nextRoute) switchRoute(nextRoute)\n  }\n}, { immediate: true })\n\nwatch(currentRoute, path => ensureExpandedForRoute(path), { immediate: true })\n\ninstallPrototypeRouter(navigateRoute)\n</` + `script>\n\n<template>\n  <div class=\"app-shell\">\n    <nav class=\"side-nav\" aria-label=\"原型导航\">\n      <div class=\"brand\">\n        <strong>{{ prototypeContract.projectName }}</strong>\n        <span>{{ prototypeContract.customerName || 'Prototype Demo' }}</span>\n      </div>\n\n      <section class=\"role-panel\" aria-label=\"演示角色\">\n        <label for=\"prototype-role\">当前角色</label>\n        <select id=\"prototype-role\" v-model=\"currentRoleKey\">\n          <option v-for=\"role in roles\" :key=\"role.key\" :value=\"role.key\">{{ role.label }}</option>\n        </select>\n        <div class=\"role-user\">\n          <span>{{ currentRole.userName }}</span>\n          <span>{{ currentRole.label }}</span>\n        </div>\n      </section>\n\n      <div class=\"nav-scroll\">\n        <section v-for=\"group in visibleGroups\" :key=\"group.group\" class=\"nav-group\">\n          <button class=\"nav-group-title\" type=\"button\" @click=\"toggleGroup(group)\">\n            <span class=\"nav-group-title-main\">\n              <span>{{ group.icon }}</span>\n              <span>{{ group.group }}</span>\n            </span>\n            <span class=\"nav-group-count\">{{ isGroupExpanded(group) ? '收起' : group.routes.length + '项' }}</span>\n          </button>\n          <ul v-if=\"isGroupExpanded(group)\" class=\"nav-group-routes\">\n            <li v-for=\"route in group.routes\" :key=\"route.path\">\n              <button class=\"nav-button\" :class=\"{ active: currentRoute === route.path }\" type=\"button\" @click=\"switchRoute(route)\">\n                {{ route.title }}\n              </button>\n            </li>\n          </ul>\n        </section>\n      </div>\n    </nav>\n\n    <main class=\"main-panel\">\n      <component :is=\"currentComponent\" />\n    </main>\n  </div>\n</template>\n`,
+  }]
 }
 
 function buildProjectConfigFiles() {
@@ -344,7 +621,7 @@ function buildProjectConfigFiles() {
     },
     {
       path: projectPath('index.html'),
-      content: `<div id="app"></div>\n<script type="module" src="/src/main.js"></` + `script>\n<title>${projectName}</title>\n`,
+      content: `<!doctype html>\n<html lang="zh-CN">\n  <head>\n    <meta charset="UTF-8" />\n    <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n    <title>${projectName}</title>\n  </head>\n  <body>\n    <div id="app"></div>\n    <script type="module" src="/src/main.js"></` + `script>\n  </body>\n</html>\n`,
     },
     {
       path: projectPath('vite.config.js'),
@@ -356,7 +633,7 @@ function buildProjectConfigFiles() {
     },
     {
       path: projectPath('src/routerShim.js'),
-      content: `export function useRouter() {\n  return {\n    push(target) { console.log('[prototype router.push]', target) },\n    back() { console.log('[prototype router.back]') },\n    replace(target) { console.log('[prototype router.replace]', target) },\n  }\n}\n\nexport function useRoute() {\n  return { query: {}, params: {}, path: '/', name: '' }\n}\n`,
+      content: `let currentRoute = {\n  query: {},\n  params: {},\n  path: '/',\n  name: '',\n}\n\nlet navigator = null\n\nexport function installPrototypeRouter(handler) {\n  navigator = handler\n}\n\nfunction resolveTarget(target) {\n  if (typeof target === 'string') {\n    return { path: target, query: {}, params: {}, name: '' }\n  }\n  return {\n    path: target?.path || '',\n    name: target?.name || '',\n    query: target?.query || {},\n    params: target?.params || {},\n  }\n}\n\nexport function useRouter() {\n  return {\n    push(target) {\n      const route = resolveTarget(target)\n      currentRoute = route\n      if (navigator) navigator(route)\n    },\n    back() {\n      if (navigator) navigator({ path: '__back__' })\n    },\n    replace(target) {\n      const route = resolveTarget(target)\n      currentRoute = route\n      if (navigator) navigator(route)\n    },\n  }\n}\n\nexport function useRoute() {\n  return currentRoute\n}\n`,
     },
     {
       path: projectPath('src/elementPlusShim.js'),
@@ -377,7 +654,7 @@ function buildBaseStyleFiles() {
   return [
     {
       path: projectPath('src/style.css'),
-      content: `:root {\n  color: #0f172a;\n  background: #eef3f8;\n  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;\n}\n* { box-sizing: border-box; }\nbody { margin: 0; min-width: 320px; min-height: 100vh; background: #eef3f8; }\nbutton, input, select, textarea { font: inherit; }\nbutton { cursor: pointer; }\n.app-shell { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr); }\n.side-nav { background: #0f172a; color: #e2e8f0; padding: 20px; display: flex; flex-direction: column; gap: 18px; }\n.brand { font-size: 18px; font-weight: 900; color: #fff; }\n.nav-group { display: grid; gap: 8px; }\n.nav-group-title { margin: 14px 0 4px; color: #94a3b8; font-size: 12px; font-weight: 800; }\n.nav-button { border: 1px solid transparent; border-radius: 8px; padding: 10px 12px; background: transparent; color: #cbd5e1; text-align: left; font-weight: 800; }\n.nav-button.active, .nav-button:hover { background: #1d4ed8; color: #fff; }\n.main-panel { padding: 24px; overflow: auto; }\n.page-card { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 18px; box-shadow: 0 12px 30px rgb(15 23 42 / 0.06); }\n.page-title { margin: 0 0 6px; font-size: 24px; font-weight: 900; }\n.page-desc { margin: 0 0 18px; color: #64748b; line-height: 1.6; }\n.grid { display: grid; gap: 14px; }\n.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n.grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }\n.panel { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc; }\n.panel h3 { margin: 0 0 10px; font-size: 15px; }\n.metric { display: flex; align-items: center; justify-content: space-between; gap: 12px; }\n.metric strong { font-size: 24px; }\n.table { width: 100%; border-collapse: collapse; font-size: 13px; }\n.table th, .table td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }\n.status { display: inline-flex; border-radius: 999px; padding: 3px 9px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 800; }\n.actions { display: flex; flex-wrap: wrap; gap: 8px; }\n.primary { border: 0; border-radius: 7px; padding: 8px 12px; background: #2563eb; color: #fff; font-weight: 800; }\n.secondary { border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 12px; background: #fff; color: #334155; font-weight: 800; }\n@media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .side-nav { position: static; } .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }\n`,
+      content: `:root {\n  color: #0f172a;\n  background: #eef3f8;\n  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;\n}\n* { box-sizing: border-box; }\nhtml, body, #app { margin: 0; min-width: 320px; height: 100%; background: #eef3f8; }\nbutton, input, select, textarea { font: inherit; }\nbutton { cursor: pointer; }\n.app-shell { height: 100vh; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr); overflow: hidden; }\n.side-nav { min-height: 0; background: #0f172a; color: #e2e8f0; padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; box-shadow: 12px 0 30px rgba(15, 23, 42, 0.12); }\n.brand { display: grid; gap: 4px; color: #fff; }\n.brand strong { font-size: 18px; font-weight: 900; }\n.brand span { color: #94a3b8; font-size: 12px; }\n.role-panel { display: grid; gap: 8px; padding: 10px; border: 1px solid rgba(148, 163, 184, .28); border-radius: 8px; background: rgba(15, 23, 42, .32); }\n.role-panel label { font-size: 12px; color: #94a3b8; font-weight: 800; }\n.role-panel select { width: 100%; border: 1px solid rgba(148, 163, 184, .38); border-radius: 7px; padding: 8px 10px; background: #111827; color: #fff; }\n.role-user { display: flex; justify-content: space-between; gap: 8px; color: #cbd5e1; font-size: 12px; }\n.nav-scroll { min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 8px; padding-right: 2px; }\n.nav-group { display: grid; gap: 6px; }\n.nav-group-title { width: 100%; border: 0; border-radius: 8px; padding: 9px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #cbd5e1; background: transparent; font-size: 12px; font-weight: 900; text-align: left; }\n.nav-group-title:hover { background: rgba(255, 255, 255, .07); color: #fff; }\n.nav-group-title-main { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }\n.nav-group-title-main span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.nav-group-count { color: #94a3b8; font-size: 11px; font-weight: 800; }\n.nav-group-routes { list-style: none; margin: 0; padding: 0 0 0 8px; display: grid; gap: 5px; }\n.nav-button { width: 100%; border: 1px solid transparent; border-radius: 8px; padding: 9px 10px; background: transparent; color: #cbd5e1; text-align: left; font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.nav-button.active, .nav-button:hover { background: #1d4ed8; color: #fff; }\n.main-panel { min-width: 0; min-height: 0; padding: 22px; overflow: auto; }\n.page-card { background: #fff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 18px; box-shadow: 0 12px 30px rgb(15 23 42 / 0.06); }\n.page-title { margin: 0 0 6px; font-size: 24px; font-weight: 900; }\n.page-desc { margin: 0 0 18px; color: #64748b; line-height: 1.6; }\n.grid { display: grid; gap: 14px; }\n.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n.grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }\n.panel { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc; }\n.panel h3 { margin: 0 0 10px; font-size: 15px; }\n.metric { display: flex; align-items: center; justify-content: space-between; gap: 12px; }\n.metric strong { font-size: 24px; }\n.table { width: 100%; border-collapse: collapse; font-size: 13px; }\n.table th, .table td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }\n.status { display: inline-flex; border-radius: 999px; padding: 3px 9px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 800; }\n.actions { display: flex; flex-wrap: wrap; gap: 8px; }\n.primary { border: 0; border-radius: 7px; padding: 8px 12px; background: #2563eb; color: #fff; font-weight: 800; }\n.secondary { border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px 12px; background: #fff; color: #334155; font-weight: 800; }\n@media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; height: auto; min-height: 100vh; overflow: visible; } .side-nav { max-height: none; } .nav-scroll { max-height: 48vh; } .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; } }\n`,
     },
   ]
 }
@@ -391,24 +668,30 @@ async function genSkel(sk) {
   }
 }
 
+async function genContract() {
+  await writeStaticTask(contractItem.value, buildPrototypeContractFiles())
+}
+
 /* ── Page ── */
 async function genPage(pi) {
   const vf = (sug.value?.viewFiles || []).find(v => v.file === pi.label)
   const sp = (sug.value?.pageDetailSpecs || []).find(s => s.file === pi.label)
   const apiMapping = (sug.value?.pageApiMapping || []).find(m => m.page === pi.label)
+  const contract = buildPrototypeContract()
+  const pageContract = contract.pages.find(page => page.file === pi.label)
   const relatedComponents = (sug.value?.componentFiles || [])
     .filter(c => (c.reusedBy || []).includes(pi.label))
     .map(c => ({ file: c.file, responsibility: c.responsibility, props: (c.props || []).slice(0, 6) }))
-  const relatedMocks = (sug.value?.mockDataFiles || [])
-    .filter(m => (m.usedBy || []).includes(pi.label))
-    .map(m => ({ file: m.file, content: m.content, schema: (m.schema || []).slice(0, 6) }))
   await run(pi, pi.label, [
     `生成 Vue3 页面组件：prototypes/${slug.value}/src/views/${vf?.file || pi.label}`,
     `职责：${sp?.responsibility || vf?.responsibility || pi.label}`,
     `只生成这一个页面文件，不要生成其他文件。`,
+    `必须从 ../prototypeContract.js 导入 prototypeContract，并可 inject('prototypeContext') 读取 currentRole/currentRoleKey；不同角色看到的数据或默认筛选要有差异。`,
+    `必须严格使用 pageContract.mocks 中列出的 mock 入口；只允许从指定 importPath 导入 readFunction/dataExport，禁止新增未在 contract 中出现的 mock 文件。`,
     `可以用相对路径导入 ../components 和 ../data 下的文件；禁止使用 @ 别名。`,
     `禁止导入 vue-router、element-plus、vuedraggable 或任何未在 package.json 声明的外部库。`,
-    `页面展示字段必须来自 relatedMocks.schema 或在页面内做 normalize 映射；禁止直接渲染可能不存在的字段导致空白内容。`,
+    `页面展示字段必须来自 pageContract.mocks.schema 或在页面内做 normalize 映射；禁止直接渲染可能不存在的字段导致空白内容。`,
+    `禁止在页面内定义超过 3 条记录的大块业务 mock 数组；演示数据必须来自 contract 指定的 mock 读取函数。`,
     `列表、卡片、详情区必须展示可见业务文本和关键字段，至少包含标题、状态、时间/地点/人员中的两类信息。`,
     `要求：script setup + scoped CSS，包含 loading/empty/error 状态，适合原型演示；<script setup> 内禁止出现 export function/export const。`,
     `输出 JSON：{"files":[{"path":"prototypes/${slug.value}/src/views/${vf?.file||'Page.vue'}","content":"..."}]}`,
@@ -417,7 +700,8 @@ async function genPage(pi) {
     pageSpec: sp,
     apiMapping,
     relatedComponents,
-    relatedMocks,
+    pageContract,
+    prototypeContract: contract,
   })
 }
 
@@ -435,38 +719,31 @@ async function genComp(ci) {
 
 /* ── Mock ── */
 async function genMock() {
+  const contract = buildPrototypeContract()
   await run(mockItem.value, 'Mock 数据', [
     `生成 mock 数据和 API 客户端，写入 prototypes/${slug.value}/src/data/ 和 src/api/：`,
-    `每个 mock 文件必须 export 具名数据和具名读取函数；如果页面会按 mockXxx() 调用，mock 文件必须导出同名函数而不是数组常量。`,
+    `必须严格按照 prototypeContract.mocks 生成文件和导出：每个 mock.file 都必须导出 dataExport 和 readFunction。`,
+    `readFunction 必须返回 Promise，支持可选参数 { roleKey, currentUser, filters }，并按角色做轻量过滤或标记，保证角色切换后演示有差异。`,
     `只生成 mock 和 api 文件，不要生成页面或组件。`,
     `禁止导入外部库，文件之间用相对路径导入。`,
-    `要求：数据字段要同时兼容页面语义字段和原始业务字段，例如车辆同时提供 id/plate/driver/status 与 vehicleId/plateNo/driverName。api/index.js 返回 Promise 模拟异步。`,
+    `要求：数据字段要同时兼容页面语义字段和原始业务字段，例如车辆同时提供 id/plate/driver/status 与 vehicleId/plateNo/driverName。`,
+    `src/api/index.js 必须导入 prototypeContract，并提供 requestMock(path, params) 与 listPrototypeApis() 两个具名函数，返回 Promise 模拟异步。`,
     `输出 JSON：{"files":[{"path":"...","content":"..."}]}`,
   ].join('\n'), {
-    mockDataFiles: sug.value?.mockDataFiles || [],
-    pageApiMapping: sug.value?.pageApiMapping || [],
-    pages: (sug.value?.viewFiles || []).map(p => ({ file: p.file, responsibility: p.responsibility })),
+    prototypeContract: contract,
   })
 }
 
 async function genAppShell() {
-  await run(appItem.value, 'App.vue 应用壳', [
-    `生成 Vue3 应用壳文件：prototypes/${slug.value}/src/App.vue`,
-    `只生成 App.vue 一个文件。`,
-    `要求：script setup；导入所有 src/views 页面；使用左侧导航和 ref 切换当前页面；不使用 vue-router；禁止使用 @ 别名。`,
-    `页面容器使用全局样式中的 app-shell、side-nav、main-panel。`,
-    `输出 JSON：{"files":[{"path":"prototypes/${slug.value}/src/App.vue","content":"..."}]}`,
-  ].join('\n'), {
-    projectName: props.projectContext.projectName || '原型系统',
-    pages: sug.value?.viewFiles || [],
-    navigationRoutes: sug.value?.navigationRoutes || [],
-  })
+  await writeStaticTask(appItem.value, buildAppShellFiles())
 }
 
 /* ── All ── */
 async function genAll() {
   curTask.value = '🏗 项目骨架'
   for (const sk of skelItems.value) { if (sk.st !== 'done') { await genSkel(sk); if (sk.st !== 'done') { curTask.value = ''; return } } }
+  curTask.value = '📐 运行契约'
+  if (contractItem.value.st !== 'done') { await genContract(); if (contractItem.value.st !== 'done') { curTask.value = ''; return } }
   curTask.value = '📦 Mock 数据'
   if (mockItem.value.st !== 'done') { await genMock(); if (mockItem.value.st !== 'done') { curTask.value = ''; return } }
   curTask.value = '🧩 通用组件'
@@ -475,6 +752,7 @@ async function genAll() {
   for (const pi of pageItems.value) { if (pi.st !== 'done') { curTask.value = '📄 ' + pi.label; await genPage(pi); if (pi.st !== 'done') { curTask.value = ''; return } } }
   curTask.value = '🧭 App.vue'
   if (appItem.value.st !== 'done') await genAppShell()
+  if (appItem.value.st === 'done') updateValidationStatus()
   curTask.value = ''
 }
 
@@ -482,6 +760,7 @@ async function retryFailed() {
   for (const item of allItems.value) {
     if (item.st !== 'fail') continue
     if (skelItems.value.includes(item)) await genSkel(item)
+    else if (item.key === contractItem.value.key) await genContract()
     else if (item.key === mockItem.value.key) await genMock()
     else if (compItems.value.includes(item)) await genComp(item)
     else if (pageItems.value.includes(item)) await genPage(item)
@@ -491,6 +770,7 @@ async function retryFailed() {
 }
 
 function confirmAndFinish() {
+  if (!updateValidationStatus()) return
   emit('prototype-generated', { outputDir: `prototypes/${slug.value}`, generatedFiles: allItems.value.flatMap(i=>i.files||[]), suggestion: sug.value })
 }
 
