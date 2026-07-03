@@ -1,7 +1,7 @@
 # 05 生成原型
 
 - 步骤标识：`prototypegenerate`
-- 保存时间：2026-07-03T07:41:17.888317+00:00
+- 保存时间：2026-07-03T08:24:58.065718+00:00
 - 用途：作为下一步工作台的输入来源。
 
 ## 内容摘要
@@ -29,6 +29,22 @@
     },
     {
       "path": "prototypes/车辆管理/src/main.js",
+      "content": ""
+    },
+    {
+      "path": "prototypes/车辆管理/src/routerShim.js",
+      "content": ""
+    },
+    {
+      "path": "prototypes/车辆管理/src/elementPlusShim.js",
+      "content": ""
+    },
+    {
+      "path": "prototypes/车辆管理/src/elementPlusIconsShim.js",
+      "content": ""
+    },
+    {
+      "path": "prototypes/车辆管理/src/draggableShim.js",
       "content": ""
     },
     {
