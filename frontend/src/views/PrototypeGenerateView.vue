@@ -504,6 +504,23 @@ function extractNamedImports(content = '') {
   return imports
 }
 
+function hasNamedExport(content = '', name = '') {
+  if (!name) return false
+  if (new RegExp(`export\\s+(const|let|var)\\s+${name}\\b`).test(content)) return true
+  if (new RegExp(`export\\s+(async\\s+)?function\\s+${name}\\b`).test(content)) return true
+  const exportListPattern = /export\s*\{([^}]+)\}/g
+  let match = exportListPattern.exec(content)
+  while (match) {
+    const exportedNames = match[1]
+      .split(',')
+      .map(item => item.trim().split(/\s+as\s+/).pop()?.trim())
+      .filter(Boolean)
+    if (exportedNames.includes(name)) return true
+    match = exportListPattern.exec(content)
+  }
+  return false
+}
+
 function validateGeneratedFiles() {
   const generatedFiles = currentGeneratedFiles()
   const filePaths = new Set(generatedFiles.map(file => file.path))
@@ -529,11 +546,10 @@ function validateGeneratedFiles() {
   for (const mock of contract.mocks) {
     const content = files[projectPath(`src/data/${mock.file}`)]
     if (!content) continue
-    if (!new RegExp(`export\\s+(const|let|var)\\s+${mock.dataExport}\\b`).test(content)) {
+    if (!hasNamedExport(content, mock.dataExport)) {
       issues.push(`${mock.file} 缺少数据导出 ${mock.dataExport}`)
     }
-    if (!new RegExp(`export\\s+(async\\s+)?function\\s+${mock.readFunction}\\b`).test(content)
-      && !new RegExp(`export\\s+const\\s+${mock.readFunction}\\b`).test(content)) {
+    if (!hasNamedExport(content, mock.readFunction)) {
       issues.push(`${mock.file} 缺少读取函数 ${mock.readFunction}`)
     }
   }
