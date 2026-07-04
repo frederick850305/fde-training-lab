@@ -1,7 +1,7 @@
 # 04 前端原型方案
 
 - 步骤标识：`prototype`
-- 保存时间：2026-07-03T14:36:09.447042+00:00
+- 保存时间：2026-07-04T04:50:02.963844+00:00
 - 用途：作为下一步工作台的输入来源。
 
 ## 内容摘要
@@ -331,7 +331,7 @@
         },
         {
           "zone": "派车操作面板",
-          "content": "右侧底部或浮动弹窗，选择车辆、确认派车、查看推荐车辆详情"
+          "content": "右侧底部/浮动弹窗，选择车辆、确认派车、查看推荐车辆详情"
         }
       ],
       "uiStates": [
@@ -353,11 +353,11 @@
         }
       ],
       "keyInteractions": [
-        "地图点击车辆：点击车辆标记，显示车辆信息弹窗包含车牌、司机、速度、任务",
-        "状态看板点击分类：点击状态卡片，跳转至对应车辆列表并在地图高亮该分类车辆",
-        "需求列表点击派车：点击需求行中的派车按钮，打开派车操作面板，自动推荐可用车辆",
-        "派车面板确认派车：点击确认按钮，刷新地图和看板状态，推送消息给司机",
-        "地图框选车辆：在地图上框选，筛选框内车辆并同步至看板和需求列表",
+        "地图点击车辆：显示车辆信息弹窗，包含车牌、司机、速度、任务",
+        "状态看板点击分类：跳转至对应车辆列表并在地图高亮该分类车辆",
+        "需求列表点击派车：打开派车操作面板，自动推荐可用车辆",
+        "派车面板确认派车：刷新地图和看板状态，推送消息给司机",
+        "地图框选车辆：筛选框内车辆并同步至看板和需求列表",
         "异常状态突出显示：超速>30km/h或禁入区域触发，车辆图标闪烁并显示告警标记，地图高亮区域"
       ]
     },
@@ -384,7 +384,7 @@
       "uiStates": [
         {
           "state": "empty",
-          "content": "告警列表显示'暂无告警'，任务列表显示'暂无任务'，无数据时展示空态占位"
+          "content": "告警列表显示“暂无告警”，任务列表显示“暂无任务”，无数据时展示空态占位"
         },
         {
           "state": "loading",
@@ -400,15 +400,15 @@
         }
       ],
       "keyInteractions": [
-        "确认告警：点击告警详情弹窗中的确认按钮，调用POST /api/v1/alerts/handle，成功后更新告警状态为已处理，列表刷新",
-        "忽略告警：点击告警详情弹窗中的忽略按钮，调用POST /api/v1/alerts/handle，成功后告警标记为已忽略，列表刷新",
-        "转人工：点击告警详情弹窗中的转人工按钮，调用POST /api/v1/alerts/handle，状态转为转人工，提示操作成功",
-        "催办任务：点击任务详情中的催办按钮，调用POST /api/v1/tasks/remind，弹出提示已发送催办通知",
-        "取消任务：点击任务详情中的取消按钮，弹出确认对话框，要求填写取消原因，调用POST /api/v1/tasks/cancel，成功后任务状态更新",
-        "导出Excel：点击告警列表或任务列表的导出按钮（预留），触发文件下载，导出当前筛选条件下的数据",
-        "地图定位：点击告警列表项，弹窗展示告警详情，同时在地图上定位车辆位置",
-        "筛选告警状态：选择告警状态筛选下拉框，重新加载告警列表，根据选中状态过滤",
-        "筛选任务状态：选择任务状态筛选下拉框，重新加载任务列表，根据选中状态过滤"
+        "确认告警：调用POST /api/v1/alerts/handle，成功后更新告警状态为已处理，列表刷新",
+        "忽略告警：调用POST /api/v1/alerts/handle，成功后告警标记为已忽略，列表刷新",
+        "转人工：调用POST /api/v1/alerts/handle，状态转为转人工，提示操作成功",
+        "催办任务：调用POST /api/v1/tasks/remind，弹出提示已发送催办通知",
+        "取消任务：弹出确认对话框，要求填写取消原因，调用POST /api/v1/tasks/cancel，成功后任务状态更新",
+        "导出Excel：触发文件下载，导出当前筛选条件下的数据",
+        "地图定位：弹窗展示告警详情，同时在地图上定位车辆位置",
+        "筛选告警状态：重新加载告警列表，根据选中状态过滤",
+        "筛选任务状态：重新加载任务列表，根据选中状态过滤"
       ]
     },
     {
@@ -416,7 +416,7 @@
       "layoutZones": [
         {
           "zone": "顶部状态筛选栏",
-          "content": "包含全部/待接单/进行中/已完成四个筛选标签"
+          "content": "全部/待接单/进行中/已完成四个标签"
         },
         {
           "zone": "任务卡片列表区",
@@ -424,11 +424,11 @@
         },
         {
           "zone": "底部导航栏",
-          "content": "提供回到工作台等导航按钮"
+          "content": "回到工作台等导航按钮"
         },
         {
           "zone": "未读推送通知角标",
-          "content": "显示未读推送消息数量"
+          "content": "显示未读推送通知数量"
         }
       ],
       "uiStates": [
@@ -450,11 +450,11 @@
         }
       ],
       "keyInteractions": [
-        "下拉刷新：用户下拉列表，显示加载动画，调用GET /api/driver/tasks?status=当前筛选条件，刷新列表",
-        "点击任务卡片：用户点击卡片，跳转至DriverTaskExecuteView.vue，携带taskId",
-        "确认接单：用户点击待接单任务上的确认接单按钮，弹出确认对话框，调用POST /api/driver/tasks/{taskId}/accept，成功后卡片状态变为进行中并刷新列表；若失败则显示错误提示",
-        "切换筛选：用户点击顶部状态筛选标签（全部/待接单/进行中/已完成），更新筛选条件，重新加载对应状态的任务列表",
-        "点击推送通知：用户点击通知角标或推送消息，跳转至对应任务详情页（若未读，标记已读）"
+        "下拉刷新：显示加载动画，调用GET /api/driver/tasks?status=当前筛选条件，刷新列表",
+        "点击任务卡片：跳转至DriverTaskExecuteView.vue，携带taskId",
+        "确认接单：弹出确认对话框，调用POST /api/driver/tasks/{taskId}/accept，成功后卡片状态变为进行中并刷新列表；若失败则显示错误提示",
+        "切换筛选：更新筛选条件，重新加载对应状态的任务列表",
+        "点击推送通知：跳转至对应任务详情页（若未读，标记已读）"
       ]
     },
     {
@@ -512,8 +512,7 @@
         "提交异常反馈：在异常反馈表单中填写完成并点击提交，调用POST /api/driver/feedback提交异常事件，提交成功后关闭表单并刷新历史反馈列表，推送至调度员端",
         "查看历史反馈：点击历史反馈记录列表项（可展开），展开显示对应反馈的详细信息（类型、描述、照片、处理状态、时间）",
         "重试加载：数据加载失败时点击错误提示中的重试按钮，重新调用GET /api/driver/tasks/{taskId}获取详情数据"
-      ],
-      "revisionNote": "根据原页面规格DriverTaskExecuteView.vue转换而来"
+      ]
     },
     {
       "file": "MobileDispatchView.vue",
@@ -564,8 +563,7 @@
         "新增临时任务：点击底部浮动操作栏快速调整按钮中的新增临时任务，弹出新增任务表单（作业点、预计时间、要求），提交后生成任务",
         "发送消息：点击发送按钮或在输入框按回车，消息发送并显示在对话列表中，带送达状态",
         "标记已读：滑动或点击已读按钮，告警标记为已读，通知列表刷新"
-      ],
-      "revisionNote": "根据原页面规格MobileDispatchView.vue转换而来"
+      ]
     },
     {
       "file": "TaskAdjustView.vue",
@@ -588,7 +586,7 @@
         },
         {
           "zone": "底部提交确认按钮区",
-          "content": "提交按钮"
+          "content": "提交确认按钮"
         }
       ],
       "uiStates": [
@@ -610,12 +608,11 @@
         }
       ],
       "keyInteractions": [
-        "选择操作类型：change事件，根据所选类型（改派/取消/加派）动态显示对应的表单区域，隐藏不相关的字段",
-        "改派-选择司机：点击，弹出底部浮层或全屏列表，展示周边空闲司机（含姓名、车牌、当前位置），选中后回填至「目标司机」字段",
-        "加派-选择作业点：点击，弹出作业点选择器（支持搜索或地图选点），选中后回填至「作业地点」字段",
-        "提交确认：点击，触发二次确认弹窗，显示操作摘要（包括操作类型、关键字段值、异常处理原因），用户确认后开始提交；提交过程中显示加载遮罩，提交成功后自动返回主工作台页面并刷新列表，提交失败则展示错误消息并允许重新提交"
-      ],
-      "revisionNote": "根据原页面规格TaskAdjustView.vue转换而来"
+        "选择操作类型：change，根据所选类型（改派/取消/加派）动态显示对应的表单区域，隐藏不相关的字段",
+        "改派-选择司机：click，弹出底部浮层或全屏列表，展示周边空闲司机（含姓名、车牌、当前位置），选中后回填至「目标司机」字段",
+        "加派-选择作业点：click，弹出作业点选择器（支持搜索或地图选点），选中后回填至「作业地点」字段",
+        "提交确认：click，触发二次确认弹窗，显示操作摘要（包括操作类型、关键字段值、异常处理原因），用户确认后开始提交；提交过程中显示加载遮罩，提交成功后自动返回主工作台页面并刷新列表，提交失败则展示错误消息并允许重新提交"
+      ]
     },
     {
       "file": "GateAccessCheckView.vue",
@@ -633,8 +630,8 @@
           "content": "车辆档案摘要、核验结果详情、预设原因列表、手动放行/拒绝按钮、异常原因登记弹窗"
         },
         {
-          "zone": "底部操作日志/提示区域（可选）",
-          "content": "操作日志或提示信息"
+          "zone": "底部操作日志/提示区域",
+          "content": "可选区域，用于显示操作日志或提示信息"
         }
       ],
       "uiStates": [
@@ -656,14 +653,14 @@
         }
       ],
       "keyInteractions": [
-        "选择车辆行：点击左侧待核验列表中的某一行，右侧区域加载该车的核验详情、车辆档案摘要及关联任务信息",
-        "放行（核验通过车辆）：点击选中车辆详情区的“放行”按钮，弹出二次确认弹窗，确认后调用POST /api/gate/vehicle-action接口，车辆从列表移除，显示放行成功反馈",
-        "手动放行（核验失败/需人工判断）：点击“手动放行”按钮，直接调用POST /api/gate/vehicle-action接口，车辆从列表移除，显示放行成功反馈",
-        "拒绝：点击“拒绝”按钮，弹出异常原因登记弹窗（含abnormalReason和abnormalRemark字段），提交后调用POST /api/gate/abnormal-record接口，车辆从列表移除，显示拒绝成功反馈",
-        "异常原因提交：在异常原因登记弹窗中点击“确认”按钮，提交表单，调用POST /api/gate/abnormal-record，关闭弹窗，列表更新",
-        "手动刷新：点击刷新按钮（或下拉手势），重新请求GET /api/gate/pending-vehicles，列表更新，显示加载态",
-        "降级放行/拒绝：在降级面板中手动录入车牌并选择操作（放行或拒绝）后点击确认，调用POST /api/gate/degraded-action，操作成功或失败后给出相应反馈，关闭降级面板",
-        "筛选状态变更：改变筛选下拉框的值，重新请求列表（带上筛选参数）或本地过滤，列表刷新"
+        "选择车辆行：点击左侧待核验列表中的某一行",
+        "放行（核验通过车辆）：点击选中车辆详情区的“放行”按钮，弹出二次确认弹窗",
+        "手动放行（核验失败/需人工判断）：点击“手动放行”按钮，直接调用接口",
+        "拒绝：点击“拒绝”按钮，弹出异常原因登记弹窗并提交",
+        "异常原因提交：在异常原因登记弹窗中点击“确认”按钮",
+        "手动刷新：点击刷新按钮或下拉手势",
+        "降级放行/拒绝：在降级面板中手动录入车牌并选择操作后点击确认",
+        "筛选状态变更：改变筛选下拉框的值"
       ]
     },
     {
@@ -701,9 +698,9 @@
         }
       ],
       "keyInteractions": [
-        "筛选条件变更：用户修改任何筛选字段值，自动触发列表请求，列表重新加载，显示加载态",
-        "重新同步：点击“重新同步”按钮（仅在同步失败记录行中显示），调用POST /api/gate/retry-sync/{recordId}，按钮变为加载状态，完成后更新该记录同步状态为“同步中”或“已同步”，若失败则保持“同步失败”并提示错误",
-        "查看详情：点击列表行，弹窗显示该条记录的完整核验结果快照，包括接口返回信息、异常原因、降级标记等"
+        "筛选条件变更：用户修改任何筛选字段值，自动触发列表请求",
+        "重新同步：点击“重新同步”按钮（同步失败记录行中），调用接口更新同步状态",
+        "查看详情：点击列表行，弹窗显示完整核验结果快照"
       ]
     },
     {
@@ -715,11 +712,11 @@
         },
         {
           "zone": "指标卡片区",
-          "content": "5个关键运营指标卡片横向排列，支持点击下钻"
+          "content": "5个指标卡片横向排列，支持点击下钻"
         },
         {
           "zone": "趋势图区域",
-          "content": "折线图/柱状图，含指标切换下拉、粒度切换"
+          "content": "折线图/柱状图，指标切换下拉、粒度切换"
         },
         {
           "zone": "导出操作区",
@@ -729,52 +726,52 @@
       "uiStates": [
         {
           "state": "empty",
-          "content": "当前筛选条件下没有任何数据，展示空状态提示“暂无统计数据”，指标卡片显示“暂无数据”，趋势图展示空白状态，显示空状态插画及文字提示"
+          "content": "当前筛选条件下没有任何数据，展示空状态提示“暂无统计数据”，指标卡片显示“暂无数据”，趋势图展示空白状态"
         },
         {
           "state": "loading",
-          "content": "数据加载中，展示骨架屏或加载动画，筛选区域保持可操作，数据区域显示加载指示器，防止重复提交"
+          "content": "数据加载中，展示骨架屏或加载动画"
         },
         {
           "state": "success",
-          "content": "数据加载成功并正常展示，指标卡片、趋势图、导出选项等区域正常渲染，无额外提示"
+          "content": "数据加载成功并正常展示"
         },
         {
           "state": "error",
-          "content": "网络错误或接口异常，显示错误提示信息“加载失败，请重试”和重试按钮，数据区域保留上次成功缓存或清空"
+          "content": "网络错误或接口异常，显示错误提示信息和重试按钮"
         }
       ],
       "keyInteractions": [
-        "筛选查询：点击“查询”按钮或任意筛选条件变更后自动查询，所有数据区域显示加载态，数据返回后更新显示，若出错显示错误提示",
-        "点击指标卡片：鼠标点击任意指标卡片，跳转至对应的明细数据详情页，并携带当前所有筛选条件作为参数",
-        "切换趋势图指标：趋势图指标下拉框选项变更，趋势图重新加载对应指标的数据，显示加载态后更新图表",
-        "切换趋势图粒度：趋势图粒度下拉框选项变更，趋势图重新加载对应粒度的数据，显示加载态后更新图表",
-        "点击趋势图数据点：鼠标点击趋势图上的数据点，跳转至该时间点的明细数据列表页，携带当前筛选条件及选中的时间点",
-        "导出报表：点击“导出Excel”或“导出PDF”按钮，若导出范围未选择则提示选择，随后显示导出进度，完成后提供下载链接或自动下载，失败显示错误原因",
-        "重试加载：在异常态下点击“重试”按钮，重新触发当前页面的所有数据加载请求"
+        "筛选查询：点击“查询”按钮或筛选条件变更后自动查询",
+        "点击指标卡片：鼠标点击任意指标卡片，跳转至对应的明细数据详情页",
+        "切换趋势图指标：趋势图指标下拉框选项变更，重新加载图表",
+        "切换趋势图粒度：趋势图粒度下拉框选项变更，重新加载图表",
+        "点击趋势图数据点：鼠标点击趋势图上的数据点，跳转至明细列表页",
+        "导出报表：点击“导出Excel”或“导出PDF”按钮，触发导出流程",
+        "重试加载：在异常态下点击“重试”按钮，重新加载所有数据"
       ]
     },
     {
       "file": "ReportDetailView.vue",
       "layoutZones": [
         {
-          "zone": "页面顶部面包屑导航及返回概览按钮",
+          "zone": "面包屑导航及返回概览",
           "content": "页面顶部面包屑导航及返回概览按钮"
         },
         {
-          "zone": "当前筛选条件标签（显示继承自概览页的筛选条件，可微调）",
+          "zone": "筛选条件标签",
           "content": "当前筛选条件标签（显示继承自概览页的筛选条件，可微调）"
         },
         {
-          "zone": "明细类型标签页（外协费用明细/异常入场记录/排班排队分析）",
+          "zone": "明细类型标签页",
           "content": "明细类型标签页（外协费用明细/异常入场记录/排班排队分析）"
         },
         {
-          "zone": "表格区（含搜索框、排序箭头、分页控制器）",
+          "zone": "表格区",
           "content": "表格区（含搜索框、排序箭头、分页控制器）"
         },
         {
-          "zone": "导出当前明细按钮",
+          "zone": "导出按钮",
           "content": "导出当前明细按钮"
         }
       ],
@@ -797,32 +794,33 @@
         }
       ],
       "keyInteractions": [
-        "切换明细类型：点击明细类型标签页，刷新表格数据，重置搜索和排序状态，更新URL参数或本地状态",
+        "切换明细类型：点击明细类型标签页，刷新表格数据，重置搜索和排序状态",
         "搜索：在搜索框中输入关键字后按回车或点击搜索图标，根据关键字过滤表格数据，重新查询并更新分页",
         "排序：点击列头排序箭头，切换升序/降序，重新排序表格数据，保留当前搜索和分页",
         "分页：点击分页控件页码或上一页/下一页，加载新页码的数据，保持当前筛选和排序条件",
         "导出：点击“导出当前明细”按钮，弹出导出确认或直接下载导出文件（CSV/Excel），提示导出进度",
         "返回概览：点击面包屑导航中的概览层级或“返回概览”按钮，返回概览工作台页面，保留筛选条件",
         "微调筛选条件：点击筛选条件标签旁的编辑或直接在筛选区域修改，更新筛选条件，重新加载表格数据"
-      ]
+      ],
+      "revisionNote": "根据用户要求将页面规格转换为新结构：layoutZones, uiStates, keyInteractions"
     },
     {
       "file": "WorkspaceView.vue",
       "layoutZones": [
         {
-          "zone": "顶部筛选与排序栏（车辆类型、作业区域、申请日期、紧急度排序）",
+          "zone": "顶部筛选与排序栏",
           "content": "顶部筛选与排序栏（车辆类型、作业区域、申请日期、紧急度排序）"
         },
         {
-          "zone": "左侧待办申请列表区（状态标签、超时标识、关键字段摘要）",
+          "zone": "左侧待办申请列表区",
           "content": "左侧待办申请列表区（状态标签、超时标识、关键字段摘要）"
         },
         {
-          "zone": "右侧详情与操作区（表单详情、车辆档案校验结果、通过/驳回按钮、审批意见输入框、授权码生成与同步状态反馈）",
+          "zone": "右侧详情与操作区",
           "content": "右侧详情与操作区（表单详情、车辆档案校验结果、通过/驳回按钮、审批意见输入框、授权码生成与同步状态反馈）"
         },
         {
-          "zone": "底部操作日志快照（审批记录）",
+          "zone": "底部操作日志快照",
           "content": "底部操作日志快照（审批记录）"
         }
       ],
@@ -849,27 +847,28 @@
         }
       ],
       "keyInteractions": [
-        "点击列表项：用户点击待办列表中某一条申请，右侧详情面板加载该申请的完整信息，包括车辆档案校验结果",
-        "筛选条件变更：用户修改任意筛选条件（车辆类型、作业区域、申请日期、排序方式、车牌搜索），重新请求待办列表，更新列表数据，若请求失败显示错误状态",
-        "通过审批：用户点击「通过」按钮，弹出二次确认对话框（若车辆证照过期则强制确认），确认后调用审批通过接口，成功后显示授权码和同步状态，若失败显示错误提示",
-        "驳回审批：用户点击「驳回」按钮，弹出原因输入框（必填），提交后调用审批驳回接口，成功后刷新列表并关闭详情面板",
-        "重新同步授权码：用户点击「重新同步」按钮，调用授权码同步接口，更新同步状态显示",
-        "手动刷新列表：用户点击刷新按钮或下拉刷新，重新请求待办列表，显示加载态"
-      ]
+        "点击列表项：右侧详情面板加载该申请的完整信息，包括车辆档案校验结果",
+        "筛选条件变更：修改筛选条件后重新请求待办列表，更新列表数据，失败显示错误状态",
+        "通过审批：点击「通过」按钮，弹出二次确认对话框（若车辆证照过期则强制确认），确认后调用审批通过接口，成功后显示授权码和同步状态，失败显示错误提示",
+        "驳回审批：点击「驳回」按钮，弹出原因输入框（必填），提交后调用审批驳回接口，成功后刷新列表并关闭详情面板",
+        "重新同步授权码：点击「重新同步」按钮，调用授权码同步接口，更新同步状态显示",
+        "手动刷新列表：点击刷新按钮或下拉刷新，重新请求待办列表，显示加载态"
+      ],
+      "revisionNote": "根据用户要求将页面规格转换为新结构：layoutZones, uiStates, keyInteractions"
     },
     {
       "file": "AccessCodeView.vue",
       "layoutZones": [
         {
-          "zone": "顶部状态筛选栏（全部|同步成功|同步失败|待同步|已过期|已使用）",
+          "zone": "顶部状态筛选栏",
           "content": "顶部状态筛选栏（全部|同步成功|同步失败|待同步|已过期|已使用）"
         },
         {
-          "zone": "授权码列表区（车牌号、授权码、有效期、同步状态、使用时间、门岗信息）",
+          "zone": "授权码列表区",
           "content": "授权码列表区（车牌号、授权码、有效期、同步状态、使用时间、门岗信息）"
         },
         {
-          "zone": "单条记录展开详情（同步日志、重试按钮）",
+          "zone": "单条记录展开详情",
           "content": "单条记录展开详情（同步日志、重试按钮）"
         }
       ],
@@ -893,28 +892,29 @@
       ],
       "keyInteractions": [
         "切换状态筛选标签：点击状态筛选标签，切换列表数据，高亮选中标签",
-        "查看授权码详情：点击单条记录行或展开按钮，展开该记录详情区域，显示同步日志（失败原因）和重试按钮",
-        "重新同步：点击重新同步按钮，按钮显示加载状态，请求POST /api/access-codes/{id}/resync，成功后刷新列表对应记录状态，失败提示错误信息",
+        "查看授权码详情：点击单条记录行或展开按钮，展开详情区域显示同步日志和重试按钮",
+        "重新同步：点击重新同步按钮，按钮加载状态，请求重新同步接口，成功后刷新列表对应记录状态，失败提示错误信息",
         "搜索车牌号：输入回车或点击搜索图标，根据关键字重新加载列表数据"
-      ]
+      ],
+      "revisionNote": "根据用户要求将页面规格转换为新结构：layoutZones, uiStates, keyInteractions"
     },
     {
       "file": "HistoryView.vue",
       "layoutZones": [
         {
-          "zone": "顶部筛选栏",
-          "content": "多条件筛选：时间范围、车辆、所属单位、作业区域、审批状态"
+          "zone": "筛选栏",
+          "content": "顶部多条件筛选栏（时间范围、车辆、所属单位、作业区域、审批状态）"
         },
         {
           "zone": "历史记录列表",
-          "content": "倒序展示历史预约记录，显示审批状态、授权码、入场/出场时间、费用"
+          "content": "历史记录列表区（倒序展示，显示审批状态、授权码、入场/出场时间、费用）"
         },
         {
-          "zone": "详情展开/弹窗",
-          "content": "单条记录展开详情或弹窗，展示完整操作日志和费用明细"
+          "zone": "详情弹窗",
+          "content": "单条记录展开详情或弹窗（完整操作日志、费用明细）"
         },
         {
-          "zone": "导出区域",
+          "zone": "导出按钮",
           "content": "导出按钮及导出进度提示"
         }
       ],
@@ -925,7 +925,7 @@
         },
         {
           "state": "loading",
-          "content": "列表数据加载中，显示加载态"
+          "content": "列表数据加载中"
         },
         {
           "state": "success",
@@ -937,10 +937,10 @@
         }
       ],
       "keyInteractions": [
-        "筛选条件变更：自动发起请求获取新列表，显示加载态",
-        "查看详情：打开详情弹窗，展示操作日志时间线和费用明细",
-        "导出Excel：确认后开始生成，显示进度条，完成后自动下载",
-        "分页：跳转目标页码，重新请求数据并更新列表"
+        "筛选条件变更时自动发起请求获取新列表，显示加载态",
+        "点击查看详情打开详情弹窗，展示操作日志时间线和费用明细",
+        "点击导出Excel确认后开始生成，显示进度条，完成后自动下载",
+        "点击分页跳转目标页码，重新请求数据并更新列表"
       ]
     },
     {
@@ -948,23 +948,23 @@
       "layoutZones": [
         {
           "zone": "顶部操作栏",
-          "content": "新增车辆按钮、导出按钮、批量停用/启用按钮（可选）"
+          "content": "顶部操作栏：新增车辆按钮、导出按钮、批量停用/启用（可选）"
         },
         {
           "zone": "筛选区",
-          "content": "车辆类型、所属单位、车辆状态、有效期状态下拉框；车牌号/司机姓名搜索框"
+          "content": "筛选区：车辆类型、所属单位、车辆状态、有效期状态下拉框；车牌号/司机姓名搜索框"
         },
         {
-          "zone": "到期提醒横幅/面板",
-          "content": "展示临近30天到期的车辆条目列表，含车辆、到期类型、剩余天数，可点击跳转编辑页"
+          "zone": "到期提醒横幅",
+          "content": "到期提醒横幅/面板：展示临近30天到期的车辆条目列表（车辆、到期类型、剩余天数），可点击跳转编辑页"
         },
         {
           "zone": "车辆列表主体",
-          "content": "展示车牌号、车辆类型、所属单位、司机、有效期状态、车辆状态；每行包含『编辑』、『停用/启用』按钮"
+          "content": "车辆列表主体：展示车牌号、车辆类型、所属单位、司机、有效期状态、车辆状态；每行包含『编辑』、『停用/启用』按钮"
         },
         {
           "zone": "分页控件",
-          "content": "分页组件，支持页码切换"
+          "content": "分页控件"
         }
       ],
       "uiStates": [
@@ -986,16 +986,16 @@
         }
       ],
       "keyInteractions": [
-        "新增车辆：点击顶部操作栏『新增车辆』按钮，跳转至新增车辆页面",
-        "导出：点击顶部操作栏『导出』按钮，导出当前筛选结果或全部列表为Excel文件",
-        "批量停用：点击顶部操作栏『批量停用』按钮（可选功能），弹出批量停用弹窗，选择车辆并填写停用原因后提交",
-        "批量启用：点击顶部操作栏『批量启用』按钮（可选功能），弹出确认弹窗，确认后批量启用",
-        "搜索：在搜索框输入后按回车或点击搜索图标，触发防抖（300ms）后请求接口刷新列表",
-        "筛选变化：任一筛选下拉框值变化，即时触发防抖请求刷新列表",
-        "点击到期提醒条目：点击到期提醒横幅/面板中的车辆条目，跳转至对应车辆编辑页并自动定位至有效期设置区域",
-        "停用车辆：点击列表行内『停用』按钮，弹出确认弹窗，要求填写停用原因（必填），提交后刷新列表并更新提醒区域",
-        "启用车辆：点击列表行内『启用』按钮，弹出确认弹窗（无需原因），确认后刷新列表",
-        "编辑车辆：点击列表行内『编辑』按钮，跳转至对应车辆编辑页"
+        "点击顶部操作栏『新增车辆』按钮跳转至新增车辆页面",
+        "点击顶部操作栏『导出』按钮导出当前筛选结果或全部列表为Excel文件",
+        "点击顶部操作栏『批量停用』按钮弹出批量停用弹窗，选择车辆并填写停用原因后提交",
+        "点击顶部操作栏『批量启用』按钮弹出确认弹窗，确认后批量启用",
+        "在搜索框输入后按回车或点击搜索图标触发防抖（300ms）后请求接口刷新列表",
+        "任一筛选下拉框值变化时即时触发防抖请求刷新列表",
+        "点击到期提醒横幅/面板中的车辆条目跳转至对应车辆编辑页并自动定位至有效期设置区域",
+        "点击列表行内『停用』按钮弹出确认弹窗，要求填写停用原因（必填），提交后刷新列表并更新提醒区域",
+        "点击列表行内『启用』按钮弹出确认弹窗（无需原因），确认后刷新列表",
+        "点击列表行内『编辑』按钮跳转至对应车辆编辑页"
       ]
     },
     {
@@ -1003,27 +1003,27 @@
       "layoutZones": [
         {
           "zone": "页面标题",
-          "content": "『新增车辆』或『编辑车辆 - 车牌号』"
+          "content": "页面标题：『新增车辆』或『编辑车辆 - 车牌号』"
         },
         {
           "zone": "基本信息区",
-          "content": "车辆类型（下拉）、车牌号（文本输入）、所属单位（下拉）、司机姓名、司机电话"
+          "content": "基本信息区：车辆类型（下拉）、车牌号（文本输入）、所属单位（下拉）、司机姓名、司机电话"
         },
         {
           "zone": "有效期设置区",
-          "content": "年检有效期、保险有效期、准入有效期三个日期选择器（可单独清除）"
+          "content": "有效期设置区：年检有效期、保险有效期、准入有效期三个日期选择器（可单独清除）"
         },
         {
           "zone": "证照图片管理区",
-          "content": "列表展示已有证照（类型、缩略图）；操作按钮『上传』、『预览』、『替换』、『删除』；支持拖拽排序（可选）"
+          "content": "证照图片管理区：列表展示已有证照（类型、缩略图）；操作按钮『上传』、『预览』、『替换』、『删除』；支持拖拽排序（可选）"
         },
         {
           "zone": "操作按钮区",
-          "content": "『保存』、『取消』按钮；保存时触发完整校验"
+          "content": "操作按钮区：『保存』、『取消』；保存时触发完整校验"
         },
         {
           "zone": "操作日志摘要区",
-          "content": "只读显示该车辆最近操作日志的简要列表（可选，不超过4条），点击可跳转到操作日志页"
+          "content": "操作日志摘要区（只读）：显示该车辆最近操作日志的简要列表（可选，不超过4条），点击可跳转到操作日志页"
         }
       ],
       "uiStates": [
@@ -1045,13 +1045,13 @@
         }
       ],
       "keyInteractions": [
-        "保存：点击保存按钮，执行完整校验（必填字段不能为空，日期不能早于当天）；校验通过后显示提交loading，成功后跳转到列表页并刷新；失败时显示错误信息并保留输入",
-        "取消：点击取消按钮，返回上一页（列表页），如果表单有未保存修改，弹出确认提示",
-        "上传证照：点击上传按钮，弹出文件选择器，选择图片后自动上传并显示缩略图，同时要求选择证照类型",
-        "预览证照：点击预览按钮（或图片缩略图），弹出预览弹窗，可放大查看证照图片",
-        "替换证照：点击替换按钮，弹出文件选择器，选择新图片后上传并替换旧图，旧图标记为历史版本，并记录操作日志",
-        "删除证照：点击删除按钮，弹出确认弹窗，确认后删除图片并记录操作日志，缩略图移除",
-        "查看操作日志：点击操作日志摘要区的日志条目，跳转到操作日志详情页，显示该车辆的所有操作日志"
+        "点击保存按钮执行完整校验，必填字段不能为空，日期不能早于当天；校验通过后显示提交loading，成功后跳转到列表页并刷新；失败时显示错误信息并保留输入",
+        "点击取消按钮返回上一页（列表页），如果表单有未保存修改，弹出确认提示",
+        "点击上传按钮弹出文件选择器，选择图片后自动上传并显示缩略图，同时要求选择证照类型",
+        "点击预览按钮（或图片缩略图）弹出预览弹窗，可放大查看证照图片",
+        "点击替换按钮弹出文件选择器，选择新图片后上传并替换旧图，旧图标记为历史版本，并记录操作日志",
+        "点击删除按钮弹出确认弹窗，确认后删除图片并记录操作日志，缩略图移除",
+        "点击操作日志摘要区的日志条目跳转到操作日志详情页，显示该车辆的所有操作日志"
       ]
     },
     {
@@ -1059,42 +1059,42 @@
       "layoutZones": [
         {
           "zone": "筛选区",
-          "content": "包含时间范围（日期选择器）、操作人（下拉或输入）、操作类型（多选下拉）、关联车辆（车牌号输入/选择）"
+          "content": "时间范围（日期选择器）、操作人（下拉或输入）、操作类型（多选下拉）、关联车辆（车牌号输入/选择）"
         },
         {
-          "zone": "日志列表区",
-          "content": "展示操作日志表格，包括时间、操作人、操作类型、关联车辆、修改内容摘要；每行可展开显示详情"
+          "zone": "日志列表",
+          "content": "展示时间、操作人、操作类型、关联车辆、修改内容摘要，点击行可展开详情"
         },
         {
-          "zone": "操作区",
-          "content": "包含导出Excel按钮，位于列表上方或右侧"
+          "zone": "导出按钮",
+          "content": "点击后导出当前筛选条件下的日志为Excel文件"
         },
         {
-          "zone": "分页区",
-          "content": "位于列表底部，支持页码跳转和每页条数设置"
+          "zone": "分页控件",
+          "content": "分页控件"
         }
       ],
       "uiStates": [
         {
           "state": "empty",
-          "content": "列表区域显示“暂无操作记录”空白提示"
+          "content": "暂无操作记录"
         },
         {
           "state": "loading",
-          "content": "查询或导出时显示加载动画（如骨架屏或旋转图标），禁用交互按钮"
+          "content": "查询或导出进行中，显示加载动画"
         },
         {
           "state": "success",
-          "content": "导出成功时弹出成功提示并下载文件；查询成功时正常显示列表"
+          "content": "操作成功"
         },
         {
           "state": "error",
-          "content": "查询失败或导出失败时在页面顶部或弹窗展示错误提示信息"
+          "content": "查询失败或导出失败时展示错误提示"
         }
       ],
       "keyInteractions": [
-        "点击导出按钮，若筛选结果超过10万条则弹出提示要求缩小范围，否则发起POST请求并显示loading，完成后提示成功或失败",
-        "点击日志行，该行下方展开区域显示修改内容的前后JSON对比（before/after）"
+        "点击导出按钮：当筛选结果条数超过最大限制（默认10万）时弹出提示要求缩小范围；否则发起POST /api/vehicles/logs/export请求并显示loading，导出完成后根据结果提示成功或失败",
+        "点击日志行：展开该行下方详细区域，展示修改内容的前后JSON对比（before/after）"
       ]
     }
   ],
@@ -1105,12 +1105,17 @@
         {
           "method": "POST",
           "path": "/api/v1/tasks/dispatch",
-          "usage": "调度员在地图或看板上确认派车时，提交派车请求生成任务并通知司机"
+          "usage": "调度员在派车操作时提交派车请求"
+        },
+        {
+          "method": "GET",
+          "path": "/api/alerts/realtime",
+          "usage": "页面加载时获取实时告警与司机反馈数据以更新告警面板"
         },
         {
           "method": "POST",
-          "path": "/api/tasks/adjustment",
-          "usage": "调度员对已派发任务进行改派、取消或加派时，提交调整请求并记录操作日志"
+          "path": "/api/v1/tasks/adjustment",
+          "usage": "调度员在需要改派、取消或加派任务时提交调整"
         }
       ]
     },
@@ -1118,19 +1123,19 @@
       "page": "AlertAndTaskMonitorView.vue",
       "apis": [
         {
-          "method": "POST",
-          "path": "/api/v1/alerts/handle",
-          "usage": "监控人员对实时告警进行确认、忽略或转人工处理时，更新告警状态并记录备注"
-        },
-        {
           "method": "GET",
           "path": "/api/alerts/realtime",
-          "usage": "页面加载时或定时刷新，获取当前车辆异常告警和司机反馈列表，支撑告警面板和任务监控"
+          "usage": "页面加载及定时刷新时获取实时告警与任务进度数据"
         },
         {
           "method": "POST",
-          "path": "/api/tasks/adjustment",
-          "usage": "监控人员根据任务执行情况对异常任务进行改派或取消等干预操作"
+          "path": "/api/v1/alerts/handle",
+          "usage": "管理员对告警进行确认、忽略或转人工处理时提交"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/tasks/adjustment",
+          "usage": "在处理异常或干预任务执行时提交任务调整"
         }
       ]
     },
@@ -1140,7 +1145,7 @@
         {
           "method": "GET",
           "path": "/api/driver/tasks",
-          "usage": "司机进入任务列表页时，按状态筛选获取当前登录司机的任务列表，展示待接单、进行中、已完成任务"
+          "usage": "司机进入任务列表页时根据状态筛选获取待接单、进行中、已完成任务"
         }
       ]
     },
@@ -1150,12 +1155,7 @@
         {
           "method": "POST",
           "path": "/api/driver/tasks/{taskId}/complete",
-          "usage": "司机到达作业点完成任务时，上传现场照片并提交完成确认，触发后续同步"
-        },
-        {
-          "method": "POST",
-          "path": "/api/tasks/adjustment",
-          "usage": "司机在执行过程中遇到异常情况时，发起异常反馈或请求任务调整"
+          "usage": "司机到达作业点、完成作业后上传照片并点击完成按钮时调用"
         }
       ]
     },
@@ -1165,17 +1165,12 @@
         {
           "method": "GET",
           "path": "/api/alerts/realtime",
-          "usage": "移动端页面打开时或定时刷新，获取实时告警和司机反馈消息，支撑告警及时响应"
+          "usage": "页面加载时获取实时异常告警与司机反馈列表"
         },
         {
           "method": "POST",
-          "path": "/api/tasks/adjustment",
-          "usage": "移动端调度员对异常任务进行快速改派、加派或取消操作"
-        },
-        {
-          "method": "POST",
-          "path": "/api/v1/tasks/dispatch",
-          "usage": "移动端调度员在收到用车需求后，直接发起派车操作并通知司机"
+          "path": "/api/v1/tasks/adjustment",
+          "usage": "调度员在移动端发起改派、取消等任务调整时提交"
         }
       ]
     },
@@ -1185,7 +1180,7 @@
         {
           "method": "POST",
           "path": "/api/tasks/adjustment",
-          "usage": "在点击提交调整操作（改派、取消或新增临时任务）并填写异常处理记录后，调用该接口将调整内容和异常处理记录一并提交。"
+          "usage": "当用户提交任务调整（含改派、取消或加派）及异常处理记录时调用"
         }
       ]
     },
@@ -1195,7 +1190,7 @@
         {
           "method": "POST",
           "path": "/api/gate/vehicle-action",
-          "usage": "门岗人员在核验车辆后，点击放行或拒绝按钮时调用此接口执行入场操作，并触发相应的道闸控制或拒绝记录生成。"
+          "usage": "当门岗人员对指定车辆执行放行或拒绝入场操作时调用"
         }
       ]
     },
@@ -1205,7 +1200,7 @@
         {
           "method": "GET",
           "path": "/api/gate/entry-records",
-          "usage": "页面加载或切换筛选条件时，调用此接口获取历史入场处理记录列表，用于展示入场记录表格并支持后续手动重新同步操作。"
+          "usage": "当用户加载历史入场处理记录列表，或根据条件筛选记录时调用"
         }
       ]
     },
@@ -1215,7 +1210,7 @@
         {
           "method": "GET",
           "path": "/api/reports/overview",
-          "usage": "页面初始化或筛选条件变更时，调用此接口获取运营报表概览数据，包括指标卡片和趋势图数据，用于渲染概览工作台。"
+          "usage": "当用户进入运营报表概览页，或切换筛选条件刷新指标卡片和趋势图时调用"
         }
       ]
     },
@@ -1225,7 +1220,7 @@
         {
           "method": "GET",
           "path": "/api/reports/detail",
-          "usage": "页面加载或用户切换明细类型、调整筛选条件、搜索、排序、分页时，调用此接口获取当前明细表格数据，用于展示和导出。"
+          "usage": "当用户从概览下钻进入明细页，或输入搜索条件、切换分页排序时调用"
         }
       ]
     },
@@ -1235,12 +1230,7 @@
         {
           "method": "POST",
           "path": "/api/reservations/{id}/approve",
-          "usage": "审批人员点击通过按钮时调用，提交审批通过请求，系统生成授权码并触发门禁同步"
-        },
-        {
-          "method": "GET",
-          "path": "/api/access-codes",
-          "usage": "在审批通过后或手动刷新时调用，用于监控授权码同步状态"
+          "usage": "审批人在待办列表点击“通过”按钮时调用，批准预约申请并触发授权码生成与门禁同步"
         }
       ]
     },
@@ -1250,7 +1240,7 @@
         {
           "method": "GET",
           "path": "/api/access-codes",
-          "usage": "页面加载时调用，分页查询所有授权码列表，支持按同步状态筛选和车牌号搜索；手动刷新时也调用"
+          "usage": "页面加载时调用，分页获取授权码列表，支持按同步状态筛选和车牌号搜索；后续操作如同步失败后刷新列表时也调用"
         }
       ]
     },
@@ -1260,7 +1250,12 @@
         {
           "method": "GET",
           "path": "/api/reservations/history",
-          "usage": "页面加载时以及点击查询按钮时调用，根据筛选条件分页查询历史预约记录，用于列表展示和导出"
+          "usage": "页面加载时根据筛选条件分页查询历史预约记录，展示列表；点击搜索、切换页时重新调用"
+        },
+        {
+          "method": "GET",
+          "path": "/api/reports/detail",
+          "usage": "用户在费用统计对账模块查看明细或导出时调用，获取按时间范围等筛选的详细费用数据"
         }
       ]
     },
@@ -1270,17 +1265,12 @@
         {
           "method": "GET",
           "path": "/api/vehicles",
-          "usage": "页面加载时调用，获取车辆档案列表，支持筛选、搜索和分页；停用/启用操作后刷新列表"
-        },
-        {
-          "method": "POST",
-          "path": "/api/vehicles",
-          "usage": "当管理员执行停用或启用操作时，调用此接口更新车辆状态字段（如启用/停用）"
+          "usage": "页面加载时获取车辆档案列表，支持多维度筛选与搜索；用户执行停用/启用操作后刷新列表时也调用"
         },
         {
           "method": "GET",
           "path": "/api/vehicles/logs",
-          "usage": "在查看操作记录或接收到期提醒时，调用此接口获取车辆相关操作日志"
+          "usage": "管理员查看某车辆的操作日志时调用，获取该车辆相关的变更记录"
         }
       ]
     },
@@ -1288,14 +1278,9 @@
       "page": "VehicleArchiveEdit.vue",
       "apis": [
         {
-          "method": "GET",
-          "path": "/api/vehicles",
-          "usage": "编辑模式下打开页面时，根据车牌或ID筛选获取该车辆现有档案信息用于回显"
-        },
-        {
           "method": "POST",
           "path": "/api/vehicles",
-          "usage": "点击保存按钮时调用，新增或更新车辆档案信息，包括证照图片上传和有效期设置"
+          "usage": "管理员新增车辆或保存编辑后的车辆档案时调用，提交基础信息及证照数据，新建时也可用于回填已有数据（需配合GET）"
         }
       ]
     },
@@ -1304,16 +1289,21 @@
       "apis": [
         {
           "method": "GET",
+          "path": "/api/vehicles",
+          "usage": "用于加载车辆列表供用户选择筛选条件中的车辆"
+        },
+        {
+          "method": "GET",
           "path": "/api/vehicles/logs",
-          "usage": "页面加载时，根据筛选条件分页查询操作日志列表"
+          "usage": "页面加载时查询操作日志列表，支持分页和筛选条件；导出时获取全量数据"
         }
       ]
     }
   ],
   "navigationRoutes": [
     {
-      "group": "调度指挥",
-      "icon": "🚦",
+      "group": "调度与任务",
+      "icon": "🚗",
       "routes": [
         {
           "path": "/dispatch/workbench",
@@ -1322,7 +1312,7 @@
           "default": true
         },
         {
-          "path": "/dispatch/monitor",
+          "path": "/dispatch/alert-monitor",
           "component": "AlertAndTaskMonitorView.vue",
           "title": "告警与任务监控",
           "default": false
@@ -1338,21 +1328,15 @@
           "component": "TaskAdjustView.vue",
           "title": "任务调整",
           "default": false
-        }
-      ]
-    },
-    {
-      "group": "任务执行",
-      "icon": "🚚",
-      "routes": [
-        {
-          "path": "/task/list",
-          "component": "DriverTaskListView.vue",
-          "title": "司机任务列表",
-          "default": true
         },
         {
-          "path": "/task/execute",
+          "path": "/dispatch/driver-tasks",
+          "component": "DriverTaskListView.vue",
+          "title": "司机任务列表",
+          "default": false
+        },
+        {
+          "path": "/dispatch/driver-execute",
           "component": "DriverTaskExecuteView.vue",
           "title": "任务执行",
           "default": false
@@ -1360,13 +1344,13 @@
       ]
     },
     {
-      "group": "场地管理",
-      "icon": "🏢",
+      "group": "门禁管理",
+      "icon": "🚧",
       "routes": [
         {
           "path": "/gate/access-check",
           "component": "GateAccessCheckView.vue",
-          "title": "门岗核验",
+          "title": "门禁核验",
           "default": true
         },
         {
@@ -1382,57 +1366,63 @@
       "icon": "📋",
       "routes": [
         {
-          "path": "/external/workspace",
+          "path": "/outsource/workspace",
           "component": "WorkspaceView.vue",
           "title": "预约工作台",
           "default": true
         },
         {
-          "path": "/external/access-code",
+          "path": "/outsource/access-code",
           "component": "AccessCodeView.vue",
           "title": "授权码管理",
           "default": false
         },
         {
-          "path": "/external/history",
+          "path": "/outsource/history",
           "component": "HistoryView.vue",
-          "title": "历史记录",
+          "title": "预约历史",
           "default": false
         }
       ]
     },
     {
-      "group": "综合管理",
-      "icon": "📊",
+      "group": "车辆档案",
+      "icon": "📁",
       "routes": [
         {
-          "path": "/management/reports",
-          "component": "ManagementReportsView.vue",
-          "title": "运营报表",
+          "path": "/vehicle/archive-list",
+          "component": "VehicleArchiveList.vue",
+          "title": "车辆档案列表",
           "default": true
         },
         {
-          "path": "/management/report-detail",
-          "component": "ReportDetailView.vue",
-          "title": "报表详情",
-          "default": false
-        },
-        {
-          "path": "/management/vehicle-archive",
-          "component": "VehicleArchiveList.vue",
-          "title": "车辆档案列表",
-          "default": false
-        },
-        {
-          "path": "/management/vehicle-archive/edit",
+          "path": "/vehicle/archive-edit",
           "component": "VehicleArchiveEdit.vue",
           "title": "车辆档案编辑",
           "default": false
         },
         {
-          "path": "/management/vehicle-archive/logs",
+          "path": "/vehicle/archive-logs",
           "component": "VehicleArchiveLogs.vue",
           "title": "档案操作日志",
+          "default": false
+        }
+      ]
+    },
+    {
+      "group": "报表与统计",
+      "icon": "📊",
+      "routes": [
+        {
+          "path": "/report/management",
+          "component": "ManagementReportsView.vue",
+          "title": "管理报表",
+          "default": true
+        },
+        {
+          "path": "/report/detail",
+          "component": "ReportDetailView.vue",
+          "title": "报表明细",
           "default": false
         }
       ]
@@ -1441,118 +1431,95 @@
   "componentFiles": [
     {
       "file": "StatusTag.vue",
-      "responsibility": "显示不同状态的颜色标签，支持自定义颜色和文本",
+      "responsibility": "根据状态类型和值显示不同颜色的标签，如任务状态、同步状态、告警严重程度等。",
       "reusedBy": [
         "DispatchWorkbenchView.vue",
         "AlertAndTaskMonitorView.vue",
         "DriverTaskListView.vue",
+        "DriverTaskExecuteView.vue",
+        "MobileDispatchView.vue",
+        "GateAccessCheckView.vue",
         "GateEntryRecordsView.vue",
         "WorkspaceView.vue",
         "AccessCodeView.vue",
         "HistoryView.vue",
-        "VehicleArchiveList.vue"
+        "VehicleArchiveList.vue",
+        "VehicleArchiveEdit.vue",
+        "VehicleArchiveLogs.vue"
       ],
       "props": [
         {
-          "name": "status",
-          "type": "String",
+          "name": "statusType",
+          "type": "string",
           "required": true,
-          "default": "",
-          "description": "状态标识，用于关联预设的颜色映射，如'空闲'、'任务中'、'成功'、'失败'等"
+          "default": "default",
+          "description": "状态分类，如'taskStatus','syncStatus','alertSeverity','vehicleStatus'等，用于映射颜色方案。"
         },
         {
-          "name": "text",
-          "type": "String",
-          "required": false,
+          "name": "statusValue",
+          "type": "string",
+          "required": true,
           "default": "",
-          "description": "显示的标签文本，如果未设置则使用 status 值"
+          "description": "具体状态值，如'待接单','同步成功','超速','启用'等。"
         },
         {
           "name": "size",
-          "type": "String",
+          "type": "string",
           "required": false,
-          "default": "default",
-          "description": "标签尺寸，可选 'small'、'default'、'large'"
-        },
-        {
-          "name": "customClass",
-          "type": "String",
-          "required": false,
-          "default": "",
-          "description": "自定义 CSS 类名，用于覆盖默认样式"
+          "default": "medium",
+          "description": "标签尺寸：'small','medium','large'。"
         }
       ],
       "events": [],
       "slots": []
     },
     {
-      "file": "DataFilterBar.vue",
-      "responsibility": "提供筛选条件的组合区域，包含时间范围选择器、下拉选择器、搜索输入框等，支持自定义筛选项",
+      "file": "FilterBar.vue",
+      "responsibility": "统一定义筛选条件集合，根据传入的配置生成对应的筛选控件（下拉、日期、输入框等），筛选变更时统一触发change事件。",
       "reusedBy": [
+        "DriverTaskListView.vue",
+        "GateEntryRecordsView.vue",
         "ManagementReportsView.vue",
         "ReportDetailView.vue",
+        "WorkspaceView.vue",
+        "AccessCodeView.vue",
         "HistoryView.vue",
         "VehicleArchiveList.vue",
-        "VehicleArchiveLogs.vue",
-        "GateEntryRecordsView.vue"
+        "VehicleArchiveLogs.vue"
       ],
       "props": [
         {
           "name": "filters",
-          "type": "Array",
+          "type": "array",
           "required": true,
           "default": "[]",
-          "description": "筛选配置项数组，每个项包含 { type: 'dateRange'|'select'|'input', label, key, options(select类型), placeholder }"
+          "description": "筛选字段配置数组，每个元素包含：{id,label,type:'select'|'date'|'text'|'cascader',options?:[],value?:any}。"
         },
         {
           "name": "modelValue",
-          "type": "Object",
-          "required": true,
+          "type": "object",
+          "required": false,
           "default": "{}",
-          "description": "当前筛选值对象，键为 filter key，值为选中的值"
-        },
-        {
-          "name": "showSearchButton",
-          "type": "Boolean",
-          "required": false,
-          "default": true,
-          "description": "是否显示查询按钮，若为 false 则自动触发查询（防抖）"
-        },
-        {
-          "name": "autoSearchDelay",
-          "type": "Number",
-          "required": false,
-          "default": 300,
-          "description": "自动触发查询的防抖延迟毫秒数"
+          "description": "当前筛选条件的值对象，支持v-model。"
         }
       ],
       "events": [
         {
           "name": "update:modelValue",
-          "payload": "Object 新的筛选值对象",
-          "description": "当任何筛选字段值变化时触发，传递更新后的筛选值对象"
-        },
-        {
-          "name": "search",
-          "payload": "Object 当前筛选值对象",
-          "description": "用户点击查询按钮或自动触发搜索时发出，传递当前筛选值"
-        },
-        {
-          "name": "reset",
-          "payload": "",
-          "description": "用户点击重置按钮时发出，清空所有筛选条件"
+          "payload": "object",
+          "description": "任一筛选条件变化时触发，携带当前所有筛选值的对象。"
         }
       ],
       "slots": [
         {
           "name": "extra",
-          "description": "用于在筛选栏末尾插入额外操作按钮或自定义内容"
+          "description": "在筛选栏末尾插入额外操作按钮的区域。"
         }
       ]
     },
     {
       "file": "DataTable.vue",
-      "responsibility": "通用数据表格组件，支持列配置、排序、分页、搜索、展开行、自定义插槽",
+      "responsibility": "通用表格/列表组件，支持自定义列渲染、排序、行点击、展开详情、空/加载/错误状态。",
       "reusedBy": [
         "AlertAndTaskMonitorView.vue",
         "GateEntryRecordsView.vue",
@@ -1566,174 +1533,233 @@
       "props": [
         {
           "name": "columns",
-          "type": "Array",
+          "type": "array",
           "required": true,
           "default": "[]",
-          "description": "列定义数组，每项包含 { key, title, sortable, width, align, customRender }"
+          "description": "列定义数组，每个元素：{key,label,width?,sortable?,slotName?}。"
         },
         {
           "name": "data",
-          "type": "Array",
+          "type": "array",
           "required": true,
           "default": "[]",
-          "description": "表格数据数组"
+          "description": "表格数据数组。"
         },
         {
           "name": "loading",
-          "type": "Boolean",
+          "type": "boolean",
           "required": false,
-          "default": false,
-          "description": "是否显示加载状态"
+          "default": "false",
+          "description": "是否处于加载状态。"
         },
         {
           "name": "emptyText",
-          "type": "String",
+          "type": "string",
           "required": false,
           "default": "暂无数据",
-          "description": "数据为空时显示的文本提示"
-        },
-        {
-          "name": "pagination",
-          "type": "Object",
-          "required": false,
-          "default": null,
-          "description": "分页配置，如果设置为 null 则不显示分页；包含 { current, pageSize, total }"
+          "description": "空状态时显示的文本。"
         },
         {
           "name": "rowKey",
-          "type": "String",
+          "type": "string",
           "required": false,
           "default": "id",
-          "description": "用于标识行的唯一键字段名"
+          "description": "行数据的唯一键字段名。"
         },
         {
-          "name": "expandable",
-          "type": "Boolean",
+          "name": "pagination",
+          "type": "object",
           "required": false,
-          "default": false,
-          "description": "是否支持展开行"
+          "default": "null",
+          "description": "分页配置对象：{page, pageSize, total}；不传则不显示分页。"
         }
       ],
       "events": [
         {
-          "name": "sortChange",
-          "payload": "{ key, order }",
-          "description": "点击排序列头时触发，返回排序列的 key 和排序方向 'asc' 或 'desc'"
+          "name": "row-click",
+          "payload": "rowData, rowIndex",
+          "description": "点击行时触发，携带行数据和索引。"
         },
         {
-          "name": "pageChange",
-          "payload": "Number 新页码",
-          "description": "切换页码时触发，返回目标页码"
+          "name": "sort-change",
+          "payload": "{key, order}",
+          "description": "列排序变化时触发，携带排序列key和顺序('asc'|'desc')。"
         },
         {
-          "name": "pageSizeChange",
-          "payload": "Number 新每页条数",
-          "description": "修改每页条数时触发"
+          "name": "page-change",
+          "payload": "page",
+          "description": "分页页码变化时触发，携带新页码。"
         },
         {
-          "name": "rowClick",
-          "payload": "Object 当前行数据",
-          "description": "点击某一行时触发，传递该行数据"
-        },
-        {
-          "name": "expandChange",
-          "payload": "{ row, expanded }",
-          "description": "展开行状态变化时触发，返回行数据和展开/收起状态"
-        }
-      ],
-      "slots": [
-        {
-          "name": "empty",
-          "description": "自定义空状态内容"
-        },
-        {
-          "name": "expandRow",
-          "description": "展开行的内容插槽，作用域插槽可获取行数据"
-        },
-        {
-          "name": "cell",
-          "description": "自定义单元格渲染，作用域插槽包含 { column, row, value }"
-        }
-      ]
-    },
-    {
-      "file": "DetailPanel.vue",
-      "responsibility": "通用详情展示面板，支持抽屉或弹窗模式，可配置标题、分组信息、自定义内容区块",
-      "reusedBy": [
-        "DispatchWorkbenchView.vue",
-        "AlertAndTaskMonitorView.vue",
-        "DriverTaskExecuteView.vue",
-        "MobileDispatchView.vue",
-        "TaskAdjustView.vue",
-        "GateAccessCheckView.vue",
-        "GateEntryRecordsView.vue",
-        "WorkspaceView.vue",
-        "AccessCodeView.vue",
-        "HistoryView.vue",
-        "VehicleArchiveEdit.vue"
-      ],
-      "props": [
-        {
-          "name": "visible",
-          "type": "Boolean",
-          "required": false,
-          "default": false,
-          "description": "是否显示详情面板"
-        },
-        {
-          "name": "title",
-          "type": "String",
-          "required": false,
-          "default": "",
-          "description": "面板标题"
-        },
-        {
-          "name": "mode",
-          "type": "String",
-          "required": false,
-          "default": "drawer",
-          "description": "展示模式，可选 'drawer'（抽屉）、'modal'（弹窗）"
-        },
-        {
-          "name": "width",
-          "type": "String",
-          "required": false,
-          "default": "400px",
-          "description": "面板宽度，支持 CSS 单位"
-        },
-        {
-          "name": "closable",
-          "type": "Boolean",
-          "required": false,
-          "default": true,
-          "description": "是否显示关闭按钮"
-        }
-      ],
-      "events": [
-        {
-          "name": "close",
-          "payload": "",
-          "description": "用户关闭面板时触发"
+          "name": "page-size-change",
+          "payload": "pageSize",
+          "description": "每页数量变化时触发。"
         }
       ],
       "slots": [
         {
           "name": "default",
-          "description": "面板主体内容，通常包含多个 info-group"
+          "description": "用于自定义列渲染，作用域插槽，暴露{row, column, index}。"
         },
         {
-          "name": "header",
-          "description": "自定义头部区域，覆盖 title 和关闭按钮"
-        },
-        {
-          "name": "footer",
-          "description": "面板底部操作区，通常放置确认/取消按钮"
+          "name": "empty",
+          "description": "自定义空状态内容。"
         }
       ]
     },
     {
+      "file": "PaginationBar.vue",
+      "responsibility": "独立分页组件，支持页码切换、每页条数选择、总条数展示。",
+      "reusedBy": [
+        "GateEntryRecordsView.vue",
+        "ReportDetailView.vue",
+        "HistoryView.vue",
+        "VehicleArchiveList.vue",
+        "VehicleArchiveLogs.vue",
+        "AccessCodeView.vue"
+      ],
+      "props": [
+        {
+          "name": "page",
+          "type": "number",
+          "required": true,
+          "default": "1",
+          "description": "当前页码，支持v-model。"
+        },
+        {
+          "name": "pageSize",
+          "type": "number",
+          "required": false,
+          "default": "20",
+          "description": "每页条数，支持v-model。"
+        },
+        {
+          "name": "total",
+          "type": "number",
+          "required": true,
+          "default": "0",
+          "description": "总记录数。"
+        },
+        {
+          "name": "pageSizes",
+          "type": "array",
+          "required": false,
+          "default": "[10,20,50,100]",
+          "description": "可选的每页条数选项。"
+        }
+      ],
+      "events": [
+        {
+          "name": "update:page",
+          "payload": "number",
+          "description": "页码改变时触发。"
+        },
+        {
+          "name": "update:pageSize",
+          "payload": "number",
+          "description": "每页条数改变时触发。"
+        }
+      ],
+      "slots": []
+    },
+    {
+      "file": "SearchInput.vue",
+      "responsibility": "带搜索图标和清除按钮的输入框，支持防抖和回显。",
+      "reusedBy": [
+        "VehicleArchiveList.vue",
+        "VehicleArchiveLogs.vue",
+        "ReportDetailView.vue",
+        "AccessCodeView.vue",
+        "HistoryView.vue"
+      ],
+      "props": [
+        {
+          "name": "modelValue",
+          "type": "string",
+          "required": true,
+          "default": "",
+          "description": "搜索关键字，支持v-model。"
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "required": false,
+          "default": "搜索...",
+          "description": "占位提示文本。"
+        },
+        {
+          "name": "debounce",
+          "type": "number",
+          "required": false,
+          "default": "300",
+          "description": "防抖延迟毫秒数。"
+        }
+      ],
+      "events": [
+        {
+          "name": "update:modelValue",
+          "payload": "string",
+          "description": "输入值变化时触发（已防抖）。"
+        },
+        {
+          "name": "search",
+          "payload": "string",
+          "description": "用户点击搜索图标或回车时触发。"
+        },
+        {
+          "name": "clear",
+          "payload": "",
+          "description": "用户点击清除按钮时触发。"
+        }
+      ],
+      "slots": []
+    },
+    {
+      "file": "ExportButton.vue",
+      "responsibility": "提供导出操作按钮，支持加载状态、文件格式选择、导出范围选择，导出完成后触发回调。",
+      "reusedBy": [
+        "AlertAndTaskMonitorView.vue",
+        "ManagementReportsView.vue",
+        "ReportDetailView.vue",
+        "HistoryView.vue",
+        "VehicleArchiveList.vue",
+        "VehicleArchiveLogs.vue"
+      ],
+      "props": [
+        {
+          "name": "loading",
+          "type": "boolean",
+          "required": false,
+          "default": "false",
+          "description": "是否正在导出。"
+        },
+        {
+          "name": "formats",
+          "type": "array",
+          "required": false,
+          "default": "['Excel']",
+          "description": "可选的导出格式数组，如['Excel','PDF']。"
+        },
+        {
+          "name": "range",
+          "type": "string",
+          "required": false,
+          "default": "current",
+          "description": "导出范围：'current'(当前筛选) 或 'all'(全部)。"
+        }
+      ],
+      "events": [
+        {
+          "name": "export",
+          "payload": "{format,range}",
+          "description": "用户点击导出按钮并确认后触发，携带选择的格式和范围。"
+        }
+      ],
+      "slots": []
+    },
+    {
       "file": "ConfirmDialog.vue",
-      "responsibility": "通用确认对话框，用于二次确认操作，支持自定义标题、内容和按钮文本",
+      "responsibility": "通用确认弹窗，支持自定义标题、内容、确认/取消按钮文本，可配置额外表单或复选框。",
       "reusedBy": [
         "AlertAndTaskMonitorView.vue",
         "DriverTaskListView.vue",
@@ -1741,160 +1767,134 @@
         "TaskAdjustView.vue",
         "GateAccessCheckView.vue",
         "WorkspaceView.vue",
-        "VehicleArchiveList.vue",
         "VehicleArchiveEdit.vue"
       ],
       "props": [
         {
           "name": "visible",
-          "type": "Boolean",
-          "required": false,
-          "default": false,
-          "description": "是否显示对话框"
+          "type": "boolean",
+          "required": true,
+          "default": "false",
+          "description": "是否显示弹窗，支持v-model。"
         },
         {
           "name": "title",
-          "type": "String",
+          "type": "string",
           "required": false,
           "default": "确认操作",
-          "description": "对话框标题"
-        },
-        {
-          "name": "content",
-          "type": "String",
-          "required": false,
-          "default": "",
-          "description": "确认提示内容文本"
+          "description": "弹窗标题。"
         },
         {
           "name": "confirmText",
-          "type": "String",
+          "type": "string",
           "required": false,
-          "default": "确定",
-          "description": "确认按钮文本"
+          "default": "确认",
+          "description": "确认按钮文本。"
         },
         {
           "name": "cancelText",
-          "type": "String",
+          "type": "string",
           "required": false,
           "default": "取消",
-          "description": "取消按钮文本"
+          "description": "取消按钮文本。"
         },
         {
           "name": "loading",
-          "type": "Boolean",
+          "type": "boolean",
           "required": false,
-          "default": false,
-          "description": "确认按钮是否显示加载中状态"
+          "default": "false",
+          "description": "确认按钮是否显示加载状态。"
         },
         {
-          "name": "danger",
-          "type": "Boolean",
+          "name": "type",
+          "type": "string",
           "required": false,
-          "default": false,
-          "description": "是否为危险操作（如删除），确认按钮显示红色"
+          "default": "warning",
+          "description": "弹窗类型：'warning','danger','info'。"
         }
       ],
       "events": [
         {
+          "name": "update:visible",
+          "payload": "boolean",
+          "description": "弹窗关闭时触发。"
+        },
+        {
           "name": "confirm",
           "payload": "",
-          "description": "用户点击确认按钮时触发"
+          "description": "点击确认按钮时触发。"
         },
         {
           "name": "cancel",
           "payload": "",
-          "description": "用户点击取消或关闭时触发"
+          "description": "点击取消按钮时触发。"
         }
       ],
       "slots": [
         {
           "name": "default",
-          "description": "自定义对话框内容，如果提供则覆盖 content prop"
+          "description": "内容区域插槽，用于展示确认信息或额外表单控件。"
         }
       ]
     },
     {
-      "file": "FileUpload.vue",
-      "responsibility": "通用文件/图片上传组件，支持多文件、预览、删除、替换，集成拖拽排序（可选）",
+      "file": "ImageUploader.vue",
+      "responsibility": "支持拍照/相册选择、预览、删除、替换的多图片上传组件，可限制数量、类型和大小。",
       "reusedBy": [
         "DriverTaskExecuteView.vue",
         "VehicleArchiveEdit.vue"
       ],
       "props": [
         {
-          "name": "fileList",
-          "type": "Array",
-          "required": false,
+          "name": "value",
+          "type": "array",
+          "required": true,
           "default": "[]",
-          "description": "已上传的文件列表，每项包含 { id, url, name, type, thumbnail }"
-        },
-        {
-          "name": "accept",
-          "type": "String",
-          "required": false,
-          "default": "image/*",
-          "description": "允许的文件 MIME 类型，如 'image/*'、'.pdf,.doc'"
-        },
-        {
-          "name": "multiple",
-          "type": "Boolean",
-          "required": false,
-          "default": true,
-          "description": "是否允许选择多个文件"
+          "description": "已上传图片列表，每个元素为 {url, uid, name, type, status?}，支持v-model。"
         },
         {
           "name": "maxCount",
-          "type": "Number",
+          "type": "number",
           "required": false,
-          "default": 9,
-          "description": "最大上传文件数量"
+          "default": "9",
+          "description": "最大上传图片数量。"
         },
         {
-          "name": "uploadUrl",
-          "type": "String",
-          "required": true,
-          "default": "",
-          "description": "文件上传接口地址"
+          "name": "accept",
+          "type": "string",
+          "required": false,
+          "default": "image/*",
+          "description": "允许的文件MIME类型。"
         },
         {
-          "name": "headers",
-          "type": "Object",
+          "name": "disabled",
+          "type": "boolean",
           "required": false,
-          "default": "{}",
-          "description": "上传请求的额外头部"
+          "default": "false",
+          "description": "是否禁用上传。"
         }
       ],
       "events": [
         {
-          "name": "update:fileList",
-          "payload": "Array 新的文件列表",
-          "description": "文件列表发生变化时触发，包括上传、删除、替换"
-        },
-        {
-          "name": "uploadSuccess",
-          "payload": "{ file, response }",
-          "description": "单个文件上传成功时触发，传递文件对象和后端响应"
-        },
-        {
-          "name": "uploadError",
-          "payload": "{ file, error }",
-          "description": "单个文件上传失败时触发"
+          "name": "update:value",
+          "payload": "array",
+          "description": "图片列表变化时触发（上传、删除、替换后）。"
         },
         {
           "name": "preview",
-          "payload": "Object 点击的文件对象",
-          "description": "用户点击预览按钮时触发"
+          "payload": "imageItem",
+          "description": "点击图片预览时触发，可交由父组件打开预览弹窗。"
+        },
+        {
+          "name": "error",
+          "payload": "errorMessage",
+          "description": "上传出错时触发。"
         }
       ],
       "slots": [
         {
-          "name": "trigger",
-          "description": "用于自定义触发上传的按钮区域"
-        },
-        {
-          "name": "fileCard",
-          "description": "自定义文件卡片渲染，作用域插槽包含 { file, index }"
+          "name": "upload-trigger",
+          "description": "自定义上传触发区域，默认是加号按钮。"
         }
       ]
     }
@@ -1902,7 +1902,7 @@
   "mockDataFiles": [
     {
       "file": "mockDispatch.js",
-      "content": "调度派车相关Mock数据：包括派车确认、任务调整等API的请求与响应数据",
+      "content": "模拟派车调度相关数据，包括派车确认、任务调整、工作台首页数据",
       "usedBy": [
         "DispatchWorkbenchView.vue",
         "TaskAdjustView.vue",
@@ -1910,125 +1910,189 @@
       ],
       "schema": [
         {
-          "field": "demand",
-          "type": "object",
-          "description": "用车需求详情，包含需求ID、申请时间、申请人、出发地、目的地、需求时间、车辆类型等"
+          "field": "taskId",
+          "type": "string",
+          "description": "任务唯一标识"
         },
         {
-          "field": "vehicleList",
-          "type": "array",
-          "description": "可选车辆列表，每辆车包含车辆ID、车牌号、车辆类型、当前位置、司机姓名、司机电话、在线状态等"
+          "field": "demandId",
+          "type": "string",
+          "description": "用车需求ID"
         },
         {
-          "field": "dispatchTask",
-          "type": "object",
-          "description": "派车后生成的任务信息，包含任务ID、任务状态、派车时间、司机ID、车辆ID等"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "车辆ID"
         },
         {
-          "field": "adjustmentOperation",
-          "type": "object",
-          "description": "任务调整操作记录，包含操作类型（改派/取消/加派）、原因、目标司机ID、加派地点等"
+          "field": "driverId",
+          "type": "string",
+          "description": "司机ID"
         },
         {
-          "field": "mobileAlert",
-          "type": "object",
-          "description": "移动端告警消息，包含告警ID、类型、车辆信息、位置、时间、紧急程度"
+          "field": "status",
+          "type": "string",
+          "description": "任务状态：pending（待接单）/inProgress（进行中）/completed（已完成）/cancelled（已取消）"
         },
         {
-          "field": "nearbyVehicles",
-          "type": "array",
-          "description": "周边车辆信息列表，包含车辆ID、车牌号、当前位置、距离、司机状态"
+          "field": "dispatchTime",
+          "type": "string",
+          "description": "派车时间，ISO 8601格式"
+        },
+        {
+          "field": "dispatchNote",
+          "type": "string",
+          "description": "派车备注"
+        },
+        {
+          "field": "operationType",
+          "type": "string",
+          "description": "任务调整类型：reassign/cancel/add"
         }
       ]
     },
     {
       "file": "mockAlerts.js",
-      "content": "告警监控相关Mock数据：包括实时告警列表、告警处理等API的请求与响应数据",
+      "content": "模拟车辆异常告警及司机反馈数据，用于实时告警监控与处理",
       "usedBy": [
-        "AlertAndTaskMonitorView.vue",
-        "MobileDispatchView.vue"
+        "AlertAndTaskMonitorView.vue"
       ],
       "schema": [
         {
-          "field": "alertItem",
-          "type": "object",
-          "description": "单条告警记录，包含告警ID、告警类型（超速/禁入/异常停留/司机反馈）、车辆ID、车牌号、告警时间、紧急程度、处理状态、处理备注"
+          "field": "alertId",
+          "type": "string",
+          "description": "告警唯一标识"
         },
         {
-          "field": "taskProgress",
-          "type": "object",
-          "description": "已派发任务执行进度信息，包含任务ID、车辆ID、车牌号、司机、任务状态、当前阶段、预计完成时间"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "关联车辆ID"
         },
         {
-          "field": "alertFilterParams",
-          "type": "object",
-          "description": "告警列表筛选参数，包含告警类型、车辆类型、紧急程度、排序字段"
+          "field": "alertType",
+          "type": "string",
+          "description": "告警类型：speeding（超速）/zone_entry（禁入）/abnormal_stay（异常停留）/driver_feedback（司机反馈）"
+        },
+        {
+          "field": "urgencyLevel",
+          "type": "string",
+          "description": "紧急程度：high/medium/low"
+        },
+        {
+          "field": "alertTime",
+          "type": "string",
+          "description": "告警发生时间，ISO 8601格式"
+        },
+        {
+          "field": "status",
+          "type": "string",
+          "description": "处理状态：pending/confirmed/ignored/transferred"
+        },
+        {
+          "field": "remark",
+          "type": "string",
+          "description": "处理备注"
         }
       ]
     },
     {
-      "file": "mockTasks.js",
-      "content": "司机任务相关Mock数据：包括司机任务列表、任务完成确认等API的请求与响应数据",
+      "file": "mockDriver.js",
+      "content": "模拟司机端任务数据，包括任务列表和任务执行详情",
       "usedBy": [
         "DriverTaskListView.vue",
         "DriverTaskExecuteView.vue"
       ],
       "schema": [
         {
-          "field": "taskItem",
-          "type": "object",
-          "description": "单条任务信息，包含任务ID、任务标题、车牌号、出发地、目的地、作业点、任务状态（待接单/进行中/已完成）、创建时间、预计时间"
+          "field": "taskId",
+          "type": "string",
+          "description": "任务唯一标识"
         },
         {
-          "field": "taskDetail",
-          "type": "object",
-          "description": "任务完整详情，包含任务ID、车辆信息、司机信息、物资清单、导航信息、操作按钮（确认到达/完成）"
+          "field": "demandId",
+          "type": "string",
+          "description": "用车需求ID"
         },
         {
-          "field": "taskCompletion",
-          "type": "object",
-          "description": "任务完成提交数据，包含现场照片列表、完成时间、备注"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "车辆ID"
         },
         {
-          "field": "driverFeedback",
-          "type": "object",
-          "description": "司机反馈消息，包含反馈ID、类型、内容、时间、附件"
+          "field": "status",
+          "type": "string",
+          "description": "任务状态：pending（待接单）/inProgress（进行中）/completed（已完成）"
+        },
+        {
+          "field": "startLocation",
+          "type": "string",
+          "description": "起始地点"
+        },
+        {
+          "field": "endLocation",
+          "type": "string",
+          "description": "目的地"
+        },
+        {
+          "field": "estimatedTime",
+          "type": "string",
+          "description": "预计完成时间，ISO 8601格式"
+        },
+        {
+          "field": "completedTime",
+          "type": "string",
+          "description": "实际完成时间，ISO 8601格式"
         }
       ]
     },
     {
       "file": "mockGate.js",
-      "content": "门禁管理相关Mock数据：包括车辆入场操作、入场记录查询等API的请求与响应数据",
+      "content": "模拟门禁核验和入场记录数据",
       "usedBy": [
         "GateAccessCheckView.vue",
         "GateEntryRecordsView.vue"
       ],
       "schema": [
         {
-          "field": "pendingVehicle",
-          "type": "object",
-          "description": "待核验车辆信息，包含车辆ID、车牌号、车辆类型、预约信息、证照状态、入场意图"
+          "field": "recordId",
+          "type": "string",
+          "description": "入场记录唯一标识"
         },
         {
-          "field": "entryRecord",
-          "type": "object",
-          "description": "历史入场记录，包含记录ID、车牌号、操作结果（放行/拒绝）、操作时间、操作员、拒绝原因、同步状态"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "车辆ID"
         },
         {
-          "field": "gateActionParams",
-          "type": "object",
-          "description": "入场操作请求参数，包含车辆ID、操作类型、拒绝原因、备注、操作员ID"
+          "field": "plateNumber",
+          "type": "string",
+          "description": "车牌号"
         },
         {
-          "field": "entryRecordFilter",
-          "type": "object",
-          "description": "入场记录筛选条件，包含起始日期、结束日期、车牌号、操作结果、同步状态"
+          "field": "action",
+          "type": "string",
+          "description": "操作类型：allow（放行）/reject（拒绝）"
+        },
+        {
+          "field": "reason",
+          "type": "string",
+          "description": "拒绝原因分类：黑名单/证照过期/无预约/车辆不符/其他"
+        },
+        {
+          "field": "operationTime",
+          "type": "string",
+          "description": "操作时间，ISO 8601格式"
+        },
+        {
+          "field": "syncStatus",
+          "type": "string",
+          "description": "同步状态：PENDING/SYNCING/SYNCED/FAILED"
         }
       ]
     },
     {
-      "file": "mockReservations.js",
-      "content": "预约审批相关Mock数据：包括预约申请批准、授权码列表、历史预约查询等API的请求与响应数据",
+      "file": "mockReservation.js",
+      "content": "模拟预约申请、授权码和历史预约数据",
       "usedBy": [
         "WorkspaceView.vue",
         "AccessCodeView.vue",
@@ -2036,30 +2100,50 @@
       ],
       "schema": [
         {
-          "field": "reservationItem",
-          "type": "object",
-          "description": "预约申请单，包含申请ID、车牌号、车辆类型、所属单位、作业区域、预约时间、申请状态、超时标记"
+          "field": "reservationId",
+          "type": "string",
+          "description": "预约申请ID"
         },
         {
-          "field": "approvalAction",
-          "type": "object",
-          "description": "审批操作参数，包含预约ID、是否通过、审批意见、是否强制通过"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "车辆ID"
+        },
+        {
+          "field": "plateNumber",
+          "type": "string",
+          "description": "车牌号"
+        },
+        {
+          "field": "status",
+          "type": "string",
+          "description": "审批状态：pending_approval/approved/rejected"
         },
         {
           "field": "accessCode",
-          "type": "object",
-          "description": "授权码信息，包含授权码ID、授权码值、关联车牌号、同步状态、有效期、使用状态"
+          "type": "string",
+          "description": "授权码"
         },
         {
-          "field": "historyRecord",
-          "type": "object",
-          "description": "历史预约记录，包含记录ID、车牌号、预约时间、审批状态、授权码、入场时间、出场时间、费用"
+          "field": "syncStatus",
+          "type": "string",
+          "description": "授权码同步状态：SYNC_SUCCESS/SYNC_FAIL/PENDING_SYNC/EXPIRED/USED"
+        },
+        {
+          "field": "entryTime",
+          "type": "string",
+          "description": "入场时间，ISO 8601格式"
+        },
+        {
+          "field": "exitTime",
+          "type": "string",
+          "description": "出场时间，ISO 8601格式"
         }
       ]
     },
     {
       "file": "mockVehicles.js",
-      "content": "车辆档案相关Mock数据：包括车辆列表查询、保存车辆档案、操作日志查询等API的请求与响应数据",
+      "content": "模拟车辆档案和操作日志数据",
       "usedBy": [
         "VehicleArchiveList.vue",
         "VehicleArchiveEdit.vue",
@@ -2067,24 +2151,44 @@
       ],
       "schema": [
         {
-          "field": "vehicleItem",
-          "type": "object",
-          "description": "单辆车档案信息，包含车辆ID、车牌号、车辆类型、所属单位、司机姓名、司机电话、年检有效期、保险有效期、状态"
+          "field": "vehicleId",
+          "type": "string",
+          "description": "车辆唯一标识"
         },
         {
-          "field": "vehicleSaveParams",
-          "type": "object",
-          "description": "保存车辆档案请求参数，包含车辆ID（编辑时）、车辆类型、车牌号、所属单位、司机信息、有效期"
+          "field": "plateNumber",
+          "type": "string",
+          "description": "车牌号"
         },
         {
-          "field": "operationLog",
-          "type": "object",
-          "description": "操作日志记录，包含日志ID、操作人、操作时间、操作类型（新增/编辑/停用等）、关联车辆ID、变更详情"
+          "field": "vehicleType",
+          "type": "string",
+          "description": "车辆类型：生产车辆/物流车辆/外协车辆/临时车辆"
         },
         {
-          "field": "vehicleFilter",
-          "type": "object",
-          "description": "车辆列表筛选条件，包含车辆类型、所属单位、状态、有效期状态、关键字"
+          "field": "department",
+          "type": "string",
+          "description": "所属单位"
+        },
+        {
+          "field": "driverName",
+          "type": "string",
+          "description": "司机姓名"
+        },
+        {
+          "field": "status",
+          "type": "string",
+          "description": "车辆状态：正常/停用"
+        },
+        {
+          "field": "expireStatus",
+          "type": "string",
+          "description": "有效期状态：正常/临近到期/已过期"
+        },
+        {
+          "field": "logAction",
+          "type": "string",
+          "description": "操作类型：新增/编辑/停用/启用/上传证照/删除证照"
         }
       ]
     }
@@ -2115,22 +2219,22 @@
     {
       "step": 1,
       "title": "生成 Mock 数据和枚举常量",
-      "prompt": "你是一个前端开发工程师，负责为项目“车辆管理”（客户：HG）生成 Mock 数据和枚举常量。请根据以下要求生成所有 Mock 数据文件和枚举常量定义。\n\n## 要求\n1. **Mock 数据文件**：参照下方列表生成每个文件的完整内容，使用 Faker.js（或手动构造）填充数据，确保数据合理且覆盖正常、边界（如空列表、超时、到期）和异常情况（如接口错误）。\n   - `mockDispatch.js`：调度派车相关数据，包括用车需求、可选车辆、派车任务、调整操作、移动端告警、周边车辆。\n   - `mockAlerts.js`：告警监控数据，包括告警项、任务进度、告警筛选参数。\n   - `mockTasks.js`：司机任务数据，包括任务项、任务详情、完成提交、司机反馈。\n   - `mockGate.js`：门禁管理数据，包括待核验车辆、入场记录、操作参数、筛选条件。\n   - `mockReservations.js`：预约审批数据，包括预约申请、审批操作、授权码、历史记录。\n   - `mockVehicles.js`：车辆档案数据，包括车辆项、保存参数、操作日志、筛选条件。\n2. **枚举常量**：在 `src/constants/enums.js` 中定义以下枚举（使用 const 对象+Object.freeze），并为每个枚举附带中文说明。\n   - VehicleStatus: { IDLE: '空闲', ON_TASK: '任务中', QUEUED: '排队', ABNORMAL: '异常' }\n   - AlertType: { SPEEDING: '超速', FORBIDDEN_ZONE: '禁入', ABNORMAL_STOP: '异常停留', DRIVER_FEEDBACK: '司机反馈' }\n   - TaskStatus: { PENDING_ACCEPT: '待接单', IN_PROGRESS: '进行中', COMPLETED: '已完成', CANCELLED: '已取消' }\n   - GateAction: { APPROVE: '放行', REJECT: '拒绝', MANUAL_APPROVE: '手动放行' }\n   - SyncStatus: { SUCCESS: '已同步', FAILED: '同步失败', PENDING: '待同步', EXPIRED: '已过期', USED: '已使用' }\n   - ApprovalResult: { PASSED: '通过', REJECTED: '驳回' }\n3. **技术约束**：使用 ES Module 导出（export），Mock 数据中接口响应格式统一为 `{ code: 0, data: ..., message: '' }`，错误时 code 非0。每条 Mock 数据保证字段与 schema 一致。\n4. **验收标准**：所有 Mock 文件可独立运行，引入后可通过 `import { mockDispatch, mockAlerts } from '../mock/...'` 使用；枚举文件可通过 `import { VehicleStatus } from '@/constants/enums'` 引用。"
+      "prompt": "请根据以下项目上下文和原型设计，生成所有页面的 Mock 数据文件和枚举常量。\n\n项目名称：车辆管理-HG海工基地\n\n上下文：系统需要实现车辆、司机、任务、物资、门禁的一体化管理，包含调度员、司机、现场调度员、门岗、管理人员、外协申请者、管理员7个角色。\n\n要求：\n1. 生成以下 Mock 数据文件（JSON 格式，存储在 src/mock/ 目录）：\n   - mockDispatch.js：模拟派车调度相关数据，包括派车确认、任务调整、工作台首页数据。字段：taskId, demandId, vehicleId, driverId, status(pending/inProgress/completed/cancelled), dispatchTime, dispatchNote, operationType(reassign/cancel/add)。\n   - mockAlerts.js：模拟车辆异常告警及司机反馈数据。字段：alertId, vehicleId, alertType(speeding/zone_entry/abnormal_stay/driver_feedback), urgencyLevel(high/medium/low), alertTime, status(pending/confirmed/ignored/transferred), remark。\n   - mockDriver.js：模拟司机端任务数据。字段：taskId, demandId, vehicleId, status(pending/inProgress/completed), startLocation, endLocation, estimatedTime, completedTime。\n   - mockGate.js：模拟门禁核验和入场记录数据。字段：recordId, vehicleId, plateNumber, action(allow/reject), reason(黑名单/证照过期/无预约/车辆不符/其他), operationTime, syncStatus(PENDING/SYNCING/SYNCED/FAILED)。\n   - mockReservation.js：模拟预约申请、授权码和历史预约数据。字段：reservationId, vehicleId, plateNumber, status(pending_approval/approved/rejected), accessCode, syncStatus(SYNC_SUCCESS/SYNC_FAIL/PENDING_SYNC/EXPIRED/USED), entryTime, exitTime。\n   - mockVehicles.js：模拟车辆档案和操作日志数据。字段：vehicleId, plateNumber, vehicleType(生产车辆/物流车辆/外协车辆/临时车辆), department, driverName, status(正常/停用), expireStatus(正常/临近到期/已过期), logAction(新增/编辑/停用/启用/上传证照/删除证照)。\n\n2. 生成枚举常量文件 src/constants/enums.js，定义以下枚举：\n   - TaskStatus: { PENDING: '待接单', IN_PROGRESS: '进行中', COMPLETED: '已完成', CANCELLED: '已取消' }\n   - AlertSeverity: { HIGH: '高', MEDIUM: '中', LOW: '低' }\n   - AlertStatus: { PENDING: '待处理', CONFIRMED: '已确认', IGNORED: '已忽略', TRANSFERRED: '已转人工' }\n   - GateAction: { ALLOW: '放行', REJECT: '拒绝' }\n   - SyncStatus: { PENDING: '待同步', SYNCING: '同步中', SYNCED: '已同步', FAILED: '同步失败' }\n   - AccessCodeStatus: { SYNC_SUCCESS: '同步成功', SYNC_FAIL: '同步失败', PENDING_SYNC: '待同步', EXPIRED: '已过期', USED: '已使用' }\n   - VehicleStatus: { NORMAL: '正常', DISABLED: '停用' }\n   - VehicleType: { PRODUCTION: '生产车辆', LOGISTICS: '物流车辆', OUTSOURCE: '外协车辆', TEMPORARY: '临时车辆' }\n   - ExpireStatus: { NORMAL: '正常', EXPIRING: '临近到期', EXPIRED: '已过期' }\n   - OperationType: { REASSIGN: '改派', CANCEL: '取消', ADD: '加派' }\n\n3. 这些 mock 数据采用 ES Module 导出，每个文件导出一个名为 `mockXXX` 的函数，返回包含随机生成数据的数组（每类数据至少5条示例）。枚举常量使用 export const 导出。\n\n验收标准：\n- 每个 mock 文件包含 schema 中声明的所有字段，数据类型正确。\n- 枚举常量与后端定义保持一致，并可直接在业务代码中引用。\n- mock 数据可独立运行，不依赖前端框架。"
     },
     {
       "step": 2,
       "title": "生成通用组件",
-      "prompt": "你是一个前端开发工程师，为项目“车辆管理”（客户：HG）生成通用组件。请严格按照下方列表和接口契约（props/events/slots）使用 Vue 3 Composition API + TypeScript（可选）实现，并放在 `src/components/common/` 目录下。组件需支持响应式、样式采用 CSS Modules 或 scoped，无第三方 UI 库依赖（可自行用 flex/grid 实现布局）。\n\n## 组件列表\n1. **StatusTag.vue**\n   - 显示状态标签，颜色由 status prop 自动映射（预设颜色：空闲-绿、任务中-蓝、排队-橙、异常-红、成功-绿、失败-红等）。\n   - Props: status (String, 必填), text (String, 可选), size ('small'|'default'|'large'), customClass。\n   - 无 events 或 slots。\n   - 验收：不同 status 渲染正确颜色，大小变化正确。\n\n2. **DataFilterBar.vue**\n   - 筛选条件组合区域，接受 filters 配置渲染时间范围选择器、下拉框、输入框等。\n   - Props: filters (Array, 必填，每项 { type, label, key, options?, placeholder? }), modelValue (Object, 必填), showSearchButton (Boolean, 默认 true), autoSearchDelay (Number, 默认 300)。\n   - Events: update:modelValue, search, reset。\n   - Slots: extra。\n   - 验收：根据 filters 动态渲染控件，点击搜索/自动搜索触发 search 事件，重置清空。\n\n3. **DataTable.vue**\n   - 通用表格，支持列配置、排序、分页、展开行。\n   - Props: columns (Array, 必填), data (Array, 必填), loading, emptyText, pagination (Object 或 null), rowKey, expandable。\n   - Events: sortChange, pageChange, pageSizeChange, rowClick, expandChange。\n   - Slots: empty, expandRow, cell（作用域插槽）。\n   - 验收：排序箭头点击触发 sortChange；分页切换触发 pageChange；展开行正确渲染；空数据展示 emptyText。\n\n4. **DetailPanel.vue**\n   - 详情面板，支持抽屉/弹窗模式。\n   - Props: visible, title, mode ('drawer'|'modal'), width, closable。\n   - Events: close。\n   - Slots: default, header, footer。\n   - 验收：关闭按钮触发 close 事件；模式切换正确。\n\n5. **ConfirmDialog.vue**\n   - 二次确认对话框。\n   - Props: visible, title, content, confirmText, cancelText, loading, danger。\n   - Events: confirm, cancel。\n   - Slots: default。\n   - 验收：点击确认/取消分别触发对应事件；danger 时按钮红色。\n\n6. **FileUpload.vue**\n   - 文件/图片上传组件。\n   - Props: fileList (Array, 默认 []), accept, multiple, maxCount, uploadUrl (必填), headers。\n   - Events: update:fileList, uploadSuccess, uploadError, preview。\n   - Slots: trigger, fileCard。\n   - 验收：支持拖拽/点击上传，上传成功后更新 fileList，预览触发 preview 事件。\n\n所有组件需在 `src/components/index.js` 中统一导出。"
+      "prompt": "请基于以下组件接口契约，生成所有通用组件的 Vue 3 实现（使用 Composition API 和 TypeScript）。组件文件统一放在 src/components/common/ 目录。\n\n技术要求：\n- 使用 Vue 3 + TypeScript + Script Setup\n- 支持 v-model 双向绑定（如适用）\n- 组件中要处理空状态、加载状态、错误状态（通过 props 控制）\n- 样式使用 scoped CSS，支持通过 props 自定义颜色/尺寸\n- 每个组件需导出 props 类型定义\n\n需要生成的组件列表：\n\n1. StatusTag.vue\n   - props: statusType (string, required), statusValue (string, required), size ('small'|'medium'|'large', default 'medium')\n   - 功能：根据 statusType 和 statusValue 映射颜色方案，例如 taskStatus 映射：待接单灰色，进行中蓝色，已完成绿色，已取消红色。\n   - 无事件和插槽。\n\n2. FilterBar.vue\n   - props: filters (array, required): 每个元素 {id, label, type: 'select'|'date'|'text'|'cascader', options?, value?}; modelValue (object, 支持 v-model)\n   - 事件：update:modelValue (object)\n   - 插槽：extra 用于在栏末尾添加按钮\n   - 功能：根据 filters 配置渲染对应的筛选控件，任一变化时触发 update:modelValue。\n\n3. DataTable.vue\n   - props: columns (array, required): {key, label, width?, sortable?, slotName?}; data (array); loading (boolean); emptyText (string, default '暂无数据'); rowKey (string, default 'id'); pagination (object|null): {page, pageSize, total}\n   - 事件：row-click (rowData, rowIndex); sort-change ({key, order}); page-change (page); page-size-change (pageSize)\n   - 插槽：default 作用域 {row, column, index} 用于自定义列渲染；empty 自定义空状态\n   - 功能：表格展示，支持排序、分页、展开详情（通过 row-click 传递）。\n\n4. PaginationBar.vue\n   - props: page (number, v-model), pageSize (number, default 20), total (number), pageSizes (array, default [10,20,50,100])\n   - 事件：update:page, update:pageSize\n   - 功能：独立分页控件，显示总条数和页码。\n\n5. SearchInput.vue\n   - props: modelValue (string, v-model), placeholder (string, default '搜索...'), debounce (number, default 300)\n   - 事件：update:modelValue (已防抖), search (string, 回车或点击搜索图标), clear\n   - 功能：带搜索图标和清除按钮的输入框，防抖后触发 update:modelValue。\n\n6. ExportButton.vue\n   - props: loading (boolean), formats (array, default ['Excel']), range ('current'|'all', default 'current')\n   - 事件：export ({format, range})\n   - 功能：导出按钮，可显示加载状态，点击后触发 export 事件。\n\n7. ConfirmDialog.vue\n   - props: visible (boolean, v-model), title (string, default '确认操作'), confirmText (string, default '确认'), cancelText (string, default '取消'), loading (boolean), type ('warning'|'danger'|'info', default 'warning')\n   - 事件：update:visible, confirm, cancel\n   - 插槽：default 用于展示额外内容\n   - 功能：通用确认弹窗，支持加载状态。\n\n8. ImageUploader.vue\n   - props: value (array, v-model): 每项 {url, uid, name, type, status?}; maxCount (number, default 9); accept (string, default 'image/*'); disabled (boolean)\n   - 事件：update:value, preview (imageItem), error (errorMessage)\n   - 插槽：upload-trigger 自定义上传触发区域\n   - 功能：支持拍照/相册选择、预览、删除、替换的多图片上传组件。\n\n验收标准：\n- 每个组件均使用 TypeScript 严格类型定义。\n- 组件内部正确处理空/加载/错误状态，并对外暴露必要的状态。\n- 样式兼容 PC 端和移动端（响应式，移动端默认全宽）。\n- 组件可独立运行，有默认导出。"
     },
     {
       "step": 3,
       "title": "生成页面（按优先级 P0→P1→P2）",
-      "prompt": "你是一个前端开发工程师，为项目“车辆管理”（客户：HG）生成所有页面组件。请根据以下优先级顺序生成，每个页面使用已生成的通用组件（StatusTag、DataFilterBar、DataTable、DetailPanel、ConfirmDialog、FileUpload）和 Mock 数据。页面放在 `src/views/` 目录下，文件名、责任、zone、states、keyInteractions 参考下方说明。\n\n## 优先级与页面列表\n### P0（核心流程，必须完整实现）\n1. **DispatchWorkbenchView.vue**：调度工作台，含地图区域、状态看板、需求列表、派车面板。\n2. **AlertAndTaskMonitorView.vue**：告警与任务监控，含告警列表、任务列表、处理弹窗。\n3. **DriverTaskListView.vue**：司机任务列表，含筛选栏、任务卡片列表。\n4. **DriverTaskExecuteView.vue**：任务执行页，含导航、到达/完成确认、照片上传、反馈。\n5. **MobileDispatchView.vue**：移动调度，含告警通知、车辆地图/列表、通讯面板。\n6. **TaskAdjustView.vue**：任务调整，含操作类型选择、表单、异常记录、提交。\n7. **GateAccessCheckView.vue**：门岗核验，含待核验列表、核验详情、放行/拒绝操作、降级模式。\n8. **WorkspaceView.vue**：预约工作台，含待办列表、审批详情、通过/驳回。\n### P1（重要功能）\n9. **GateEntryRecordsView.vue**：入场记录，含筛选、列表、重新同步。\n10. **ManagementReportsView.vue**：运营报表，含指标卡片、趋势图、导出。\n11. **ReportDetailView.vue**：报表详情，含明细类型标签、表格、搜索排序分页。\n12. **AccessCodeView.vue**：授权码管理，含筛选、列表、重试同步。\n13. **VehicleArchiveList.vue**：车辆档案列表，含到期提醒、筛选、停用/启用。\n14. **VehicleArchiveEdit.vue**：车辆档案编辑/新增，含基本信息、有效期、证照上传。\n### P2（辅助功能）\n15. **HistoryView.vue**：历史记录，含筛选、列表、详情、导出。\n16. **VehicleArchiveLogs.vue**：档案操作日志，含筛选、日志列表、导出。\n\n## 实现要求\n- 每个页面根据原型设计中的 zones 划分布局，使用 flex/grid。\n- 实现 states：empty（空数据）、loading（骨架屏）、success（正常）、error（错误提示+重试）。\n- 实现 keyInteractions 中的所有交互，调用 Mock 数据（通过 import 假数据或模拟请求）。\n- 每个页面在 mounted 时模拟请求，延迟 500ms 返回数据，展示 loading 态。\n- 使用 Vue Router 的 $router.push 处理页面跳转（路由路径参考 navigationRoutes）。\n- 验收标准：所有 P0 页面交互可操作，状态切换正确，Mock 数据展示完整。P1/P2 页面至少实现核心交互。"
+      "prompt": "请基于以下页面规范，生成所有页面的 Vue 3 实现。页面文件放在 src/views/ 目录，按模块划分子文件夹（dispatch, gate, outsource, vehicle, report）。每个页面必须包含 zones、states、keyInteractions 中定义的所有实现。\n\n技术要求：\n- 使用 Vue 3 + TypeScript + Composition API\n- 页面引用通用组件（StatusTag, FilterBar, DataTable, PaginationBar, SearchInput, ExportButton, ConfirmDialog, ImageUploader），从 '@/components/common/' 导入\n- 页面使用 Mock 数据（未接真实 API 时，从 '@/mock/' 导入并使用），加载状态模拟 500ms 延迟\n- 页面要处理四种状态：empty（无数据）、loading（加载中）、success（正常）、error（接口失败），并在状态变化时展示对应 UI\n- 移动端适配：页面在移动端宽度自适应，使用弹性布局\n- 所有 keyInteractions 均需实现交互逻辑，包括 API 调用（模拟）\n\n按优先级生成：\nP0（必选）：\n- DispatchWorkbenchView.vue（调度工作台）：地图区域、状态看板、需求列表、派车操作面板；状态：empty/loading/success/error；交互：地图点击车辆、看板分类筛选、派车确认、框选车辆\n- AlertAndTaskMonitorView.vue（告警与任务监控）：告警列表、处理弹窗、任务列表、任务详情抽屉；状态：empty/loading/success/error；交互：确认/忽略/转人工告警、催办/取消任务、导出\n- DriverTaskListView.vue（司机任务列表）：顶部筛选栏、任务卡片列表、底部导航、未读角标；状态：empty/loading/success/error；交互：下拉刷新、点击卡片跳转、确认接单、切换筛选\n- DriverTaskExecuteView.vue（任务执行）：任务信息卡片、操作按钮（导航/到达/完成）、照片上传、异常反馈；状态：empty/loading/success/error；交互：导航、拨号、查看物资、到达确认、完成确认（上传照片）、提交异常反馈\n- WorkspaceView.vue（预约工作台）：筛选排序栏、待办列表、详情操作区、操作日志快照；状态：empty/loading/success/error/overdue_warning；交互：点击列表项、筛选、通过/驳回审批、重新同步、手动刷新\n- GateAccessCheckView.vue（门禁核验）：状态栏、待核验列表、核验详情操作区、底部日志；状态：empty/loading/success/error；交互：选择车辆、放行、手动放行、拒绝、异常原因提交、降级操作、筛选\n\nP1（重要）：\n- MobileDispatchView.vue（移动调度）：告警反馈滚动通知、车辆地图/列表、底部浮动栏、即时通讯面板；状态：empty/loading/success/error；交互：点击告警、点击车辆标记、通讯按钮、切换视图、下拉刷新、改派/取消/新增任务\n- TaskAdjustView.vue（任务调整）：任务车辆摘要、操作类型选择、表单区、异常处理记录、提交确认；状态：empty/loading/success/error；交互：选择操作类型、司机关联选择、作业点选择、提交确认（二次确认）\n- GateEntryRecordsView.vue（入场记录）：筛选栏、记录列表、详情弹窗；状态：empty/loading/success/error；交互：筛选条件变更、重新同步、查看详情\n- ManagementReportsView.vue（管理报表）：顶部筛选、指标卡片、趋势图、导出区；状态：empty/loading/success/error；交互：筛选查询、点击卡片下钻、切换指标/粒度、导出\n- ReportDetailView.vue（报表明细）：面包屑、筛选标签、明细标签页、表格、导出；状态：empty/loading/success/error；交互：切换明细类型、搜索、排序、分页、导出、返回概览\n- AccessCodeView.vue（授权码管理）：状态筛选、列表、展开详情；状态：empty/loading/success/error；交互：切换筛选、查看详情、重新同步、搜索\n- VehicleArchiveList.vue（车辆档案列表）：顶部操作栏、筛选区、到期提醒横幅、列表、分页；状态：empty/loading/success/error；交互：新增/导出/批量操作、搜索、筛选、停用/启用\n- VehicleArchiveEdit.vue（车辆档案编辑）：基本信息、有效期设置、证照图片管理、操作按钮、日志摘要；状态：empty/loading/success/error；交互：保存（校验）、取消、上传/预览/替换/删除图片、操作日志跳转\n\nP2（可选）：\n- HistoryView.vue（预约历史）：筛选栏、历史记录列表、详情弹窗、导出；状态：empty/loading/success/error；交互：筛选、查看详情、导出、分页\n- VehicleArchiveLogs.vue（档案操作日志）：筛选区、日志列表、导出、分页；状态：empty/loading/success/error；交互：导出、点击日志行展开前后对比\n\n验收标准：\n- 每个页面都要包含完整的 zones、四种状态的 UI 展示。\n- 所有 keyInteractions 实现为可交互的 Vue 方法，并在模板中绑定事件。\n- 页面之间支持通过 vue-router 导航（使用 useRouter 的 push 方法）。\n- 使用 TypeScript 类型定义 props 和 emits。\n- 移动端布局良好，无水平溢出。\n- 所有异步操作显示加载状态，失败时提示错误。"
     },
     {
       "step": 4,
       "title": "生成路由配置和 API 调用层",
-      "prompt": "你是一个前端开发工程师，为项目“车辆管理”（客户：HG）生成路由配置和 API 调用层。要求如下：\n\n## 路由配置\n- 在 `src/router/index.js` 中创建 vue-router 实例，使用 history 模式，base 为 '/vehicle-management/'。\n- 根据以下分组和路由定义生成所有路由，每个路由的 component 懒加载（() => import('@/views/...')）。\n  - 调度指挥：/dispatch/workbench (DispatchWorkbenchView)，/dispatch/monitor (AlertAndTaskMonitorView)，/dispatch/mobile (MobileDispatchView)，/dispatch/task-adjust (TaskAdjustView)\n  - 任务执行：/task/list (DriverTaskListView)，/task/execute (DriverTaskExecuteView)\n  - 场地管理：/gate/access-check (GateAccessCheckView)，/gate/entry-records (GateEntryRecordsView)\n  - 外协管理：/external/workspace (WorkspaceView)，/external/access-code (AccessCodeView)，/external/history (HistoryView)\n  - 综合管理：/management/reports (ManagementReportsView)，/management/report-detail (ReportDetailView)，/management/vehicle-archive (VehicleArchiveList)，/management/vehicle-archive/edit (VehicleArchiveEdit)，/management/vehicle-archive/logs (VehicleArchiveLogs)\n- 默认路由 redirect 到 /dispatch/workbench。\n- 配置一个 404 页面 Not Found。\n\n## API 调用层\n- 在 `src/api/` 目录下按模块创建 HTTP 请求封装文件，使用 axios 实例。\n- 基础 URL 可从环境变量 VUE_APP_API_BASE 获取，默认为 '/api'。\n- axios 实例添加请求拦截器（注入 Token）和响应拦截器（统一错误处理，如 code !==0 时 reject）。\n- 每个 API 文件导出函数，命名对应页面用途，例如：\n  - `src/api/dispatch.js`：export function postDispatch(data)，export function postTaskAdjustment(data)\n  - `src/api/alerts.js`：export function getRealtimeAlerts(params)，export function postAlertHandle(data)\n  - `src/api/tasks.js`：export function getDriverTasks(params)，export function postTaskComplete(taskId, data)，export function postTaskAccept(taskId)\n  - `src/api/gate.js`：export function getPendingVehicles(params)，export function postVehicleAction(data)，export function getEntryRecords(params)，export function retrySync(recordId)\n  - `src/api/reservations.js`：export function getReservations(params)，export function approveReservation(id, data)，export function getAccessCodes(params)，export function resyncAccessCode(id)，export function getHistory(params)\n  - `src/api/vehicles.js`：export function getVehicles(params)，export function saveVehicle(data)，export function getVehicleLogs(params)\n- 验收标准：路由配置正确，导航可切换页面；所有 API 函数可被导入，且符合接口路径和 method（参考 apiMapping）。"
+      "prompt": "请生成完整的路由配置文件和 API 调用层代码。\n\n1. 路由配置：在 src/router/index.ts 中配置 vue-router 路由，使用 createRouter 和 createWebHistory。包含以下路由：\n   - 默认重定向到 /dispatch/workbench\n   - 调度与任务模块：\n     * /dispatch/workbench -> DispatchWorkbenchView\n     * /dispatch/alert-monitor -> AlertAndTaskMonitorView\n     * /dispatch/mobile -> MobileDispatchView\n     * /dispatch/task-adjust -> TaskAdjustView\n     * /dispatch/driver-tasks -> DriverTaskListView\n     * /dispatch/driver-execute -> DriverTaskExecuteView\n   - 门禁管理模块：\n     * /gate/access-check -> GateAccessCheckView\n     * /gate/entry-records -> GateEntryRecordsView\n   - 外协管理模块：\n     * /outsource/workspace -> WorkspaceView\n     * /outsource/access-code -> AccessCodeView\n     * /outsource/history -> HistoryView\n   - 车辆档案模块：\n     * /vehicle/archive-list -> VehicleArchiveList\n     * /vehicle/archive-edit -> VehicleArchiveEdit\n     * /vehicle/archive-logs -> VehicleArchiveLogs\n   - 报表与统计模块：\n     * /report/management -> ManagementReportsView\n     * /report/detail -> ReportDetailView\n   - 每个路由需配置 name（驼峰命名）、meta（包括 title、group、icon、roles）。\n   - 路由使用懒加载：component: () => import('@/views/...')\n\n2. API 调用层：在 src/api/ 目录下生成以下模块，每个模块导出对应接口函数（使用异步函数，内部调用 fetch 或 axios，但当前返回 Mock 数据）：\n   - dispatch.ts:\n     * postTaskDispatch(data) -> POST /api/v1/tasks/dispatch\n     * getAlertsRealtime() -> GET /api/alerts/realtime\n     * postTaskAdjustment(data) -> POST /api/v1/tasks/adjustment\n   - driver.ts:\n     * getDriverTasks(status) -> GET /api/driver/tasks\n     * postTaskAccept(taskId) -> POST /api/driver/tasks/{taskId}/accept\n     * postTaskArrive(taskId) -> POST /api/driver/tasks/{taskId}/arrive\n     * postTaskComplete(taskId, photos) -> POST /api/driver/tasks/{taskId}/complete\n     * postDriverFeedback(data) -> POST /api/driver/feedback\n   - gate.ts:\n     * postGateVehicleAction(data) -> POST /api/gate/vehicle-action\n     * getGateEntryRecords(params) -> GET /api/gate/entry-records\n     * postGateEntryRecordSync(recordId) -> POST /api/gate/entry-records/{recordId}/sync\n   - reservation.ts:\n     * getReservationsList(params) -> GET /api/reservations\n     * postReservationApprove(id, data) -> POST /api/reservations/{id}/approve\n     * postReservationReject(id, data) -> POST /api/reservations/{id}/reject\n     * getReservationsHistory(params) -> GET /api/reservations/history\n     * getAccessCodes(params) -> GET /api/access-codes\n     * postAccessCodeSync(codeId) -> POST /api/access-codes/{codeId}/sync\n   - vehicle.ts:\n     * getVehicles(params) -> GET /api/vehicles\n     * postVehicle(data) -> POST /api/vehicles\n     * putVehicle(id, data) -> PUT /api/vehicles/{id}\n     * patchVehicleStatus(id, data) -> PATCH /api/vehicles/{id}/status\n     * getVehicleLogs(params) -> GET /api/vehicles/logs\n     * postVehicleLogsExport(params) -> POST /api/vehicles/logs/export\n   - report.ts:\n     * getReportOverview(params) -> GET /api/reports/overview\n     * getReportDetail(params) -> GET /api/reports/detail\n     * postReportExport(params) -> POST /api/reports/export\n\n每个 API 函数先返回 Mock 数据（延迟 300ms），但注释中保留真实的 API 接口路径和请求体格式。\n\n3. 在 src/api/index.ts 中统一导出所有 API 模块。\n\n验收标准：\n- 路由配置完整，覆盖所有页面，懒加载正确。\n- API 函数参数和返回值类型使用 TypeScript 定义。\n- API 调用层可 mock 数据，方便前端独立开发。\n- 路由的 meta 信息包含 roles 字段（后续用于权限控制）。"
     }
   ],
   "implementationDefaults": {
@@ -2220,7 +2324,7 @@
       "vueConvention": "单文件组件 .vue，Options API 或 Composition API（推荐 <script setup>）"
     }
   },
-  "savedAt": "2026-07-03T14:36:09.434Z"
+  "savedAt": "2026-07-04T04:50:02.958Z"
 }
 ```
 <!-- FDE_STEP_RESULT_JSON_END -->
