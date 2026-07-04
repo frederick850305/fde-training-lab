@@ -17,7 +17,7 @@
 
     <div v-if="!projects.length" class="empty-panel">
       <strong>还没有可访问的原型系统</strong>
-      <p>请先完成「生成原型」，系统会写入 prototypes/ 目录。</p>
+      <p>请先完成「前端原型方案」确认，系统会写入 prototypes/ 目录。</p>
     </div>
 
     <div v-else class="project-grid">

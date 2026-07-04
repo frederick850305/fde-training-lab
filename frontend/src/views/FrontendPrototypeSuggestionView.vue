@@ -419,7 +419,7 @@
         <div class="panel-heading inline-heading">
           <div>
             <span>生成任务包</span>
-            <strong>按 Mock、组件、页面、路由/API 层拆分，供下一步生成原型系统</strong>
+            <strong>按 Mock、组件、页面、路由/API 层拆分</strong>
           </div>
           <button
             class="gen-btn"
@@ -468,23 +468,11 @@
         </ol>
       </template>
     </section>
-
-    <div class="next-action">
-      <p v-if="confirmStatus" class="confirm-msg" :class="{ error: confirmStatus.includes('失败') || confirmStatus.includes('❌') }">{{ confirmStatus }}</p>
-      <button
-        class="primary-button"
-        type="button"
-        :disabled="isConfirming"
-        @click="confirmAndNext"
-      >
-        {{ isConfirming ? '保存中...' : '确认前端原型方案' }}
-      </button>
-    </div>
   </section>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import ViewHeading from '../components/ViewHeading.vue'
 
 const props = defineProps({
@@ -494,13 +482,11 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['suggestion-confirm', 'prototype-draft-update'])
+const emit = defineEmits(['prototype-draft-update'])
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
 const activeTab = ref('views')
-const isConfirming = ref(false)
-const confirmStatus = ref('')
 const activeTabIndex = computed(() => suggestionTabs.findIndex((item) => item.key === activeTab.value))
 
 /* ===== 从 projectContext 恢复已保存的 LLM 生成数据 ===== */
@@ -600,7 +586,19 @@ async function requestLlmGeneration(stepKey, instruction, currentOutput) {
 
 /* ===== 保存当前结果到父组件 → 持久化到 MD ===== */
 function persistPrototypeResult() {
-  emit('prototype-draft-update', buildPrototypePayload())
+  const existing = props.projectContext.stepResults?.prototype || {}
+  const current = buildPrototypePayload()
+
+  // LLM 生成的字段：当前有值才覆盖，否则保留 prototype.md 中已有的数据
+  // 这样每个 Tab 只更新自己生成的内容，不会互相覆盖
+  const llmFields = ['pageDetailSpecs', 'pageApiMapping', 'navigationRoutes', 'componentFiles', 'mockDataFiles', 'stepPrompts']
+  for (const field of llmFields) {
+    if (!current[field] && existing[field]) {
+      current[field] = existing[field]
+    }
+  }
+
+  emit('prototype-draft-update', current)
 }
 
 function parseMaybeJson(raw) {
@@ -1466,28 +1464,6 @@ const suggestionTabs = [
   { key: 'mockData', label: 'Mock 数据' },
   { key: 'stepPrompts', label: '生成任务包' },
 ]
-
-function confirmAndNext() {
-  if (isConfirming.value) return
-  isConfirming.value = true
-  confirmStatus.value = '⏳ 正在保存前端原型方案到本地 prototype.md ...'
-
-  emit('suggestion-confirm', {
-    suggestion: buildPrototypePayload(),
-  })
-}
-
-// Watch parent context for confirm result
-watch(() => props.projectContext.contextStatus, (status) => {
-  if (!isConfirming.value) return
-  if (status === '原型已保存') {
-    confirmStatus.value = props.projectContext.summary || '前端原型方案已保存。'
-    isConfirming.value = false
-  } else if (status === '保存失败') {
-    confirmStatus.value = props.projectContext.summary || '保存失败，请确认 FastAPI 后端已启动。'
-    isConfirming.value = false
-  }
-})
 
 function inferComponentResponsibility(file) {
   if (file.includes('Header')) return '承载页面标题、状态摘要和主操作入口。'
