@@ -34,6 +34,10 @@ class WriteFilesRequest(BaseModel):
     files: list[PrototypeFile] = Field(default_factory=list)
 
 
+class CommitFilesRequest(WriteFilesRequest):
+    run_id: str = Field(..., min_length=1, max_length=80)
+
+
 class StartServerRequest(BaseModel):
     port: Optional[int] = Field(default=None, ge=1024, le=65535)
     auto_install: bool = True
@@ -67,6 +71,13 @@ def _safe_file_path(slug: str, raw_path: str) -> Path:
         raise HTTPException(status_code=400, detail="File path escapes prototype project directory")
 
     return target
+
+
+def _safe_run_id(run_id: str) -> str:
+    normalized = run_id.strip()
+    if not re.fullmatch(r"[\w.-]+", normalized):
+        raise HTTPException(status_code=400, detail="Invalid prototype generation run id")
+    return normalized
 
 
 def _relative_project_path(slug: str, path: Path) -> str:
@@ -299,6 +310,46 @@ def write_project_files(slug: str, request: WriteFilesRequest) -> dict[str, Any]
 
     return {
         "slug": _safe_slug(slug),
+        "output_dir": str(project_dir),
+        "written_count": len(written),
+        "files": written,
+    }
+
+
+@router.post("/{slug}/files/commit")
+def commit_project_files(slug: str, request: CommitFilesRequest) -> dict[str, Any]:
+    if not request.files:
+        raise HTTPException(status_code=400, detail="No files to commit")
+
+    safe_slug = _safe_slug(slug)
+    safe_run_id = _safe_run_id(request.run_id)
+    project_dir = _project_dir(safe_slug)
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    targets: list[tuple[PrototypeFile, Path]] = [
+        (file, _safe_file_path(safe_slug, file.path))
+        for file in request.files
+    ]
+
+    staging_dir = project_dir / ".prototype_commits" / safe_run_id
+    staged: list[tuple[Path, Path]] = []
+    for file, target in targets:
+        relative_target = target.relative_to(project_dir.resolve())
+        staged_path = staging_dir / relative_target
+        staged_path.parent.mkdir(parents=True, exist_ok=True)
+        staged_path.write_text(file.content, encoding="utf-8")
+        staged.append((staged_path, target))
+
+    written: list[str] = []
+    for staged_path, target in staged:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staged_path.replace(target)
+        written.append(_relative_project_path(safe_slug, target))
+
+    written.sort()
+    return {
+        "slug": safe_slug,
+        "run_id": safe_run_id,
         "output_dir": str(project_dir),
         "written_count": len(written),
         "files": written,

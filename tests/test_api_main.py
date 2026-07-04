@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.routers import prototype_projects as prototype_projects_router
 from src.api.routers import requirement as requirement_router
 from src.python_basics.llm_service import (
     LLMAuthenticationError,
@@ -24,6 +25,27 @@ def test_health_check():
         "status": "ok",
         "message": "FDE Training API is running",
     }
+
+
+def test_prototype_project_commit_files_uses_run_staging(tmp_path, monkeypatch):
+    monkeypatch.setattr(prototype_projects_router, "PROTOTYPES_DIR", tmp_path / "prototypes")
+
+    response = client.post(
+        "/prototype-projects/demo/files/commit",
+        json={
+            "run_id": "run-test-001",
+            "files": [
+                {"path": "prototypes/demo/src/main.js", "content": "export const ok = true\n"},
+                {"path": "src/App.vue", "content": "<template><main>demo</main></template>\n"},
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["written_count"] == 2
+    assert (tmp_path / "prototypes" / "demo" / "src" / "main.js").read_text(encoding="utf-8") == "export const ok = true\n"
+    assert (tmp_path / "prototypes" / "demo" / "src" / "App.vue").read_text(encoding="utf-8") == "<template><main>demo</main></template>\n"
 
 
 def test_requirement_summary_api_success(tmp_path):

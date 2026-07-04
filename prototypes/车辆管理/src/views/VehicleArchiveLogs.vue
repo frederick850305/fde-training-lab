@@ -29,8 +29,8 @@
 
 <script setup>
 import { ref, reactive, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchVehiclesData } from '../data/mockVehicles'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchVehiclesData } from '../data/mockVehicles.js'
 import DataFilterBar from '../components/DataFilterBar.vue'
 import DataTable from '../components/DataTable.vue'
 

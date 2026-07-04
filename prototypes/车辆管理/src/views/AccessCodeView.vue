@@ -78,8 +78,8 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchReservationsData, reservationsRecords } from '../data/mockReservations'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchReservationsData, reservationsRecords } from '../data/mockReservations.js'
 
 // 角色上下文
 const prototypeContext = inject('prototypeContext')

@@ -50,6 +50,52 @@ export const dispatchRecords = [
   }
 ];
 
+function enhanceDispatchRows(rows) {
+  const demand = rows.map(row => row.demand).filter(Boolean).map((item, index) => ({
+    id: item.id || item.demandId || `DEM${index + 1}`,
+    demandId: item.demandId || item.requestId || `DEM${index + 1}`,
+    applyTime: item.applyTime || item.demandTime || '2025-04-10 08:00',
+    applicant: item.applicant || item.requester || '申请人',
+    departure: item.departure || item.from || '起点',
+    destination: item.destination || item.to || '终点',
+    status: item.status || '待派车',
+    ...item,
+  }));
+  const vehicleList = rows.flatMap(row => row.vehicleList || []).map((item, index) => ({
+    id: item.id || item.vehicleId || `V${index + 1}`,
+    vehicleId: item.vehicleId || item.id || `V${index + 1}`,
+    plateNumber: item.plateNumber || item.plateNo || item.plate || `沪A-${index + 1}`,
+    plateNo: item.plateNo || item.plate || item.plateNumber || `沪A-${index + 1}`,
+    driverName: item.driverName || item.driver || '司机',
+    currentLocation: item.currentLocation || item.currentPosition || item.position || '厂区',
+    onlineStatus: item.onlineStatus || item.driverStatus || (item.online ? '空闲' : '任务中'),
+    speed: item.speed || 0,
+    task: item.task || '待命',
+    ...item,
+  }));
+  const nearbyVehicles = rows.flatMap(row => row.nearbyVehicles || []).map((item, index) => ({
+    id: item.id || item.vehicleId || `NV${index + 1}`,
+    vehicleId: item.vehicleId || item.id || `NV${index + 1}`,
+    plateNumber: item.plateNumber || item.plateNo || item.plate || `沪N-${index + 1}`,
+    driverName: item.driverName || item.driver || '附近司机',
+    currentLocation: item.currentLocation || item.currentPosition || item.position || '周边区域',
+    onlineStatus: item.onlineStatus || item.driverStatus || '空闲',
+    ...item,
+  }));
+  const dispatchRecordsResult = Object.assign(rows, { demand, vehicleList, dispatchTask: rows[0]?.dispatchTask || {}, nearbyVehicles });
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    dispatchRecords: dispatchRecordsResult,
+    demand,
+    vehicleList,
+    dispatchTask: rows[0]?.dispatchTask || {},
+    nearbyVehicles,
+  });
+}
+
 export function fetchDispatchData({ roleKey, currentUser, filters } = {}) {
   let data = dispatchRecords;
   if (roleKey === 'driver') {
@@ -57,5 +103,5 @@ export function fetchDispatchData({ roleKey, currentUser, filters } = {}) {
     data = data.filter(rec => rec.dispatchTask && rec.dispatchTask.driverId === currentUser?.driverId);
   }
   // 可根据 filters 进一步过滤
-  return Promise.resolve(data);
+  return enhanceDispatchRows([...data]);
 }

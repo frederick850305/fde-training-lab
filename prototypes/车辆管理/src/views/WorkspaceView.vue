@@ -111,8 +111,8 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchReservationsData } from '../data/mockReservations'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchReservationsData } from '../data/mockReservations.js'
 import StatusTag from '../components/StatusTag.vue'
 
 const prototypeContext = inject('prototypeContext')

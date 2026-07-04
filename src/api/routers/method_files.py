@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_DIR = PROJECT_ROOT / "prototype_factory" / "local_step_outputs"
 PROTOTYPE_ASSET_DIR = OUTPUT_DIR / "prototype"
+PROTOTYPE_PACKAGE_DIR = OUTPUT_DIR / "prototype_generation_package"
 JSON_START = "<!-- FDE_STEP_RESULT_JSON_START -->"
 JSON_END = "<!-- FDE_STEP_RESULT_JSON_END -->"
 
@@ -166,6 +168,98 @@ def _write_prototype_assets(result: dict[str, Any]) -> dict[str, str]:
     return written
 
 
+def _read_saved_result_if_exists(step_key: str) -> dict[str, Any]:
+    file_path = _step_file_path(step_key)
+    if not file_path.exists():
+        return {}
+    return _parse_markdown_result(file_path.read_text(encoding="utf-8"))
+
+
+def _build_prototype_package_readme(
+    prototype_result: dict[str, Any],
+    included_files: list[str],
+    saved_at: str,
+) -> str:
+    project_name = prototype_result.get("projectName") or "原型系统"
+    customer_name = prototype_result.get("customerName") or ""
+    view_files = prototype_result.get("viewFiles") or []
+    component_files = prototype_result.get("componentFiles") or []
+    mock_files = prototype_result.get("mockDataFiles") or []
+
+    return f"""# Codex 原型生成包说明
+
+- 生成时间：{saved_at}
+- 项目名称：{project_name}
+- 客户名称：{customer_name or "未填写"}
+- 页面数量：{len(view_files)}
+- 通用组件数量：{len(component_files)}
+- Mock 数据文件数量：{len(mock_files)}
+
+## 使用方式
+
+1. 解压 `codex-prototype-generation-package.zip`。
+2. 在一个新的 Codex 会话中，把本说明和 zip 一起作为上下文。
+3. 要求 Codex 基于 `context/` 目录中的方法链路资料生成 Vue3 + Vite 原型项目。
+4. 生成时必须优先遵守 `context/prototype/*.json` 中的页面、组件、导航、API 映射和 mock 契约。
+
+## 生成要求
+
+- 技术栈：Vue 3、Vite、普通 CSS，不依赖 Element Plus 等外部 UI 库，除非 zip 中已有明确约定。
+- 输出目录建议：`prototypes/{project_name}/`。
+- 每个页面必须从契约声明的 mock 数据读取，不要在页面里重新编造大段业务数据。
+- mock 文件必须同时导出契约要求的数据变量和读取函数，例如 `export const xxxRecords` 与 `export function fetchXxxData(...)`。
+- 页面 import 路径必须和生成的文件结构一致，禁止使用不存在的别名或未安装依赖。
+- 完成后运行 `npm install` 和 `npm run build`，修复所有编译错误。
+
+## 推荐任务提示词
+
+请基于我提供的 `codex-prototype-generation-package.zip` 生成一个可运行的 Vue3 + Vite 原型系统。你需要先阅读 `context/requirement.md`、`context/scenariopagedesign.md`、`context/interactionapi.md`、`context/prototype.md` 和 `context/prototype/*.json`，再实现页面、导航、组件、mock 数据和 API shim。重点保证 mock 数据导出名、读取函数、页面 import 和导航组件名完全一致。生成完成后请执行构建验证并修复问题。
+
+## Zip 内文件清单
+
+{chr(10).join(f"- `{path}`" for path in included_files)}
+"""
+
+
+def _build_prototype_package() -> dict[str, Any]:
+    saved_at = datetime.now(timezone.utc).isoformat()
+    prototype_result = _read_saved_result_if_exists("prototype")
+    if not prototype_result:
+        raise HTTPException(status_code=404, detail="No saved prototype.md for packaging")
+
+    PROTOTYPE_PACKAGE_DIR.mkdir(parents=True, exist_ok=True)
+    zip_path = PROTOTYPE_PACKAGE_DIR / "codex-prototype-generation-package.zip"
+    readme_path = PROTOTYPE_PACKAGE_DIR / "README.md"
+
+    source_files: list[tuple[Path, str]] = []
+    for step_key in ("requirement", "scenariopagedesign", "interactionapi", "prototype"):
+        file_path = _step_file_path(step_key)
+        if file_path.exists():
+            source_files.append((file_path, f"context/{file_path.name}"))
+
+    if PROTOTYPE_ASSET_DIR.exists():
+        for file_path in sorted(PROTOTYPE_ASSET_DIR.glob("*.json")):
+            source_files.append((file_path, f"context/prototype/{file_path.name}"))
+
+    included_files = [arcname for _, arcname in source_files]
+    included_files.insert(0, "README.md")
+    readme = _build_prototype_package_readme(prototype_result, included_files, saved_at)
+    readme_path.write_text(readme, encoding="utf-8")
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("README.md", readme)
+        for file_path, arcname in source_files:
+            archive.write(file_path, arcname)
+
+    return {
+        "saved_at": saved_at,
+        "package_dir": str(PROTOTYPE_PACKAGE_DIR),
+        "zip_path": str(zip_path),
+        "readme_path": str(readme_path),
+        "included_files": included_files,
+    }
+
+
 @router.get("")
 def list_method_step_files() -> dict[str, Any]:
     files = []
@@ -191,6 +285,11 @@ def list_method_step_files() -> dict[str, Any]:
         "latest_saved_at": latest_saved_at,
         "files": files,
     }
+
+
+@router.post("/prototype-package")
+def create_prototype_generation_package() -> dict[str, Any]:
+    return _build_prototype_package()
 
 
 @router.post("/{step_key}")

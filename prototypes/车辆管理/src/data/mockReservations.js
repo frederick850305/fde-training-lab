@@ -64,11 +64,81 @@ export const reservationsRecords = [
   }
 ];
 
+function enhanceReservationsRows(rows) {
+  const normalizedRows = rows.map((row, index) => ({
+    id: row.reservationItem?.reservationId || `RES-${index + 1}`,
+    applyId: row.reservationItem?.reservationId || `RES-${index + 1}`,
+    plateNo: row.reservationItem?.plateNo || row.accessCode?.relatedPlate || '',
+    plateNumber: row.reservationItem?.plateNo || row.accessCode?.relatedPlate || '',
+    vehicleType: row.reservationItem?.vehicleType || '',
+    unit: row.reservationItem?.company || '',
+    department: row.reservationItem?.company || '',
+    workArea: row.reservationItem?.workArea || '',
+    applyTime: row.reservationItem?.reservationTime || '',
+    reservationTime: row.reservationItem?.reservationTime || '',
+    status: row.reservationItem?.status || '待审批',
+    statusLabel: row.reservationItem?.status || '待审批',
+    overdueFlag: Boolean(row.reservationItem?.timeoutFlag),
+    accessCode: row.accessCode,
+    approvalAction: row.approvalAction,
+    historyRecord: row.historyRecord,
+    ...row,
+  }));
+  rows.forEach((row, index) => {
+    const normalized = normalizedRows[index]
+    const syncText = row.accessCode?.syncStatus || ''
+    const syncStatus = syncText === '已同步' ? 'success' : (syncText === '同步失败' ? 'failed' : 'pending')
+    Object.assign(row, normalized, {
+      accessCode: row.accessCode ? {
+        id: row.accessCode.codeId || `AC-${index + 1}`,
+        codeId: row.accessCode.codeId || `AC-${index + 1}`,
+        code: row.accessCode.codeValue || row.accessCode.code || '',
+        codeValue: row.accessCode.codeValue || row.accessCode.code || '',
+        plateNumber: row.accessCode.plateNumber || row.accessCode.relatedPlate || normalized.plateNumber || '',
+        syncStatus,
+        syncStatusText: syncText || syncStatus,
+        usageStatus: row.accessCode.usageStatus || '',
+        validUntil: row.accessCode.validUntil || '',
+        logs: row.accessCode.logs || [],
+        ...row.accessCode,
+        syncStatus,
+      } : row.accessCode,
+    })
+  });
+  const historyRecords = rows.map((row, index) => ({
+    id: row.historyRecord?.recordId || `HIS-${index + 1}`,
+    recordId: row.historyRecord?.recordId || `HIS-${index + 1}`,
+    plateNumber: row.historyRecord?.plateNumber || row.historyRecord?.plateNo || row.reservationItem?.plateNo || '',
+    vehiclePlate: row.historyRecord?.plateNo || row.reservationItem?.plateNo || '',
+    reservationTime: row.historyRecord?.reservationTime || row.reservationItem?.reservationTime || '',
+    approvalStatus: row.historyRecord?.approvalStatus || row.reservationItem?.status || '',
+    accessCode: row.historyRecord?.accessCode || row.accessCode?.codeValue || '',
+    entryTime: row.historyRecord?.entryTime || '',
+    exitTime: row.historyRecord?.exitTime || '',
+    fee: row.historyRecord?.fee || row.historyRecord?.cost || '0.00',
+    operationLogs: row.historyRecord?.operationLogs || [],
+    feeDetails: row.historyRecord?.feeDetails || [],
+    ...row.historyRecord,
+  })).filter(record => record.recordId || record.plateNumber);
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    reservationsRecords: normalizedRows,
+    reservationItem: rows[0]?.reservationItem || {},
+    approvalAction: rows[0]?.approvalAction || {},
+    accessCode: rows[0]?.accessCode || {},
+    historyRecord: rows[0]?.historyRecord || {},
+    historyRecords,
+  });
+}
+
 export function fetchReservationsData({ roleKey, currentUser, filters } = {}) {
   let data = reservationsRecords;
   if (roleKey === 'approver') {
     // 审批者只看待审批的
     data = data.filter(rec => rec.reservationItem.status === '待审批');
   }
-  return Promise.resolve(data);
+  return enhanceReservationsRows([...data]);
 }

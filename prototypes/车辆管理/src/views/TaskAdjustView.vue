@@ -161,7 +161,7 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
+import { prototypeContract } from '../prototypeContract.js'
 
 // 注入角色上下文
 const prototypeContext = inject('prototypeContext', {

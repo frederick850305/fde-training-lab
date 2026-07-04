@@ -50,11 +50,36 @@ export const alertsRecords = [
   }
 ];
 
+function enhanceAlertsRows(rows) {
+  const taskProgress = rows.map(row => row.taskProgress).filter(Boolean).map((item, index) => ({
+    id: item.taskId || `TASK-${index + 1}`,
+    taskId: item.taskId || `TASK-${index + 1}`,
+    title: item.title || `${item.plateNo || item.plateNumber || '车辆'}任务进度`,
+    plateNumber: item.plateNumber || item.plateNo || '',
+    driverName: item.driverName || item.driver || '',
+    status: item.status || item.taskStatus || 'in_progress',
+    statusText: item.statusText || item.taskStatus || '进行中',
+    currentPhase: item.currentPhase || item.currentStage || '',
+    estimatedEnd: item.estimatedEnd || item.estimatedComplete || '',
+    ...item,
+  }));
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    alertsRecords: rows,
+    alertItem: rows[0]?.alertItem || {},
+    taskProgress,
+    alertFilterParams: rows[0]?.alertFilterParams || {},
+  });
+}
+
 export function fetchAlertsData({ roleKey, currentUser, filters } = {}) {
   let data = alertsRecords;
   if (roleKey === 'driver') {
     // 司机只看自己的告警
     data = data.filter(rec => rec.alertItem.vehicleId === currentUser?.vehicleId);
   }
-  return Promise.resolve(data);
+  return enhanceAlertsRows([...data]);
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, provide, ref, watch } from 'vue'
+import { computed, h, provide, ref, watch } from 'vue'
 import DispatchWorkbenchView from './views/DispatchWorkbenchView.vue'
 import AlertAndTaskMonitorView from './views/AlertAndTaskMonitorView.vue'
 import DriverTaskListView from './views/DriverTaskListView.vue'
@@ -16,10 +16,11 @@ import HistoryView from './views/HistoryView.vue'
 import VehicleArchiveList from './views/VehicleArchiveList.vue'
 import VehicleArchiveEdit from './views/VehicleArchiveEdit.vue'
 import VehicleArchiveLogs from './views/VehicleArchiveLogs.vue'
+import PrototypePage from './components/PrototypePage.vue'
 import { installPrototypeRouter } from './routerShim.js'
 import { prototypeContract } from './prototypeContract.js'
 
-const components = {
+const generatedComponents = {
   DispatchWorkbenchView,
   AlertAndTaskMonitorView,
   DriverTaskListView,
@@ -37,6 +38,18 @@ const components = {
   VehicleArchiveEdit,
   VehicleArchiveLogs,
 }
+
+function createGovernedComponent(page) {
+  return {
+    name: page.component,
+    setup() {
+      return () => h(PrototypePage, { pageKey: page.file })
+    },
+  }
+}
+
+const governedComponents = Object.fromEntries((prototypeContract.pages || []).map(page => [page.component, createGovernedComponent(page)]))
+const components = Object.keys(governedComponents).length ? governedComponents : generatedComponents
 
 const navigationGroups = prototypeContract.navigationGroups || []
 const roles = prototypeContract.roles || []

@@ -150,9 +150,9 @@
 
 <script setup>
 import { ref, inject, onMounted, computed } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchAlertsData, alertsRecords } from '../data/mockAlerts'
-import { fetchDispatchData, dispatchRecords } from '../data/mockDispatch'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchAlertsData, alertsRecords } from '../data/mockAlerts.js'
+import { fetchDispatchData, dispatchRecords } from '../data/mockDispatch.js'
 
 // 注入角色上下文
 const currentRoleKey = inject('currentRoleKey', 'dispatcher')
