@@ -66,8 +66,8 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchGateData } from '../data/mockGate'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchGateData } from '../data/mockGate.js'
 import DataFilterBar from '../components/DataFilterBar.vue'
 import DataTable from '../components/DataTable.vue'
 import StatusTag from '../components/StatusTag.vue'

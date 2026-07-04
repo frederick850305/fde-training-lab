@@ -57,11 +57,39 @@ export const tasksRecords = [
   }
 ];
 
+function enhanceTasksRows(rows) {
+  const tasksRecordsResult = rows.map((row, index) => ({
+    id: row.taskItem?.taskId || row.taskDetail?.taskId || `TASK-${index + 1}`,
+    taskId: row.taskItem?.taskId || row.taskDetail?.taskId || `TASK-${index + 1}`,
+    title: row.taskItem?.title || row.taskDetail?.title || `运输任务 ${index + 1}`,
+    plateNumber: row.taskItem?.plateNumber || row.taskItem?.plateNo || row.taskDetail?.vehicleInfo?.plate || '',
+    plate: row.taskItem?.plateNo || row.taskDetail?.vehicleInfo?.plate || '',
+    origin: row.taskItem?.departure || row.taskDetail?.navigationInfo?.start || '',
+    destination: row.taskItem?.destination || row.taskDetail?.navigationInfo?.end || '',
+    workPoint: row.taskItem?.workPoint || '',
+    status: row.taskItem?.status || row.taskDetail?.status || 'pending',
+    createdAt: row.taskItem?.createTime || '',
+    estimatedTime: row.taskItem?.estimatedTime || '',
+    ...row,
+  }));
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    tasksRecords: tasksRecordsResult,
+    taskItem: rows[0]?.taskItem || {},
+    taskDetail: rows[0]?.taskDetail || {},
+    taskCompletion: rows[0]?.taskCompletion || {},
+    driverFeedback: rows[0]?.driverFeedback || {},
+  });
+}
+
 export function fetchTasksData({ roleKey, currentUser, filters } = {}) {
   let data = tasksRecords;
   // 可按角色过滤
   if (roleKey === 'driver' && currentUser?.driverName) {
     data = data.filter(rec => rec.taskDetail.driverInfo.name === currentUser.driverName);
   }
-  return Promise.resolve(data);
+  return enhanceTasksRows([...data]);
 }

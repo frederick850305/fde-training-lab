@@ -67,8 +67,53 @@ export const vehiclesRecords = [
   }
 ];
 
+function enhanceVehiclesRows(rows) {
+  const vehicleList = rows.map((row, index) => ({
+    id: row.vehicleItem?.vehicleId || `V-${index + 1}`,
+    vehicleId: row.vehicleItem?.vehicleId || `V-${index + 1}`,
+    plateNumber: row.vehicleItem?.plateNumber || row.vehicleItem?.plateNo || '',
+    plateNo: row.vehicleItem?.plateNo || '',
+    vehicleType: row.vehicleItem?.vehicleType || row.vehicleSaveParams?.type || '',
+    department: row.vehicleItem?.department || row.vehicleItem?.company || '',
+    unit: row.vehicleItem?.company || '',
+    driverName: row.vehicleItem?.driverName || row.vehicleSaveParams?.driverInfo?.name || '',
+    driverPhone: row.vehicleItem?.driverPhone || row.vehicleSaveParams?.driverInfo?.phone || '',
+    status: row.vehicleItem?.status || 'active',
+    inspectionExpiry: row.vehicleItem?.inspectionExpiry || row.vehicleItem?.annualInspectionValid || '',
+    insuranceExpiry: row.vehicleItem?.insuranceExpiry || row.vehicleItem?.insuranceValid || '',
+    accessExpiry: row.vehicleItem?.accessExpiry || '',
+    certificates: row.vehicleItem?.certificates || [],
+    recentLogs: row.vehicleItem?.recentLogs || [row.operationLog].filter(Boolean),
+    ...row,
+  }));
+  rows.forEach((row, index) => Object.assign(row, vehicleList[index]));
+  const operationLogs = rows.map((row, index) => ({
+    id: row.operationLog?.logId || `LOG-${index + 1}`,
+    logId: row.operationLog?.logId || `LOG-${index + 1}`,
+    operationTime: row.operationLog?.operationTime || row.operationLog?.operateTime || '',
+    operatorName: row.operationLog?.operatorName || row.operationLog?.operator || '',
+    operationType: row.operationLog?.operationType || '',
+    vehicleId: row.operationLog?.vehicleId || row.operationLog?.relatedVehicleId || '',
+    changeDetail: row.operationLog?.changeDetail || '',
+    ...row.operationLog,
+  })).filter(record => record.logId);
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    list: vehicleList,
+    vehiclesRecords: vehicleList,
+    vehicleItem: rows[0]?.vehicleItem || {},
+    vehicleSaveParams: rows[0]?.vehicleSaveParams || {},
+    operationLog: operationLogs,
+    operationLogs,
+    vehicleFilter: rows[0]?.vehicleFilter || {},
+  });
+}
+
 export function fetchVehiclesData({ roleKey, currentUser, filters } = {}) {
   let data = vehiclesRecords;
   // 管理员看到全部
-  return Promise.resolve(data);
+  return enhanceVehiclesRows([...data]);
 }

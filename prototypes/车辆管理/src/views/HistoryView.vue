@@ -75,8 +75,8 @@
 
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import { prototypeContract } from '../prototypeContract'
-import { fetchReservationsData } from '../data/mockReservations'
+import { prototypeContract } from '../prototypeContract.js'
+import { fetchReservationsData } from '../data/mockReservations.js'
 import DataFilterBar from '../components/DataFilterBar.vue'
 import DataTable from '../components/DataTable.vue'
 import DetailPanel from '../components/DetailPanel.vue'

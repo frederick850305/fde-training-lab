@@ -99,7 +99,7 @@
 
 <script setup>
 import { ref, computed, inject, onMounted } from 'vue'
-import { prototypeContract } from '../prototypeContract'
+import { prototypeContract } from '../prototypeContract.js'
 import StatusTag from '../components/StatusTag.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 

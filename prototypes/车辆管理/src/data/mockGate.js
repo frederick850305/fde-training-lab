@@ -55,9 +55,59 @@ export const gateRecords = [
   }
 ];
 
-export function fetchGateData({ roleKey, currentUser, filters } = {}) {
+function enhanceGateRows(rows) {
+  const pendingVehicles = rows.map((row, index) => ({
+    id: row.pendingVehicle?.vehicleId || `GATE-${index + 1}`,
+    vehicleId: row.pendingVehicle?.vehicleId || `GATE-${index + 1}`,
+    plateNo: row.pendingVehicle?.plateNo || '',
+    plateNumber: row.pendingVehicle?.plateNumber || row.pendingVehicle?.plateNo || '',
+    vehicleType: row.pendingVehicle?.vehicleType || '',
+    certStatus: row.pendingVehicle?.certStatus || '',
+    entryPurpose: row.pendingVehicle?.entryPurpose || '',
+    ...row.pendingVehicle,
+  })).filter(record => record.vehicleId);
+  const entryRecords = rows.map((row, index) => ({
+    id: row.entryRecord?.recordId || `ENT-${index + 1}`,
+    recordId: row.entryRecord?.recordId || `ENT-${index + 1}`,
+    plateNumber: row.entryRecord?.plateNumber || row.entryRecord?.plateNo || '',
+    actionResult: row.entryRecord?.actionResult || row.entryRecord?.action || '',
+    actionTime: row.entryRecord?.actionTime || '',
+    operator: row.entryRecord?.operator || '',
+    rejectReason: row.entryRecord?.rejectReason || '',
+    syncStatus: row.entryRecord?.syncStatus || '',
+    ...row.entryRecord,
+  })).filter(record => record.recordId);
+  return Object.assign(rows, {
+    success: true,
+    total: rows.length,
+    records: rows,
+    data: rows,
+    list: pendingVehicles,
+    gateRecords: pendingVehicles,
+    pendingVehicle: rows[0]?.pendingVehicle || {},
+    pendingVehicles,
+    entryRecord: rows[0]?.entryRecord || {},
+    entryRecords,
+    gateActionParams: rows[0]?.gateActionParams || {},
+    entryRecordFilter: rows[0]?.entryRecordFilter || {},
+  });
+}
+
+export function fetchGateData(typeOrOptions = {}, maybeFilters = {}) {
+  const type = typeof typeOrOptions === 'string' ? typeOrOptions : ''
+  const { roleKey, currentUser, filters } = typeof typeOrOptions === 'object' ? typeOrOptions : maybeFilters
   let data = gateRecords;
   // gate 角色看到全部
   // 可添加基于 filters 的过滤
-  return Promise.resolve(data);
+  const enhanced = enhanceGateRows([...data]);
+  if (type === 'entryRecords') {
+    return Promise.resolve({
+      success: true,
+      total: enhanced.entryRecords.length,
+      list: enhanced.entryRecords,
+      records: enhanced.entryRecords,
+      data: enhanced.entryRecords,
+    });
+  }
+  return Promise.resolve(enhanced);
 }
