@@ -2,6 +2,20 @@
   <main class="app-shell">
     <AppHeader />
 
+    <nav class="main-tabs" aria-label="主导航">
+      <button
+        :class="{ active: activeMainTab === 'method' }"
+        @click="activeMainTab = 'method'"
+      >🔧 方法工作台</button>
+      <button
+        :class="{ active: activeMainTab === 'prototypeCenter' }"
+        @click="activeMainTab = 'prototypeCenter'"
+      >🏗️ 原型中心</button>
+      <button
+        :class="{ active: activeMainTab === 'proposal' }"
+        @click="activeMainTab = 'proposal'"
+      >📄 方案输出</button>
+    </nav>
 
     <template v-if="activeMainTab === 'method'">
       <FactoryWorkbenchView
@@ -46,18 +60,10 @@
       :project-context="projectContext"
     />
 
-    <section v-else-if="activeMainTab === 'progress'" class="section-block progress-panel" aria-labelledby="progress-title">
-      <div class="section-heading">
-        <p class="eyebrow">Training Progress</p>
-        <h2 id="progress-title">第二阶段练习进展</h2>
-      </div>
-      <ul class="progress-list">
-        <li v-for="item in progressItems" :key="item.name">
-          <span class="progress-status" :class="item.statusClass">{{ item.status }}</span>
-          <span>{{ item.name }}</span>
-        </li>
-      </ul>
-    </section>
+    <ProposalOutputView
+      v-else-if="activeMainTab === 'proposal'"
+      :project-context="projectContext"
+    />
 
     <template v-else>
       <section class="section-block" aria-label="方法工作台">
@@ -77,6 +83,7 @@ import AppHeader from './components/AppHeader.vue'
 import FactoryWorkbenchView from './views/FactoryWorkbenchView.vue'
 import FrontendPrototypeSuggestionView from './views/FrontendPrototypeSuggestionView.vue'
 import PrototypeCenterView from './views/PrototypeCenterView.vue'
+import ProposalOutputView from './views/ProposalOutputView.vue'
 import InteractionApiView from './views/InteractionApiView.vue'
 import RequirementInputView from './views/RequirementInputView.vue'
 import ScenarioPageDesignView from './views/ScenarioPageDesignView.vue'
@@ -770,53 +777,4 @@ const workspaceStepLabelMap = {
   prototypeWorkflow: '原型生成流程总览',
   requirementSummary: '客户需求分析',
 }
-
-const progressItems = [
-  { name: '2-1 到 2-7：原型设计方法资产', status: '完成', statusClass: 'done' },
-  { name: '2-8：Vue3 项目初始化', status: '完成', statusClass: 'done' },
-  { name: '2-9：工作台首页生成', status: '完成', statusClass: 'done' },
-  { name: '2-10：客户需求分析页生成', status: '完成', statusClass: 'done' },
-  { name: '2-11：Vue3 组件拆分', status: '完成', statusClass: 'done' },
-  { name: '2-12：原型生成流程设计', status: '完成', statusClass: 'done' },
-  { name: '2-13：需求输入工作台', status: '完成', statusClass: 'done' },
-  { name: '2-14：需求拆解结果生成', status: '完成', statusClass: 'done' },
-  { name: '2-15：工作台页面切换与状态修正', status: '完成', statusClass: 'done' },
-  { name: '2-16：场景识别工作台', status: '完成', statusClass: 'done' },
-  { name: '2-17：功能模块设计工作台', status: '完成', statusClass: 'done' },
-  { name: '2-18：页面清单设计工作台', status: '完成', statusClass: 'done' },
-  { name: '2-19：页面字段与交互设计工作台', status: '完成', statusClass: 'done' },
-  { name: '2-20：API 契约设计工作台', status: '完成', statusClass: 'done' },
-  { name: '2-21：前端原型建议工作台', status: '完成', statusClass: 'done' },
-  { name: '2-22：原型测试数据与通用组件准备', status: '完成', statusClass: 'done' },
-  { name: '2-23：项目总览原型页', status: '完成', statusClass: 'done' },
-  { name: '2-24：计划任务跟踪原型页', status: '完成', statusClass: 'done' },
-  { name: '2-25：异常问题闭环原型页', status: '完成', statusClass: 'done' },
-  { name: '2-26：现场调度看板原型页', status: '完成', statusClass: 'done' },
-  { name: '2-27：物料到货跟踪原型页', status: '完成', statusClass: 'done' },
-  { name: '2-28：原型页面统一导航优化', status: '完成', statusClass: 'done' },
-  { name: '2-29：工作台一级 Tab 结构重组', status: '完成', statusClass: 'done' },
-  { name: '2-30：原型工厂操作台总览', status: '完成', statusClass: 'done' },
-  { name: '2-31：项目上下文流转打通', status: '完成', statusClass: 'done' },
-  { name: '2-32：需求结果写回并传递到场景识别', status: '完成', statusClass: 'done' },
-  { name: '2-33：场景结果写回并传递到功能设计', status: '完成', statusClass: 'done' },
-  { name: '2-34：步骤连续 Next 导航与上下文贯通', status: '完成', statusClass: 'done' },
-  { name: '2-35：方法链路闭环到原型流程总览', status: '完成', statusClass: 'done' },
-  { name: '2-36：业务原型系统动态集成', status: '完成', statusClass: 'done' },
-  { name: '2-37：功能模块设计动态集成', status: '完成', statusClass: 'done' },
-  { name: '2-38：API 契约动态路径推荐', status: '完成', statusClass: 'done' },
-  { name: '2-39：FDE 自助式单页向导方法', status: '完成', statusClass: 'done' },
-  { name: '2-40：需求输入正式化与问题回复流转', status: '完成', statusClass: 'done' },
-  { name: '2-42：本地版本保存与接续', status: '完成', statusClass: 'done' },
-  { name: '2-43：方法链路闭环后自动跳转原型系统', status: '完成', statusClass: 'done' },
-  { name: '2-44：生成 P0 核心页面 DispatchMapView', status: '完成', statusClass: 'done' },
-  { name: '2-45：独立原型系统架构与打包发布', status: '完成', statusClass: 'done' },
-  { name: '2-46：生成 P0 页面 TaskListView', status: '完成', statusClass: 'done' },
-  { name: '2-47：生成 P1 页面 OnsiteVehicleFilter', status: '完成', statusClass: 'done' },
-  { name: '2-48：生成 P1 页面 OnsiteDispatchDialog', status: '完成', statusClass: 'done' },
-  { name: '2-49：生成 P1 页面 OnsiteExceptionAlert', status: '完成', statusClass: 'done' },
-  { name: '2-50：生成 P1 页面 EntryCheckPanel', status: '完成', statusClass: 'done' },
-  { name: '2-51：补齐遗漏的 8 个 P1 页面', status: '当前', statusClass: 'active' },
-  { name: '2-52：交互与API一体化设计合并（Phase 1）', status: '完成', statusClass: 'done' },
-  { name: '2-53：场景→页面一体化工作台（Phase 2）', status: '当前', statusClass: 'active' },
-]
 </script>

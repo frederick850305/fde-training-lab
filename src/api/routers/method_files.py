@@ -259,6 +259,53 @@ def create_prototype_generation_package() -> dict[str, Any]:
     return _build_prototype_package()
 
 
+@router.post("/solution-package")
+def create_solution_package() -> dict[str, Any]:
+    """打包方案输出文件为 zip，保存到 prototypes/{project_name}/ 目录"""
+    saved_at = datetime.now(timezone.utc).isoformat()
+
+    # 读取 prototype.md 获取项目名称
+    prototype_result = _read_saved_result_if_exists("prototype")
+    project_name = (prototype_result.get("projectName") or "未命名项目").strip().replace(" ", "_")
+
+    # 确定输出目录：prototypes/{project_name}/
+    prototypes_root = PROJECT_ROOT / "prototypes"
+    project_dir = prototypes_root / project_name
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    zip_filename = f"solution_package_{saved_at[:10].replace('-', '')}.zip"
+    zip_path = project_dir / zip_filename
+
+    # 收集所有方案文件
+    solution_files: list[tuple[Path, str]] = []
+    for step_key in ("requirement", "scenariopagedesign", "interactionapi", "prototype"):
+        file_path = _step_file_path(step_key)
+        if file_path.exists():
+            solution_files.append((file_path, file_path.name))
+
+    # 添加 generate_solution_word.md
+    solution_word_path = OUTPUT_DIR / "generate_solution_word.md"
+    if solution_word_path.exists():
+        solution_files.append((solution_word_path, solution_word_path.name))
+    else:
+        solution_files.append((solution_word_path, "generate_solution_word.md（模板 - 待生成）"))
+
+    included_names = [name for _, name in solution_files]
+
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for file_path, arcname in solution_files:
+            if file_path.exists():
+                archive.write(file_path, arcname)
+
+    return {
+        "saved_at": saved_at,
+        "project_name": project_name,
+        "zip_path": str(zip_path),
+        "zip_filename": zip_filename,
+        "included_files": included_names,
+    }
+
+
 @router.post("/{step_key}")
 def save_method_step_file(step_key: str, payload: StepFilePayload) -> dict[str, Any]:
     safe_key = _safe_step_key(step_key)
