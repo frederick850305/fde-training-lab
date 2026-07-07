@@ -1,13 +1,13 @@
 <template>
   <section class="page-screen sync-task-list">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船岸数据同步 / 任务列表</span>
         <h1>同步任务列表</h1>
-        <p>查看所有同步任务，支持按全部/冲突/失败/待同步筛选；可多选任务进行批量重试或忽略操作。</p>
+        <p class="page-desc">查看所有同步任务，支持按全部/冲突/失败/待同步筛选；可多选任务进行批量重试或忽略操作。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
+        <button type="button" @click="goBack">返回总览</button>
       </div>
     </header>
 
@@ -51,7 +51,7 @@
         </div>
         <div class="batch-actions">
           <button type="button" class="primary" :disabled="!selectedIds.length" @click="openBatch('批量重试')">批量重试</button>
-          <button type="button" :disabled="!selectedIds.length" @click="openBatch('批量忽略')">批量忽略</button>
+          <button type="button" :disabled="!selectedIds.length || hasUnignorableSelected" @click="openBatch('批量忽略')">批量忽略</button>
         </div>
       </section>
 
@@ -59,7 +59,7 @@
       <section class="panel table-panel">
         <div class="panel-title">
           <h2>同步任务列表</h2>
-          <span>{{ filteredTasks.length }} 条</span>
+          <span>{{ routeContext.shipName || '全部船舶' }} · {{ filteredTasks.length }} 条</span>
         </div>
         <table>
           <thead>
@@ -116,10 +116,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchSyncTasks, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const tasks = ref([])
 const uiState = ref('loading')
 const activeTab = ref('all')
@@ -127,23 +128,33 @@ const selectedIds = ref([])
 const confirmOpen = ref(false)
 const pendingAction = ref('批量重试')
 const currentTask = ref(null)
+const routeContext = computed(() => navigation?.routeContext?.value || {})
+
+const scopedTasks = computed(() =>
+  routeContext.value.shipId
+    ? tasks.value.filter(t => t.shipId === routeContext.value.shipId)
+    : tasks.value,
+)
 
 const tabs = computed(() => [
-  { key: 'all', label: '全部', count: tasks.value.length },
-  { key: 'conflict', label: '冲突', count: tasks.value.filter(t => t.status === '冲突').length },
-  { key: 'failed', label: '失败', count: tasks.value.filter(t => t.status === '失败').length },
-  { key: 'pending', label: '待同步', count: tasks.value.filter(t => t.status === '待同步').length },
+  { key: 'all', label: '全部', count: scopedTasks.value.length },
+  { key: 'conflict', label: '冲突', count: scopedTasks.value.filter(t => t.status === '冲突').length },
+  { key: 'failed', label: '失败', count: scopedTasks.value.filter(t => t.status === '失败').length },
+  { key: 'pending', label: '待同步', count: scopedTasks.value.filter(t => t.status === '待同步').length },
 ])
 
 const filteredTasks = computed(() => {
-  if (activeTab.value === 'all') return tasks.value
-  if (activeTab.value === 'conflict') return tasks.value.filter(t => t.status === '冲突')
-  if (activeTab.value === 'failed') return tasks.value.filter(t => t.status === '失败')
-  if (activeTab.value === 'pending') return tasks.value.filter(t => t.status === '待同步')
-  return tasks.value
+  if (activeTab.value === 'all') return scopedTasks.value
+  if (activeTab.value === 'conflict') return scopedTasks.value.filter(t => t.status === '冲突')
+  if (activeTab.value === 'failed') return scopedTasks.value.filter(t => t.status === '失败')
+  if (activeTab.value === 'pending') return scopedTasks.value.filter(t => t.status === '待同步')
+  return scopedTasks.value
 })
 
 const allSelected = computed(() => filteredTasks.value.length > 0 && filteredTasks.value.every(t => selectedIds.value.includes(t.taskId)))
+const hasUnignorableSelected = computed(() =>
+  tasks.value.some(t => selectedIds.value.includes(t.taskId) && ['冲突', '失败'].includes(t.status)),
+)
 
 const confirmMessage = computed(() => {
   if (currentTask.value) {
@@ -187,7 +198,15 @@ function openIgnore(task) {
 }
 
 function goDetail(task) {
-  alert(`进入任务 ${task.taskId} 的冲突明细处理`)
+  navigation?.navigateTo?.('SyncTaskDetail', {
+    taskId: task.taskId,
+    shipId: task.shipId,
+    recordId: task.recordId,
+  })
+}
+
+function goBack() {
+  navigation?.navigateTo?.('DataSyncManager')
 }
 
 async function confirmAction() {
@@ -224,7 +243,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

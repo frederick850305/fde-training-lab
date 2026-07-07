@@ -1,16 +1,12 @@
 <template>
   <section class="page-screen sync-report">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船岸数据同步 / 同步报告</span>
         <h1>同步历史报告与健康趋势</h1>
-        <p>按时间范围与船舶检索同步历史报告，查看健康度趋势图表，支持生成新报告并下载历史报告。</p>
+        <p class="page-desc">按时间范围与船舶检索同步历史报告，查看健康度趋势图表，支持生成新报告并下载历史报告。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="openConfirm('生成报告')">生成报告</button>
-      </div>
-    </header>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -26,7 +22,10 @@
       <section class="panel search-panel">
         <div class="panel-title">
           <h2>同步历史检索</h2>
-          <span>{{ filteredReports.length }} 条记录</span>
+          <div class="title-actions">
+            <span>{{ filteredReports.length }} 条记录</span>
+            <button type="button" class="primary" @click="openConfirm('生成报告')">生成报告</button>
+          </div>
         </div>
         <div class="search-bar">
           <label>
@@ -264,7 +263,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -285,6 +284,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
+.title-actions { display: flex; align-items: center; gap: 12px; }
 
 .search-bar { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 14px; }
 .search-bar label { display: grid; gap: 6px; color: #53657c; font-size: 12px; font-weight: 900; }

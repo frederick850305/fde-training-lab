@@ -2,16 +2,13 @@
   <section class="page-screen">
     <header class="page-header">
       <div>
-        <span class="module-label">系统管理 / 配置模拟</span>
-        <h1>权限与流程配置模拟</h1>
-        <p>选择角色模拟其视角查看权限矩阵预览，选择流程试运行模拟流转步骤，验证通过后发布配置。用于配置变更上线前的预演校验。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" @click="runFlow" :disabled="!selectedWorkflowId" class="primary">试运行流程</button>
-        <button type="button" @click="askPublish" class="primary">发布配置</button>
-      </div>
-    </header>
+<div>
+            <span class="module-label">系统管理 / 配置模拟</span>
+            <h1>权限与流程配置模拟</h1>
+          </div>
+<p>选择角色模拟其视角查看权限矩阵预览，选择流程试运行模拟流转步骤，验证通过后发布配置。用于配置变更上线前的预演校验。</p>
+</div>
+      </header>
 
     <!-- 加载骨架 -->
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -171,6 +168,8 @@
       @cancel="confirmOpen = false"
       @confirm="confirmAction"
     />
+
+    
   </section>
 </template>
 
@@ -185,7 +184,6 @@ const modules = ref([])
 const workflows = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
-
 const selectedRoleId = ref('')
 const selectedWorkflowId = ref('')
 const runSteps = ref([])
@@ -315,7 +313,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

@@ -6,9 +6,6 @@
         <h1>工单审核列表</h1>
         <p>聚合查看待审核、需整改、已闭环工单，多维筛选定位工单，点击卡片内联展开查看摘要详情。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -52,6 +49,7 @@
           v-model:keyword="filters.keyword"
           v-model:status="filters.status"
           v-model:ship="filters.ship"
+          :status-options="workOrderStatusOptions"
           @search="applyFilters"
         />
       </article>
@@ -131,12 +129,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import FilterBar from '@/components/FilterBar.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchWorkOrders, submitAction } from '@/mock/api.js'
+import { auditWorkOrder, fetchWorkOrders } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const orders = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
@@ -149,6 +148,7 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const pendingOrder = ref(null)
 const pendingActionType = ref('')
+const workOrderStatusOptions = ['待审核', '需整改', '已闭环']
 
 const tabs = computed(() => [
   { key: 'pending', label: '待审核', count: orders.value.filter((o) => o.status === '待审核').length },
@@ -203,11 +203,10 @@ function priClass(pri) {
 }
 
 function goDetail(order) {
-  confirmTitle.value = '查看工单详情'
-  confirmMessage.value = `将打开工单 ${order.id} 的完整审核详情页，含报工数据、附件与逐项核验。`
-  pendingOrder.value = order
-  pendingActionType.value = 'detail'
-  confirmOpen.value = true
+  navigation?.navigateTo?.('WorkOrderAuditDetail', {
+    workOrderId: order.id,
+    status: order.status,
+  })
 }
 
 function quickApprove(order) {
@@ -221,7 +220,7 @@ function quickApprove(order) {
 async function confirmAction() {
   try {
     if (pendingActionType.value === 'approve') {
-      await submitAction('工单审核通过', { id: pendingOrder.value?.id })
+      await auditWorkOrder(pendingOrder.value?.id, { decision: '通过', comment: '列表快速通过' })
       if (pendingOrder.value) pendingOrder.value.status = '已闭环'
     }
     confirmOpen.value = false
@@ -233,7 +232,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

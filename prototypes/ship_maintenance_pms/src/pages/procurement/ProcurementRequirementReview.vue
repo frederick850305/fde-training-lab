@@ -6,10 +6,6 @@
         <h1>采购需求审核</h1>
         <p>采办协同人员审核自动生成的采购需求列表，校验预算与BOM关联后发起采购申请。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" :disabled="!selectedReq" @click="openConfirm('发起采购')">发起采购</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -180,15 +176,16 @@ async function confirmProcure() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
-p { margin: 0; color: #53657c; max-width: 760px; line-height: 1.55; }
+.page-header p { margin: 0; color: #53657c; max-width: 760px; line-height: 1.55; }
 .header-actions { display: flex; gap: 9px; }
 button { border: 1px solid #cfdae6; border-radius: 7px; padding: 8px 14px; background: #f6f9fc; font-weight: 900; }
 button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 button:disabled { opacity: .5; cursor: not-allowed; }
+
 .state-panel { min-height: 220px; border: 1px solid #d9e4ef; border-radius: 8px; display: grid; place-content: center; gap: 12px; justify-items: center; background: #fff; }
 .state-panel.error h2 { color: #b4232d; margin: 0; }
 .skeleton { grid-template-columns: repeat(3,1fr); padding: 24px; }

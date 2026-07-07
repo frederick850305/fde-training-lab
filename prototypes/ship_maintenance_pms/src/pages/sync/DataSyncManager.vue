@@ -1,15 +1,12 @@
 <template>
   <section class="page-screen data-sync-manager">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船岸数据同步 / 同步管理</span>
         <h1>船岸同步总览与管理</h1>
-        <p>统计船队同步状态KPI，高亮异常与未同步船舶，逐船展示同步任务与冲突情况，支持进入任务明细进行处理。</p>
+        <p class="page-desc">统计船队同步状态KPI，高亮异常与未同步船舶，逐船展示同步任务与冲突情况，支持进入任务明细进行处理。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-      </div>
-    </header>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -118,9 +115,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { fetchSyncSummary } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const summary = ref([])
 const uiState = ref('loading')
 
@@ -145,8 +143,10 @@ function statusLabel(s) {
 }
 
 function goTasks(ship) {
-  // 原型：提示进入明细，实际由路由/父级处理。这里通过 alert 模拟导航说明。
-  alert(`进入 ${ship.shipName} 的同步任务明细`)
+  navigation?.navigateTo?.('SyncTaskList', {
+    shipId: ship.shipId,
+    shipName: ship.shipName,
+  })
 }
 
 async function reload() {
@@ -164,7 +164,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

@@ -1,14 +1,13 @@
 <template>
   <section class="page-screen ship-detail-board">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船舶监控调度 / 单船看板</span>
         <h1>船舶详情看板</h1>
-        <p>聚焦单船当前航次进度、工单执行情况、航前健康校验结果与船员证书预警，并提供问题处置入口。</p>
+        <p class="page-desc">聚焦单船当前航次进度、工单执行情况、航前健康校验结果与船员证书预警，并提供问题处置入口。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="openConfirm('导出看板')">导出看板</button>
+        <button type="button" @click="goBack">返回总览</button>
       </div>
     </header>
 
@@ -157,6 +156,7 @@
               </div>
             </div>
             <button type="button" class="primary" @click="openHandle(issue)">处置</button>
+            <button type="button" @click="openWaiver(issue)">申请豁免</button>
           </div>
         </div>
       </section>
@@ -173,16 +173,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchVesselDetail, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const detail = ref(null)
 const uiState = ref('loading')
 const confirmOpen = ref(false)
 const pendingAction = ref('导出看板')
 const currentIssue = ref(null)
+const routeContext = computed(() => navigation?.routeContext?.value || {})
+const vesselId = computed(() => routeContext.value.vesselId || detail.value?.id || 'HG-01')
 
 const doneRate = computed(() => {
   const w = detail.value?.workOrderProgress
@@ -222,8 +225,16 @@ function certTone(status) {
 }
 
 function openHandle(issue) {
+  navigation?.navigateTo?.('VoyageHealthIssueDetail', {
+    checkId: detail.value?.healthCheckResult?.checkId,
+    issueId: issue.id,
+    vesselId: detail.value?.id,
+  })
+}
+
+function openWaiver(issue) {
   currentIssue.value = issue
-  pendingAction.value = '启动处置'
+  pendingAction.value = '申请豁免'
   confirmOpen.value = true
 }
 
@@ -235,14 +246,31 @@ function openConfirm(action) {
 
 async function confirmAction() {
   await submitAction(pendingAction.value, currentIssue.value || detail.value)
-  if (currentIssue.value) currentIssue.value.status = '处置中'
+  if (currentIssue.value) {
+    currentIssue.value.status = pendingAction.value === '申请豁免' ? '豁免待审批' : '处置中'
+  }
   confirmOpen.value = false
+}
+
+function goBack() {
+  navigation?.navigateTo?.('ShipMonitoringOverview', {
+    vesselId: detail.value?.id || vesselId.value,
+  })
+}
+
+function goDispatch() {
+  navigation?.navigateTo?.('DispatchCommandEditor', {
+    vesselId: detail.value?.id,
+    vesselName: detail.value?.name,
+    voyage: detail.value?.currentVoyage,
+    healthCheck: detail.value?.healthCheckResult,
+  })
 }
 
 async function reload() {
   uiState.value = 'loading'
   try {
-    detail.value = await fetchVesselDetail()
+    detail.value = await fetchVesselDetail(vesselId.value)
     uiState.value = 'success'
   } catch (e) {
     uiState.value = 'error'
@@ -253,7 +281,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

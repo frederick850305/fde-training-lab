@@ -6,10 +6,6 @@
         <h1>维保计划工作台</h1>
         <p>按设备资产树组织维保计划，监控生效/审核/到期/过期状态，查看维保历史并快速发起计划调整。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="quickAdd">新增计划</button>
-      </div>
     </header>
 
     <!-- 状态：加载骨架 -->
@@ -51,6 +47,18 @@
           <strong>{{ kpi.expired }}</strong>
           <span>已过期</span>
         </article>
+      </section>
+
+      <section class="status-filter" aria-label="维保计划状态筛选">
+        <button
+          v-for="item in statusFilters"
+          :key="item"
+          type="button"
+          :class="{ active: statusFilter === item }"
+          @click="statusFilter = item"
+        >
+          {{ item }}
+        </button>
       </section>
 
       <section class="workbench-layout">
@@ -164,20 +172,22 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import AssetTree from '@/components/AssetTree.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchEquipmentTree, fetchMaintenancePlans, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const tree = ref([])
 const plans = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
-
 const selectedNodeId = ref(null)
 const treeFilter = ref('')
 const selectedPlan = ref(null)
+const statusFilters = ['全部', '已生效', '审核中', '即将到期', '已过期']
+const statusFilter = ref('全部')
 
 const confirmOpen = ref(false)
 const confirmTitle = ref('')
@@ -194,8 +204,11 @@ const kpi = computed(() => ({
 }))
 
 const filteredPlans = computed(() => {
-  if (!selectedNodeId.value) return plans.value
-  return plans.value.filter((p) => p.equipmentId === selectedNodeId.value)
+  const byDevice = selectedNodeId.value
+    ? plans.value.filter((p) => p.equipmentId === selectedNodeId.value)
+    : plans.value
+  if (statusFilter.value === '全部') return byDevice
+  return byDevice.filter((p) => p.status === statusFilter.value)
 })
 
 const historyPlans = computed(() =>
@@ -214,8 +227,11 @@ async function reload() {
     ])
     tree.value = t
     plans.value = p
-    selectedNodeId.value = null
-    selectedPlan.value = p[0] || null
+    const context = navigation?.routeContext?.value || {}
+    selectedNodeId.value = context.equipmentId || selectedNodeId.value || null
+    selectedPlan.value = context.planId
+      ? p.find((plan) => plan.id === context.planId) || null
+      : filteredPlans.value[0] || p[0] || null
     uiState.value = p.length ? 'success' : 'empty'
   } catch (e) {
     errorMsg.value = e?.message || '加载失败'
@@ -259,21 +275,31 @@ function openConfirm(title, message, action) {
 }
 
 function quickAdd() {
-  openConfirm(
-    '新增维保计划',
-    `将为${selectedNode.value ? '「' + selectedNode.value.label + '」' : '选中设备'}创建新维保计划，提交后进入审核流程。`,
-    '新增计划',
-  )
+  navigation?.navigateTo?.('PlanEditor', {
+    mode: 'create',
+    equipmentId: selectedNodeId.value,
+    equipmentName: selectedNode.value?.label,
+  })
 }
 
 function viewDetail() {
   if (!selectedPlan.value) return
-  openConfirm('查看计划详情', `查看计划 ${selectedPlan.value.id} 的完整参数与执行历史。`, '查看详情')
+  navigation?.navigateTo?.('PlanEditor', {
+    mode: 'view',
+    planId: selectedPlan.value.id,
+    equipmentId: selectedPlan.value.equipmentId,
+    plan: selectedPlan.value,
+  })
 }
 
 function adjustPlan() {
   if (!selectedPlan.value) return
-  openConfirm('调整计划周期', `将对 ${selectedPlan.value.id} 发起周期调整申请，提交后进入审批流程。`, '调整周期')
+  navigation?.navigateTo?.('PlanEditor', {
+    mode: 'edit',
+    planId: selectedPlan.value.id,
+    equipmentId: selectedPlan.value.equipmentId,
+    plan: selectedPlan.value,
+  })
 }
 
 function generateWorkOrder() {
@@ -293,12 +319,12 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
+.page-screen { display: grid; gap: 16px; position: relative; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 16px 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
-h1 { margin: 6px 0 8px; font-size: 24px; }
-p { max-width: 920px; margin: 0; color: #53657c; line-height: 1.55; }
-.header-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+h1 { margin: 4px 0 0; font-size: 22px; }
+.page-header p { max-width: 920px; margin: 8px 0 0; color: #53657c; line-height: 1.55; }
+.header-actions { display: flex; gap: 9px; flex-wrap: wrap; align-items: flex-start; }
 button { border: 1px solid #cfdae6; border-radius: 7px; padding: 8px 13px; color: #24415f; background: #f6f9fc; font-weight: 900; cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
@@ -318,6 +344,10 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .kpi-card.danger { border-left-color: #b4232d; }
 .kpi-card strong { display: block; color: #172033; font-size: 30px; }
 .kpi-card span { color: #64748b; font-size: 12px; font-weight: 800; }
+
+.status-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-filter button { min-height: 34px; padding: 7px 12px; }
+.status-filter button.active { color: #fff; border-color: #24415f; background: #24415f; }
 
 .workbench-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
 .panel { border: 1px solid #d9e4ef; border-radius: 8px; padding: 16px; background: #fff; }

@@ -1,16 +1,14 @@
 <template>
   <section class="audit-log-search">
     <header class="page-header">
-      <div class="header-text">
-        <span class="module-label">系统监控审计 / P0</span>
-        <h1>操作日志检索</h1>
-        <p>支持按操作人关键词、操作类型、时间范围与合规状态多维检索用户操作日志，辅助合规审计与违规排查。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="openExportConfirm">导出日志</button>
-        <button type="button" @click="loadData">刷新</button>
-      </div>
-    </header>
+      <div>
+<div class="header-text">
+            <span class="module-label">系统监控审计 / P0</span>
+            <h1>操作日志检索</h1>
+          </div>
+<p>支持按操作人关键词、操作类型、时间范围与合规状态多维检索用户操作日志，辅助合规审计与违规排查。</p>
+</div>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -134,7 +132,6 @@ import { fetchOperationLogs, submitAction } from '@/mock/api.js'
 const allLogs = ref([])
 const uiState = ref('loading')
 const exportConfirmOpen = ref(false)
-
 const filters = reactive({
   keyword: '',
   operationType: '',
@@ -206,7 +203,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.audit-log-search { display: grid; gap: 16px; }
+.audit-log-search { display: grid; gap: 16px; position: relative; }
 
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;

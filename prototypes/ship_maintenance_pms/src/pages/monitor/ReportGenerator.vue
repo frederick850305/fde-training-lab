@@ -1,15 +1,14 @@
 <template>
   <section class="report-generator">
     <header class="page-header">
-      <div class="header-text">
-        <span class="module-label">系统监控审计 / P1</span>
-        <h1>运维报告生成</h1>
-        <p>定期或按需生成系统运维状况报告与审计合规文档，支持模板选择、周期设置、任务进度跟踪与报告下载。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="loadData">刷新</button>
-      </div>
-    </header>
+      <div>
+<div class="header-text">
+            <span class="module-label">系统监控审计 / P1</span>
+            <h1>运维报告生成</h1>
+          </div>
+<p>定期或按需生成系统运维状况报告与审计合规文档，支持模板选择、周期设置、任务进度跟踪与报告下载。</p>
+</div>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -73,7 +72,9 @@
               <span class="preview-label">包含字段：</span>
               <small v-for="f in selectedTemplate.fields" :key="f" class="field-chip">{{ f }}</small>
             </div>
-            <button type="button" class="primary generate-btn" @click="generateReport">生成报告</button>
+            <div class="generate-actions">
+              <button type="button" class="primary" @click="generateReport">生成报告</button>
+            </div>
             <p v-if="generateHint" class="generate-hint">{{ generateHint }}</p>
           </template>
           <div v-else class="no-selection">
@@ -121,6 +122,8 @@
         </article>
       </section>
     </template>
+
+    
   </section>
 </template>
 
@@ -135,7 +138,6 @@ const selectedTemplate = ref(null)
 const period = ref('')
 const reportName = ref('')
 const generateHint = ref('')
-
 const defaultReportName = computed(() =>
   selectedTemplate.value ? `${selectedTemplate.value.name}_${period.value || '当期'}` : '',
 )
@@ -217,7 +219,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.report-generator { display: grid; gap: 16px; }
+.report-generator { display: grid; gap: 16px; position: relative; }
 
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
@@ -227,6 +229,8 @@ onMounted(loadData)
 .page-header h1 { margin: 6px 0 8px; font-size: 24px; color: #172033; }
 .page-header p { max-width: 920px; margin: 0; color: #64748b; line-height: 1.55; }
 .header-actions { display: flex; gap: 9px; }
+
+.action-hint { margin: 6px 0 0; color: #8b9aab; font-size: 12px; }
 button {
   border: 1px solid #cfdae6; border-radius: 7px; padding: 8px 13px;
   color: #24415f; background: #f6f9fc; font-weight: 900; cursor: pointer;

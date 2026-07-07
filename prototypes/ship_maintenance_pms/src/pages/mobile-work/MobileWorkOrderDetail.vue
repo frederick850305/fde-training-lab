@@ -103,8 +103,17 @@
               <FileUploader :file-list="attachments" readonly @preview="onPreview" />
             </div>
 
-            <!-- 开始执行按钮 -->
-            <button class="cta-btn" @click="startExecute">开始执行</button>
+            <!-- 开始执行：操作区底部按钮 -->
+            <button
+              v-if="uiState === 'success'"
+              type="button"
+              class="cta-btn"
+              title="开始执行"
+              aria-label="开始执行"
+              @click="startExecute"
+            >
+              开始执行
+            </button>
           </template>
         </div>
       </article>
@@ -121,11 +130,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import FileUploader from '@/components/FileUploader.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchWorkOrderSteps } from '@/mock/api.js'
+
+const nav = inject('prototypeNavigation', null)
 
 const uiState = ref('loading')
 const workOrder = ref(null)
@@ -196,7 +207,7 @@ function startExecute() {
 
 function confirmStart() {
   confirmOpen.value = false
-  alert('已进入步骤执行流程（原型占位）')
+  if (nav) nav.navigateTo('MobileWorkOrderExecute', { workOrderId: workOrder.value?.id })
 }
 
 onMounted(reload)
@@ -204,13 +215,14 @@ onMounted(reload)
 
 <style scoped>
 .mobile-page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .phone-shell { display: flex; justify-content: center; padding: 8px 0; }
 .phone-frame {
+  position: relative;
   width: 390px; max-width: 100%;
   border: 12px solid #172033; border-radius: 34px; background: #172033;
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22); overflow: hidden;

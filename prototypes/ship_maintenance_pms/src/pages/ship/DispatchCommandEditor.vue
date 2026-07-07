@@ -1,13 +1,13 @@
 <template>
   <section class="page-screen dispatch-command-editor">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船舶监控调度 / 调度指令</span>
         <h1>调度指令编辑与下发</h1>
-        <p>选择目标船舶并填写航次、时间、航线与任务要求，引用航前健康校验结果；校验不通过则禁止下发，下发后可跟踪指令执行进度。</p>
+        <p class="page-desc">选择目标船舶并填写航次、时间、航线与任务要求，引用航前健康校验结果；校验不通过则禁止下发，下发后可跟踪指令执行进度。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
+        <button type="button" @click="goBack">返回船舶详情</button>
       </div>
     </header>
 
@@ -86,12 +86,7 @@
 
           <div class="form-actions">
             <button type="button" @click="resetForm">重置</button>
-            <button
-              type="button"
-              class="primary"
-              :disabled="!canDispatch"
-              @click="openDispatch"
-            >下发指令</button>
+            <button type="button" class="primary" :disabled="!canDispatch" @click="openDispatch">下发指令</button>
           </div>
         </article>
 
@@ -120,6 +115,9 @@
                 <b>{{ cmd.progress }}%</b>
               </div>
               <p class="cmd-req">{{ cmd.taskRequirements }}</p>
+              <div class="cmd-actions">
+                <button v-if="cmd.status !== '已闭环'" type="button" @click="closeCommand(cmd)">确认闭环</button>
+              </div>
             </div>
           </div>
         </article>
@@ -137,16 +135,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchVessels, fetchVesselDetail, fetchDispatchCommands, submitAction } from '@/mock/api.js'
+import { createDispatchCommand, fetchVessels, fetchVesselDetail, fetchDispatchCommands, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const vessels = ref([])
 const commands = ref([])
 const vesselHealthMap = ref({})
 const uiState = ref('loading')
 const confirmOpen = ref(false)
+const routeContext = computed(() => navigation?.routeContext?.value || {})
+const closingCommand = ref(null)
 
 const form = reactive({
   vesselId: '',
@@ -180,6 +181,9 @@ const canDispatch = computed(() => {
 })
 
 const confirmMessage = computed(() => {
+  if (closingCommand.value) {
+    return `确认将调度指令 ${closingCommand.value.id} 标记为已闭环？闭环后进度更新为 100%。`
+  }
   const v = vessels.value.find(x => x.id === form.vesselId)
   return `确认向 ${v?.name || form.vesselId} 下发航次 ${form.voyageNumber} 的调度指令？下发后将推送至船端并写入审计日志。`
 })
@@ -187,7 +191,7 @@ const confirmMessage = computed(() => {
 function cmdTone(status) {
   if (status === '执行中') return 'active'
   if (status === '已闭环') return 'ok'
-  if (status === '待下发') return 'pending'
+  if (status === '待下发' || status === '已下发') return 'pending'
   return ''
 }
 
@@ -196,13 +200,21 @@ function onVesselChange() {
 }
 
 function openDispatch() {
+  closingCommand.value = null
   confirmOpen.value = true
 }
 
 async function doDispatch() {
+  if (closingCommand.value) {
+    closingCommand.value.status = '已闭环'
+    closingCommand.value.progress = 100
+    await submitAction('调度指令闭环', { id: closingCommand.value.id })
+    closingCommand.value = null
+    confirmOpen.value = false
+    return
+  }
   const v = vessels.value.find(x => x.id === form.vesselId)
-  const newCmd = {
-    id: `CMD-${Date.now().toString().slice(-6)}`,
+  const result = await createDispatchCommand({
     vesselId: form.vesselId,
     vesselName: v?.name || form.vesselId,
     voyageNumber: form.voyageNumber,
@@ -210,13 +222,8 @@ async function doDispatch() {
     estimatedArrivalTime: form.estimatedArrivalTime.replace('T', ' '),
     route: form.route,
     taskRequirements: form.taskRequirements,
-    status: '执行中',
-    issuedBy: '调度员 当前用户',
-    issuedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-    progress: 0,
-  }
-  await submitAction('下发调度指令', newCmd)
-  commands.value = [newCmd, ...commands.value]
+  })
+  commands.value = [result.command, ...commands.value]
   resetForm()
   confirmOpen.value = false
 }
@@ -230,6 +237,38 @@ function resetForm() {
   form.taskRequirements = ''
 }
 
+function closeCommand(cmd) {
+  closingCommand.value = cmd
+  confirmOpen.value = true
+}
+
+function applyRouteContext() {
+  if (!routeContext.value.vesselId) return
+  form.vesselId = routeContext.value.vesselId
+  const voyage = routeContext.value.voyage
+  if (voyage) {
+    form.voyageNumber = voyage.voyageNo || ''
+    form.route = `${voyage.departure || ''}→${voyage.destination || ''}`
+    form.departureTime = toInputDateTime(voyage.departTime)
+    form.estimatedArrivalTime = toInputDateTime(voyage.eta)
+    form.taskRequirements = `按航次 ${voyage.voyageNo} 执行调度任务，开航前确认健康校验与证书状态。`
+  }
+  if (routeContext.value.healthCheck) {
+    vesselHealthMap.value[routeContext.value.vesselId] = routeContext.value.healthCheck
+  }
+}
+
+function toInputDateTime(value) {
+  if (!value || value === '—') return ''
+  return value.replace(' ', 'T')
+}
+
+function goBack() {
+  navigation?.navigateTo?.('ShipDetailBoard', {
+    vesselId: form.vesselId || routeContext.value.vesselId,
+  })
+}
+
 async function reload() {
   uiState.value = 'loading'
   try {
@@ -239,25 +278,13 @@ async function reload() {
     ])
     vessels.value = list
     commands.value = cmds
-    // 预取每艘船的健康校验结果（原型用同一份 detail 数据简化）
-    const detail = await fetchVesselDetail()
     const map = {}
-    list.forEach((v, i) => {
-      if (i === 0) map[v.id] = detail.healthCheckResult
-      else {
-        // 其余船舶构造不同结果用于演示
-        const scores = [72, 96, 88, null]
-        const statuses = ['不通过', '通过', '通过', '—']
-        map[v.id] = {
-          checkId: `CHK-2026-00${i + 1}`,
-          status: statuses[i] || '—',
-          score: scores[i] ?? '—',
-          interceptStatus: statuses[i] === '不通过' ? '拦截' : (statuses[i] === '通过' ? '放行' : '—'),
-          issues: i === 0 ? 4 : (i === 2 ? 1 : 0),
-        }
-      }
-    })
+    await Promise.all(list.map(async (v) => {
+      const detail = await fetchVesselDetail(v.id)
+      map[v.id] = detail.healthCheckResult
+    }))
     vesselHealthMap.value = map
+    applyRouteContext()
     uiState.value = 'success'
   } catch (e) {
     uiState.value = 'error'
@@ -268,7 +295,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -336,6 +363,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .cmd-track i { display: block; height: 100%; border-radius: 999px; background: #1e6fd9; }
 .cmd-progress b { color: #1e6fd9; text-align: right; }
 .cmd-req { margin: 0; color: #53657c; font-size: 12px; line-height: 1.5; }
+.cmd-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.cmd-actions button { padding: 6px 10px; font-size: 12px; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }

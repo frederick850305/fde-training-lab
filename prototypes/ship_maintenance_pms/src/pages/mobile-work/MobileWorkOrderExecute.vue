@@ -84,10 +84,24 @@
               </div>
             </div>
 
-            <!-- 提交报工 -->
-            <button class="cta-btn" :disabled="!allDone" @click="submitReport">
-              {{ allDone ? '提交报工' : `还需完成 ${steps.length - doneCount} 步` }}
-            </button>
+            <!-- 步骤流底部操作区：暂存 + 提交报工 -->
+            <div v-if="uiState === 'success'" class="bottom-actions">
+              <button
+                type="button"
+                class="ghost"
+                title="离线暂存"
+                aria-label="离线暂存"
+                @click="saveOffline"
+              >暂存</button>
+              <button
+                type="button"
+                class="primary"
+                :disabled="!allDone"
+                :title="allDone ? '提交报工' : `还需完成 ${steps.length - doneCount} 步`"
+                aria-label="提交报工"
+                @click="submitReport"
+              >提交报工</button>
+            </div>
           </template>
         </div>
       </article>
@@ -104,14 +118,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import FileUploader from '@/components/FileUploader.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import {
   fetchWorkOrderSteps,
   appendOfflineQueue,
-  submitAction,
+  reportWorkOrder,
 } from '@/mock/api.js'
+
+const nav = inject('prototypeNavigation', null)
 
 const uiState = ref('loading')
 const steps = ref([])
@@ -157,8 +173,11 @@ function onPreview(file) {
 
 function saveOffline() {
   appendOfflineQueue({
-    page: 'MobileWorkOrderExecute',
+    type: '工单报工暂存',
     recordId: workOrder.value?.id,
+    shipName: workOrder.value?.ship || '当前船舶',
+    summary: `工单 ${workOrder.value?.id} 第${currentIdx.value + 1}步暂存（${workOrder.value?.equipment || ''}）`,
+    status: '待同步',
     step: currentIdx.value + 1,
     form: { ...form },
     photos: photoFiles.value.length,
@@ -205,16 +224,16 @@ function submitReport() {
 
 async function confirmSubmit() {
   confirmOpen.value = false
-  // 弱网：先入离线队列
-  appendOfflineQueue({
-    page: 'MobileWorkOrderExecute',
-    recordId: workOrder.value?.id,
-    action: '提交报工',
-    time: new Date().toISOString(),
+  const wo = workOrder.value
+  await reportWorkOrder(wo?.id, {
+    shipName: wo?.ship,
+    actualHours: form.actualHours,
+    materials: form.materials,
+    findings: form.findings,
   })
-  // 再调提交
-  await submitAction('submitWorkReport', { id: workOrder.value?.id })
-  alert('报工已提交，已暂存至离线同步队列')
+  // 关联航前问题的进度同步在 reportWorkOrder 中处理；
+  // 提交报工后跳转到移动同步状态页，让用户看到待同步队列
+  if (nav) nav.navigateTo('MobileSyncStatus')
 }
 
 onMounted(reload)
@@ -222,13 +241,14 @@ onMounted(reload)
 
 <style scoped>
 .mobile-page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .phone-shell { display: flex; justify-content: center; padding: 8px 0; }
 .phone-frame {
+  position: relative;
   width: 390px; max-width: 100%;
   border: 12px solid #172033; border-radius: 34px; background: #172033;
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22); overflow: hidden;
@@ -280,4 +300,10 @@ onMounted(reload)
 
 .cta-btn { margin-top: 4px; border: 0; border-radius: 10px; padding: 14px; background: #1e6fd9; color: #fff; font-weight: 900; font-size: 15px; }
 .cta-btn:disabled { background: #b9c8d8; cursor: not-allowed; }
+
+.bottom-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 4px; }
+.bottom-actions button { border-radius: 10px; padding: 14px; font-weight: 900; font-size: 15px; border: 1px solid #cfdae6; }
+.bottom-actions .ghost { background: #fff; color: #24415f; }
+.bottom-actions .primary { background: #1e6fd9; color: #fff; border-color: #1e6fd9; }
+.bottom-actions .primary:disabled { background: #b9c8d8; border-color: #b9c8d8; cursor: not-allowed; }
 </style>

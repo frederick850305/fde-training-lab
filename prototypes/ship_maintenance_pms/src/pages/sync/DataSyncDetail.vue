@@ -1,15 +1,12 @@
 <template>
   <section class="page-screen data-sync-detail">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船岸数据同步 / 移动端同步队列</span>
         <h1>移动端同步队列详情</h1>
-        <p>在手机外壳内展示同步队列任务列表，支持失败任务重试、冲突任务字段差异简化处理，顶部显示同步进度与网络状态。</p>
+        <p class="page-desc">在手机外壳内展示同步队列任务列表，支持失败任务重试、冲突任务字段差异简化处理，顶部显示同步进度与网络状态。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-      </div>
-    </header>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -110,7 +107,9 @@
                 </div>
               </div>
             </div>
-            <button type="button" class="primary full" :disabled="!cfAllResolved" @click="submitConflict">合并提交</button>
+            <div class="conflict-submit-bar" v-if="currentConflict">
+              <button type="button" class="primary" :disabled="!cfAllResolved" @click="submitConflict">合并提交</button>
+            </div>
           </template>
           <div v-else class="empty-hint">
             点击队列中冲突任务的"处理"按钮，在此查看字段差异并选择采用版本。
@@ -254,7 +253,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -337,6 +336,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .cf-versions span { color: #64748b; font-weight: 800; }
 .cf-versions b { margin-left: auto; color: #172033; }
 .full { width: 100%; }
+.conflict-submit-bar { display: flex; justify-content: flex-end; margin-top: 14px; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }

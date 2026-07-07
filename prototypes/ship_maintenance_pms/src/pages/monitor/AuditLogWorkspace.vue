@@ -1,16 +1,14 @@
 <template>
   <section class="audit-workspace">
     <header class="page-header">
-      <div class="header-text">
-        <span class="module-label">系统监控审计 / P0</span>
-        <h1>审计工作台</h1>
-        <p>审计员一体化工作台：多维筛选定位操作日志与配置变更，查看变更差异、合规标记异常操作，并留下审计行为留痕。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="openExportConfirm">导出审计报告</button>
-        <button type="button" @click="loadData">刷新</button>
-      </div>
-    </header>
+      <div>
+<div class="header-text">
+            <span class="module-label">系统监控审计 / P0</span>
+            <h1>审计工作台</h1>
+          </div>
+<p>审计员一体化工作台：多维筛选定位操作日志与配置变更，查看变更差异、合规标记异常操作，并留下审计行为留痕。</p>
+</div>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span>
@@ -143,11 +141,12 @@
 
             <div class="compliance-section">
               <div class="compliance-title">合规标记</div>
-              <div class="compliance-actions">
-                <button type="button" class="ok-btn" :disabled="selectedLog.compliant" @click="markLog(selectedLog, true)">标记合规</button>
-                <button type="button" class="danger-btn" :disabled="!selectedLog.compliant" @click="markLog(selectedLog, false)">标记违规</button>
-              </div>
               <p class="current-status">当前状态：<span :class="selectedLog.compliant ? 'ok-text' : 'danger-text'">{{ selectedLog.compliant ? '合规' : '违规' }}</span></p>
+              <div class="compliance-actions">
+                <button type="button" class="primary" @click="markLog(selectedLog, true)">标记合规</button>
+                <button type="button" class="danger" @click="markLog(selectedLog, false)">标记违规</button>
+                <button type="button" @click="openExportConfirm">导出报告</button>
+              </div>
             </div>
           </template>
           <div v-else class="no-selection">
@@ -181,6 +180,8 @@
       @cancel="exportConfirmOpen = false"
       @confirm="executeExport"
     />
+
+    
   </section>
 </template>
 
@@ -196,7 +197,6 @@ const uiState = ref('loading')
 const selectedLog = ref(null)
 const exportConfirmOpen = ref(false)
 const auditTrail = ref([])
-
 const filters = reactive({
   operator: '',
   operationType: '',
@@ -305,7 +305,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.audit-workspace { display: grid; gap: 16px; }
+.audit-workspace { display: grid; gap: 16px; position: relative; }
 
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
@@ -323,6 +323,8 @@ button:hover { background: #eef3f8; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 .ok-btn { color: #fff; border-color: #11734d; background: #11734d; }
 .danger-btn { color: #fff; border-color: #b4232d; background: #b4232d; }
+
+.action-hint { margin: 0; color: #8b9aab; font-size: 12px; }
 
 .state-panel { min-height: 260px; border: 1px solid #d9e4ef; border-radius: 8px; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; background: #fff; }
 .state-panel h2 { margin: 0; font-size: 20px; }

@@ -3,12 +3,11 @@
     <header class="page-header">
       <div>
         <span class="module-label">运维管理 / 计划编辑</span>
-        <h1>维保计划编辑器</h1>
-        <p>选择设备资产，设定计划参数与工单模板，检测与现有计划冲突并提交审核。</p>
+        <h1>{{ pageTitle }}</h1>
+        <p>{{ pageDesc }}</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">重置</button>
-        <button type="button" class="primary" :disabled="!canSubmit" @click="openSubmit">提交审核</button>
+        <button type="button" @click="goBack">返回工作台</button>
       </div>
     </header>
 
@@ -50,7 +49,7 @@
           <div class="form-grid">
             <label>
               <span>计划类型 *</span>
-              <select v-model="form.planType">
+              <select v-model="form.planType" :disabled="readOnly">
                 <option value="运行小时">运行小时</option>
                 <option value="日历周期">日历周期</option>
                 <option value="工况触发">工况触发</option>
@@ -58,11 +57,11 @@
             </label>
             <label>
               <span>周期数值 *</span>
-              <input v-model.number="form.cycleValue" type="number" min="1" placeholder="如 500" />
+              <input v-model.number="form.cycleValue" type="number" min="1" placeholder="如 500" :disabled="readOnly" />
             </label>
             <label>
               <span>周期单位 *</span>
-              <select v-model="form.cycleUnit">
+              <select v-model="form.cycleUnit" :disabled="readOnly">
                 <option value="小时">小时</option>
                 <option value="月">月</option>
                 <option value="次/航次">次/航次</option>
@@ -71,11 +70,11 @@
             </label>
             <label>
               <span>预警天数 *</span>
-              <input v-model.number="form.advanceWarningDays" type="number" min="0" placeholder="如 15" />
+              <input v-model.number="form.advanceWarningDays" type="number" min="0" placeholder="如 15" :disabled="readOnly" />
             </label>
             <label>
               <span>优先级 *</span>
-              <select v-model="form.priority">
+              <select v-model="form.priority" :disabled="readOnly">
                 <option value="高">高</option>
                 <option value="中">中</option>
                 <option value="低">低</option>
@@ -83,11 +82,11 @@
             </label>
             <label>
               <span>生效日期 *</span>
-              <input v-model="form.startDate" type="date" />
+              <input v-model="form.startDate" type="date" :disabled="readOnly" />
             </label>
             <label class="wide">
               <span>工单模板 *</span>
-              <select v-model="form.workOrderTemplate">
+              <select v-model="form.workOrderTemplate" :disabled="readOnly">
                 <option value="">请选择工单模板</option>
                 <option>主机燃油泵月度保养模板</option>
                 <option>应急发电机季度试车模板</option>
@@ -104,7 +103,7 @@
           <article class="panel conflict-panel">
             <div class="panel-title">
               <h2>冲突检测</h2>
-              <button type="button" :disabled="!form.equipmentId || conflictChecking" @click="detectConflict">
+            <button type="button" :disabled="!form.equipmentId || conflictChecking" @click="detectConflict">
                 {{ conflictChecking ? '检测中…' : '检测冲突' }}
               </button>
             </div>
@@ -133,9 +132,10 @@
             </div>
             <label class="textarea-label">
               <span>提交说明 *</span>
-              <textarea v-model="form.submitComment" rows="4" placeholder="说明本次计划设定依据、调整原因或注意事项"></textarea>
+              <textarea v-model="form.submitComment" rows="4" placeholder="说明本次计划设定依据、调整原因或注意事项" :disabled="readOnly"></textarea>
             </label>
-            <button type="button" class="primary full" :disabled="!canSubmit" @click="openSubmit">提交审核</button>
+            <button v-if="!readOnly" type="button" class="primary full" :disabled="!canSubmit" @click="openSubmit">提交审核</button>
+            <button v-else type="button" class="full" @click="goBack">返回工作台</button>
             <p class="hint">提交后将生成审批单进入机务主任审核流程。</p>
           </article>
         </div>
@@ -153,12 +153,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import AssetTree from '@/components/AssetTree.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchEquipmentTree, fetchMaintenancePlans, submitAction } from '@/mock/api.js'
+import {
+  createMaintenancePlan,
+  fetchEquipmentTree,
+  fetchMaintenancePlans,
+  validateMaintenancePlanConflicts,
+} from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const tree = ref([])
 const plans = ref([])
 const uiState = ref('loading')
@@ -183,10 +189,23 @@ const conflicts = ref([])
 
 const confirmOpen = ref(false)
 
+const routeContext = computed(() => navigation?.routeContext?.value || {})
+const mode = computed(() => routeContext.value.mode || 'create')
+const readOnly = computed(() => mode.value === 'view')
+const editingPlan = computed(() => routeContext.value.plan || plans.value.find((p) => p.id === routeContext.value.planId) || null)
 const selectedNode = computed(() => findNode(tree.value, form.equipmentId))
+const pageTitle = computed(() => {
+  if (readOnly.value) return '维保计划详情'
+  return mode.value === 'edit' ? '调整维保计划' : '新建维保计划'
+})
+const pageDesc = computed(() => {
+  if (readOnly.value) return '查看计划参数、设备资产和冲突检测结果，必要时返回工作台发起调整。'
+  return '选择设备资产，设定计划参数与工单模板，检测与现有计划冲突并提交审核。'
+})
 
 const canSubmit = computed(
   () =>
+    !readOnly.value &&
     !!form.equipmentId &&
     !!form.planType &&
     !!form.cycleValue &&
@@ -206,6 +225,7 @@ async function reload() {
     const [t, p] = await Promise.all([fetchEquipmentTree(), fetchMaintenancePlans()])
     tree.value = t
     plans.value = p
+    applyRouteContext()
     uiState.value = 'success'
   } catch (e) {
     errorMsg.value = e?.message || '加载失败'
@@ -226,6 +246,7 @@ function findNode(nodes, id) {
 }
 
 function onNodeClick(node) {
+  if (readOnly.value) return
   form.equipmentId = node.id
   conflictChecked.value = false
   conflicts.value = []
@@ -235,13 +256,18 @@ async function detectConflict() {
   if (!form.equipmentId) return
   conflictChecking.value = true
   conflicts.value = []
-  // 模拟检测：同设备的现有生效/审核中计划视为潜在冲突
-  await new Promise((r) => setTimeout(r, 500))
-  conflicts.value = plans.value.filter(
-    (p) => p.equipmentId === form.equipmentId && ['已生效', '审核中', '即将到期'].includes(p.status),
-  )
-  conflictChecked.value = true
-  conflictChecking.value = false
+  try {
+    const result = await validateMaintenancePlanConflicts({
+      ...form,
+      planId: routeContext.value.planId,
+    })
+    conflicts.value = result.conflicts
+    conflictChecked.value = true
+  } catch (e) {
+    errorMsg.value = e?.message || '冲突检测失败'
+  } finally {
+    conflictChecking.value = false
+  }
 }
 
 function openSubmit() {
@@ -251,27 +277,78 @@ function openSubmit() {
 
 async function doSubmit() {
   try {
-    await submitAction('提交计划审核', {
+    if (!conflictChecked.value) await detectConflict()
+    const result = await createMaintenancePlan({
       ...form,
+      mode: mode.value,
+      planId: routeContext.value.planId,
+      before: editingPlan.value
+        ? {
+            planType: editingPlan.value.planType,
+            cycleValue: `${editingPlan.value.cycleValue} ${editingPlan.value.cycleUnit}`,
+            advanceWarningDays: editingPlan.value.advanceWarningDays,
+            priority: editingPlan.value.priority,
+            workOrderTemplate: form.workOrderTemplate,
+          }
+        : null,
       equipmentName: selectedNode.value?.label,
+      conflictCount: conflicts.value.length,
     })
+    sessionStorage.setItem('pms-maintenance-created-approval', JSON.stringify(result.approval))
     confirmOpen.value = false
-    form.submitComment = ''
-    conflictChecked.value = false
-    conflicts.value = []
+    navigation?.navigateTo?.('PlanApproval', {
+      approvalId: result.approval.id,
+      approval: result.approval,
+      planId: result.plan.id,
+    })
   } catch (e) {
     errorMsg.value = e?.message
     confirmOpen.value = false
   }
 }
+
+function applyRouteContext() {
+  const plan = editingPlan.value
+  if (plan) {
+    form.equipmentId = plan.equipmentId
+    form.planType = plan.planType
+    form.cycleValue = plan.cycleValue
+    form.cycleUnit = plan.cycleUnit
+    form.advanceWarningDays = plan.advanceWarningDays
+    form.priority = plan.priority
+    form.startDate = plan.startDate
+    form.workOrderTemplate = templateForPlan(plan)
+    form.submitComment = mode.value === 'edit' ? `调整 ${plan.id} 的维保周期和预警参数` : ''
+  } else if (routeContext.value.equipmentId) {
+    form.equipmentId = routeContext.value.equipmentId
+  }
+  conflictChecked.value = false
+  conflicts.value = []
+}
+
+function templateForPlan(plan) {
+  if (/燃油泵/.test(plan.equipmentName)) return '主机燃油泵月度保养模板'
+  if (/应急发电机/.test(plan.equipmentName)) return '应急发电机季度试车模板'
+  if (/气缸/.test(plan.equipmentName)) return '主机气缸大修模板'
+  if (/舵机/.test(plan.equipmentName)) return '舵机液压站保养模板'
+  if (/消防泵/.test(plan.equipmentName)) return '消防泵工况检查模板'
+  return form.workOrderTemplate
+}
+
+function goBack() {
+  navigation?.navigateTo?.('MaintenancePlanWorkbench', {
+    equipmentId: form.equipmentId,
+    planId: routeContext.value.planId,
+  })
+}
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
-p { max-width: 920px; margin: 0; color: #53657c; line-height: 1.55; }
+.page-header p { max-width: 920px; margin: 0; color: #53657c; line-height: 1.55; }
 .header-actions { display: flex; gap: 9px; flex-wrap: wrap; }
 button { border: 1px solid #cfdae6; border-radius: 7px; padding: 8px 13px; color: #24415f; background: #f6f9fc; font-weight: 900; cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }

@@ -1,15 +1,14 @@
 <template>
   <section class="alert-management">
     <header class="page-header">
-      <div class="header-text">
-        <span class="module-label">系统监控审计 / P0</span>
-        <h1>告警管理</h1>
-        <p>集中管理所有系统异常告警，支持按级别分级响应、处置记录填写、关闭与升级操作，确保告警闭环可追溯。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="loadData">刷新告警</button>
-      </div>
-    </header>
+      <div>
+<div class="header-text">
+            <span class="module-label">系统监控审计 / P0</span>
+            <h1>告警管理</h1>
+          </div>
+<p>集中管理所有系统异常告警，支持按级别分级响应、处置记录填写、关闭与升级操作，确保告警闭环可追溯。</p>
+</div>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span></span><span></span><span></span><span></span>
@@ -108,9 +107,9 @@
               <label class="form-label">处理意见</label>
               <textarea v-model="handleNote" rows="4" placeholder="填写处置说明、根因分析或后续措施"></textarea>
               <div class="action-row">
-                <button type="button" class="primary" :disabled="!handleNote.trim()" @click="openConfirm('提交处置')">提交处置</button>
-                <button type="button" class="warn" @click="openConfirm('关闭告警')">关闭告警</button>
-                <button type="button" class="danger" @click="openConfirm('升级级别')">升级级别</button>
+                <button type="button" class="primary" @click="openConfirm('提交处置')">提交处置</button>
+                <button type="button" @click="openConfirm('关闭告警')">关闭告警</button>
+                <button type="button" class="warn" @click="openConfirm('升级级别')">升级级别</button>
               </div>
             </div>
           </template>
@@ -128,6 +127,8 @@
       @cancel="confirmOpen = false"
       @confirm="executeAction"
     />
+
+    
   </section>
 </template>
 
@@ -144,7 +145,6 @@ const selectedAlert = ref(null)
 const handleNote = ref('')
 const confirmOpen = ref(false)
 const pendingAction = ref('')
-
 const severityTabs = [
   { label: '全部', value: 'all', tone: '' },
   { label: '紧急', value: '紧急', tone: 'critical' },
@@ -226,7 +226,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.alert-management { display: grid; gap: 16px; }
+.alert-management { display: grid; gap: 16px; position: relative; }
 
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
@@ -248,6 +248,8 @@ button.warn { color: #fff; border-color: #d4743f; background: #d4743f; }
 button.warn:hover { background: #b85f2e; }
 button.danger { color: #fff; border-color: #b4232d; background: #b4232d; }
 button.danger:hover { background: #9a1e26; }
+
+.action-hint { margin: 0; color: #8b9aab; font-size: 12px; }
 
 .state-panel { min-height: 260px; border: 1px solid #d9e4ef; border-radius: 8px; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; background: #fff; }
 .state-panel h2 { margin: 0; font-size: 20px; }

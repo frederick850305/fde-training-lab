@@ -91,25 +91,25 @@
       <section class="quick-entry">
         <h3 class="block-title">快速入口</h3>
         <div class="entry-grid">
-          <button class="entry-btn" :class="{ active: activeEntry === 'scan' }" @click="activeEntry = 'scan'">
+          <button class="entry-btn" @click="goEntry('BarcodeScanInventory')">
             <span class="entry-icon">📷</span>
             <strong>扫码盘点</strong>
             <small>BarcodeScanInventory</small>
           </button>
-          <button class="entry-btn" :class="{ active: activeEntry === 'req' }" @click="activeEntry = 'req'">
+          <button class="entry-btn" @click="goEntry('MaterialRequisition')">
             <span class="entry-icon">📋</span>
             <strong>领料</strong>
             <small>MaterialRequisition</small>
           </button>
-          <button class="entry-btn" :class="{ active: activeEntry === 'ret' }" @click="activeEntry = 'ret'">
+          <button class="entry-btn" @click="goEntry('MaterialReturn')">
             <span class="entry-icon">↩</span>
             <strong>退料</strong>
             <small>MaterialReturn</small>
           </button>
-          <button class="entry-btn" :class="{ active: activeEntry === 'query' }" @click="activeEntry = 'query'">
-            <span class="entry-icon">🔍</span>
-            <strong>库存查询</strong>
-            <small>Materials</small>
+          <button class="entry-btn" @click="goEntry('MobileSyncStatus')">
+            <span class="entry-icon">🔄</span>
+            <strong>同步状态</strong>
+            <small>MobileSyncStatus</small>
           </button>
         </div>
       </section>
@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import {
   fetchInventoryWorkbench,
   fetchPhysicalCountRecords,
@@ -162,13 +162,18 @@ import {
   fetchLowStockAlerts,
 } from '@/mock/api.js'
 
+const nav = inject('prototypeNavigation', null)
+
 const uiState = ref('loading')
 const wb = ref({ pendingTasks: {}, networkStatus: '', syncProgress: {}, recentOperations: [] })
 const physicalRecords = ref([])
 const requisitionRecords = ref([])
 const returnRecords = ref([])
 const lowStocks = ref([])
-const activeEntry = ref('scan')
+
+function goEntry(pageKey) {
+  if (nav) nav.navigateTo(pageKey)
+}
 
 const netTone = computed(() => (wb.value.networkStatus === '弱网' ? 'weak' : 'online'))
 
@@ -207,11 +212,11 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page { display: grid; gap: 16px; position: relative; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .net-panel { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 900; }
 .net-panel.weak { background: #fff3d8; color: #8a5a00; }

@@ -4,14 +4,9 @@
       <div>
         <span class="module-label">系统管理 / 角色权限</span>
         <h1>角色权限管理</h1>
-        <p>按角色管理菜单与操作权限矩阵，支持角色复制、权限勾选与保存发布。左侧选择角色，右侧以"模块 × 操作"矩阵形式展示并编辑权限。</p>
+        <p class="page-desc">按角色管理菜单与操作权限矩阵，支持角色复制、权限勾选与保存发布。左侧选择角色，右侧以"模块 × 操作"矩阵形式展示并编辑权限。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" @click="copyRole" :disabled="!selectedRole">复制角色</button>
-        <button type="button" class="primary" @click="askSave" :disabled="!selectedRole">保存权限</button>
-      </div>
-    </header>
+      </header>
 
     <!-- 加载骨架 -->
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -111,6 +106,11 @@
               <span><i class="dot enabled"></i> 已授权</span>
               <span><i class="dot disabled"></i> 不可用（模块未提供该操作）</span>
               <span class="dirty-tip" v-if="dirty">存在未保存的变更，请点击"保存权限"。</span>
+            </div>
+
+            <div class="matrix-actions">
+              <button type="button" class="primary" :disabled="!selectedRole" :title="selectedRole ? '保存权限' : '请先选择角色'" @click="askSave">保存权限</button>
+              <button type="button" :disabled="!selectedRole" :title="selectedRole ? '复制角色' : '请先选择角色'" @click="copyRole">复制角色</button>
             </div>
           </template>
         </article>
@@ -284,7 +284,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -347,6 +347,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .dot.enabled { background: #1e6fd9; }
 .dot.disabled { background: #e2eaf3; }
 .dirty-tip { color: #b4232d; margin-left: auto; }
+
+.matrix-actions { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }

@@ -6,10 +6,6 @@
         <h1>航前健康检查触发</h1>
         <p>查看待检查船舶，发起自动/手动航前健康检查，跟踪已发起检查任务的执行进度。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="batchTrigger">批量发起</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -33,7 +29,10 @@
       <article class="panel">
         <div class="panel-title">
           <h2>待检查船舶</h2>
-          <span>{{ pendingShips.length }} 艘待检查</span>
+          <div class="panel-title-actions">
+            <span>{{ pendingShips.length }} 艘待检查</span>
+            <button type="button" class="primary" :disabled="!pendingShips.length" @click="batchTrigger">批量发起</button>
+          </div>
         </div>
         <div v-if="!pendingShips.length" class="empty-inline">所有船舶均已完成航前检查。</div>
         <div v-else class="ship-grid">
@@ -51,7 +50,7 @@
             <p class="ship-summary" v-if="ship.summary">{{ ship.summary }}</p>
             <div class="ship-actions">
               <button type="button" @click="triggerCheck(ship, 'auto')">自动检查</button>
-              <button type="button" class="primary" @click="triggerCheck(ship, 'manual')">手动发起检查</button>
+              <button type="button" class="primary" @click="openShipSelector(ship)">手动发起检查</button>
             </div>
           </div>
         </div>
@@ -88,14 +87,48 @@
       @cancel="confirmOpen = false"
       @confirm="confirmTrigger"
     />
+
+    <div v-if="selectorOpen" class="selector-mask">
+      <section class="selector-dialog">
+        <div class="selector-head">
+          <div>
+            <h2>选择船舶发起航前健康检查</h2>
+            <p>选择待检查船舶和航次后，将创建手动检查任务并进入健康看板。</p>
+          </div>
+          <button type="button" @click="selectorOpen = false">关闭</button>
+        </div>
+        <label class="selector-search">
+          <span>搜索船舶 / 航次</span>
+          <input v-model="selectorKeyword" placeholder="输入船名、船号或航次" />
+        </label>
+        <div class="selector-list">
+          <button
+            v-for="ship in selectableShips"
+            :key="ship.checkId"
+            type="button"
+            :class="{ selected: selectedShip?.checkId === ship.checkId }"
+            @click="selectedShip = ship"
+          >
+            <strong>{{ ship.shipName }}</strong>
+            <span>航次 {{ ship.voyageNo }} · {{ ship.summary || '等待发起航前检查' }}</span>
+            <StatusBadge :label="ship.status" />
+          </button>
+        </div>
+        <div class="selector-actions">
+          <button type="button" @click="selectorOpen = false">取消</button>
+          <button type="button" class="primary" :disabled="!selectedShip" @click="confirmManualSelection">创建任务并进入看板</button>
+        </div>
+      </section>
+    </div>
+
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchVoyageHealthChecks, submitAction } from '@/mock/api.js'
+import { createVoyageHealthCheckTask, fetchVoyageHealthChecks } from '@/mock/api.js'
 
 const checks = ref([])
 const uiState = ref('loading')
@@ -107,10 +140,19 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const pendingShip = ref(null)
 const pendingMode = ref('manual')
+const selectorOpen = ref(false)
+const selectorKeyword = ref('')
+const selectedShip = ref(null)
+const navigation = inject('prototypeNavigation', null)
 
 const pendingShips = computed(() =>
-  checks.value.filter((c) => c.status === '待检查' || !tasks.value.some((t) => t.checkId === c.checkId)),
+  checks.value.filter((c) => c.status === '待检查'),
 )
+
+const selectableShips = computed(() => {
+  const kw = selectorKeyword.value.trim()
+  return pendingShips.value.filter((ship) => !kw || `${ship.shipName}${ship.shipId}${ship.voyageNo}`.includes(kw))
+})
 
 onMounted(reload)
 
@@ -147,6 +189,22 @@ function triggerCheck(ship, mode) {
   confirmOpen.value = true
 }
 
+function openShipSelector(ship) {
+  selectedShip.value = ship || pendingShips.value[0] || null
+  selectorKeyword.value = ''
+  selectorOpen.value = true
+}
+
+function confirmManualSelection() {
+  if (!selectedShip.value) return
+  pendingShip.value = selectedShip.value
+  pendingMode.value = 'manual'
+  confirmTitle.value = '发起手动检查'
+  confirmMessage.value = `确认对${selectedShip.value.shipName}（航次 ${selectedShip.value.voyageNo}）创建手动航前健康检查任务？成功后将进入健康看板。`
+  selectorOpen.value = false
+  confirmOpen.value = true
+}
+
 function batchTrigger() {
   if (!pendingShips.value.length) return
   confirmTitle.value = '批量发起检查'
@@ -160,18 +218,26 @@ async function confirmTrigger() {
   try {
     const ships = pendingShip.value ? [pendingShip.value] : pendingShips.value
     for (const ship of ships) {
-      await submitAction('发起航前检查', { checkId: ship.checkId, mode: pendingMode.value })
-      const newTask = {
-        checkId: ship.checkId + '-' + Date.now(),
+      const newTask = await createVoyageHealthCheckTask({
+        checkId: ship.checkId,
+        shipId: ship.shipId,
         shipName: ship.shipName,
         voyageNo: ship.voyageNo,
         triggerType: pendingMode.value,
-        progress: 0,
-        stage: '已发起·数据采集中',
-        statusLabel: '进行中',
-      }
+      })
       tasks.value.unshift(newTask)
+      ship.status = '进行中'
+      ship.summary = newTask.summary
       simulateProgress(newTask)
+      if (pendingMode.value === 'manual') {
+        sessionStorage.setItem('pms-current-voyage-check', JSON.stringify(newTask))
+        confirmOpen.value = false
+        navigation?.navigateTo?.('VoyageHealthDashboard', {
+          checkId: newTask.checkId,
+          createdCheck: newTask,
+        })
+        return
+      }
     }
     confirmOpen.value = false
   } catch (e) {
@@ -186,7 +252,7 @@ function simulateProgress(task) {
     if (task.progress >= 100) {
       clearInterval(timer)
       task.stage = '检查完成·待判定'
-      task.statusLabel = '待检查'
+      task.statusLabel = '待判定'
     } else if (task.progress >= 60) {
       task.stage = '校验中·分类评估'
     } else if (task.progress >= 30) {
@@ -197,7 +263,7 @@ function simulateProgress(task) {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 20px; }
+.page-screen { display: grid; gap: 20px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -216,6 +282,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
+.panel-title-actions { display: flex; align-items: center; gap: 10px; }
 
 .empty-inline { padding: 20px; text-align: center; color: #64748b; border: 1px dashed #cdd9e6; border-radius: 8px; background: #fafbfc; }
 
@@ -254,6 +321,82 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .task-progress b { color: #1e6fd9; font-size: 13px; }
 .muted { color: #8b9aab; }
 .task-item small { font-size: 11px; }
+
+.selector-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, .42);
+}
+.selector-dialog {
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  border-radius: 8px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
+}
+.selector-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.selector-head h2 { margin: 0 0 6px; font-size: 18px; }
+.selector-head p { font-size: 13px; }
+.selector-search {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: #53657c;
+  font-size: 12px;
+  font-weight: 900;
+}
+.selector-search input {
+  width: 100%;
+  border: 1px solid #cbd7e4;
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: #172033;
+  background: #fff;
+}
+.selector-list { display: grid; gap: 10px; }
+.selector-list button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 12px;
+  align-items: center;
+  text-align: left;
+  background: #f8fbfe;
+}
+.selector-list button span {
+  color: #64748b;
+  font-size: 12px;
+}
+.selector-list button .status-badge {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+.selector-list button.selected {
+  border-color: #1e6fd9;
+  background: #edf5ff;
+  box-shadow: 0 0 0 2px rgba(30,111,217,.08);
+}
+.selector-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
 
 @media (max-width: 720px) {
   .page-header { flex-direction: column; }

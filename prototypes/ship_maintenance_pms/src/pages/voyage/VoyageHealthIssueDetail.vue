@@ -7,7 +7,7 @@
         <p>查看拦截问题基本信息、关联设备/物资/证书数据，发起紧急工单、物资调拨或豁免审批，跟踪处置进度。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
+        <button type="button" @click="goBack">返回看板</button>
       </div>
     </header>
 
@@ -17,8 +17,8 @@
 
     <div v-else-if="uiState === 'empty'" class="state-panel">
       <h2>暂无拦截问题</h2>
-      <p>当前航前检查无拦截问题需要处置。</p>
-      <button type="button" @click="reload">刷新</button>
+      <p>{{ emptyMessage }}</p>
+      <button type="button" @click="goBack">返回看板</button>
     </div>
 
     <div v-else-if="uiState === 'error'" class="state-panel error">
@@ -74,11 +74,11 @@
             <span>设备 / 物资 / 证书</span>
           </div>
           <div class="link-grid">
-            <div class="link-card" :class="{ empty: !selected.linkedWorkOrder }">
+            <div class="link-card" :class="{ empty: !selected.linkedWorkOrderId }">
               <div class="link-head"><span class="link-icon">🔧</span><strong>关联工单</strong></div>
-              <p v-if="selected.linkedWorkOrder">{{ selected.linkedWorkOrder }}</p>
+              <p v-if="selected.linkedWorkOrderId">{{ selected.linkedWorkOrder }} · {{ selected.linkedWorkOrderStatus }}</p>
               <p v-else class="muted">无关联工单</p>
-              <button v-if="selected.linkedWorkOrder" type="button" @click="viewWorkOrder">查看工单</button>
+              <button v-if="selected.linkedWorkOrderId" type="button" @click="viewWorkOrder">查看工单</button>
             </div>
             <div class="link-card" :class="{ empty: !selected.linkedMaterial }">
               <div class="link-head"><span class="link-icon">📦</span><strong>关联物资</strong></div>
@@ -99,22 +99,81 @@
         <article class="panel">
           <div class="panel-title">
             <h2>处置操作</h2>
-            <span>选择处置方式</span>
+            <span>
+              <template v-if="selected.exemptionStatus === '已批准'">豁免通过·已闭环</template>
+              <template v-else-if="selected.exemptionStatus === '已驳回'">豁免已驳回</template>
+              <template v-else-if="selected.exemptionStatus">豁免待审批</template>
+              <template v-else-if="isClosed">已闭环</template>
+              <template v-else-if="selected.linkedWorkOrderId">工单处置中</template>
+              <template v-else>选择处置方式</template>
+            </span>
           </div>
-          <div class="action-cards">
-            <button type="button" class="action-card danger" @click="openAction('紧急工单')">
-              <strong>发起紧急工单</strong>
-              <span>立即创建故障维修工单并指派执行人</span>
-            </button>
-            <button type="button" class="action-card warn" @click="openAction('物资调拨')">
-              <strong>物资调拨</strong>
-              <span>从其他船舶或仓库调拨备件物资</span>
-            </button>
-            <button type="button" class="action-card primary" @click="openAction('豁免审批')">
-              <strong>申请豁免审批</strong>
-              <span>申请临时豁免并承诺后续整改</span>
-            </button>
-          </div>
+          <p v-if="lastFlow && !selected.exemptionStatus" class="flow-tip">已创建 {{ lastFlow.action }} 流程：{{ lastFlow.flowId }}</p>
+
+          <!-- 豁免审批：进行中 -->
+          <template v-if="selected.exemptionStatus && !['已批准', '已驳回'].includes(selected.exemptionStatus)">
+            <div class="exemption-area">
+              <p class="status-tip">已提交豁免申请 <b>{{ selected.exemptionFlowId }}</b>，理由：{{ selected.exemptionReason }}；有效期至 {{ selected.exemptionValidUntil }}。</p>
+              <ol class="exempt-steps">
+                <li v-for="step in EXEMPTION_STEPS" :key="step" :class="{ done: isExemptionStepDone(step), current: selected.exemptionStatus === step }">{{ step }}</li>
+              </ol>
+              <div class="exemption-actions">
+                <button type="button" class="primary" @click="advanceExemption" :disabled="exemptBusy">推进下一审批节点</button>
+                <button type="button" class="danger" @click="rejectExemption" :disabled="exemptBusy">驳回</button>
+              </div>
+            </div>
+          </template>
+
+          <!-- 豁免审批：已批准 -->
+          <template v-else-if="selected.exemptionStatus === '已批准'">
+            <div class="reinspection-area">
+              <p class="status-tip">豁免申请 <b>{{ selected.exemptionFlowId }}</b> 已批准（{{ selected.exemptionApprovedAt }}），问题闭环放行。</p>
+              <p class="status-tip">处置进度 100%，可直接下发调度指令。</p>
+            </div>
+          </template>
+
+          <!-- 豁免审批：已驳回 -->
+          <template v-else-if="selected.exemptionStatus === '已驳回'">
+            <div class="linked-workorder-area">
+              <p class="status-tip">豁免申请 <b>{{ selected.exemptionFlowId }}</b> 已驳回：{{ selected.rejectReason }}。请选择其他处置方式。</p>
+              <button type="button" @click="resetExemption">重新选择处置方式</button>
+            </div>
+          </template>
+
+          <template v-else-if="!selected.linkedWorkOrderId">
+            <div class="action-cards">
+              <button type="button" class="action-card danger" @click="openAction('紧急工单')">
+                <strong>发起紧急工单</strong>
+                <span>立即创建故障维修工单并指派执行人</span>
+              </button>
+              <button type="button" class="action-card warn" @click="openAction('物资调拨')">
+                <strong>物资调拨</strong>
+                <span>从其他船舶或仓库调拨备件物资</span>
+              </button>
+              <button type="button" class="action-card primary" @click="openExemptionForm">
+                <strong>申请豁免审批</strong>
+                <span>申请临时豁免并承诺后续整改</span>
+              </button>
+            </div>
+          </template>
+
+          <template v-else-if="canReinspect">
+            <div class="reinspection-area">
+              <p class="status-tip">关联工单 <b>{{ selected.linkedWorkOrder }}</b> 已闭环，待复检确认。</p>
+              <button type="button" class="primary" @click="openReinspectConfirm">发起复检</button>
+            </div>
+          </template>
+
+          <template v-else-if="selected.linkedWorkOrderStatus === '已闭环'">
+            <p class="status-tip">已复检通过，问题闭环。</p>
+          </template>
+
+          <template v-else>
+            <div class="linked-workorder-area">
+              <p class="status-tip">关联工单 <b>{{ selected.linkedWorkOrder }}</b> 当前状态：<b>{{ selected.linkedWorkOrderStatus }}</b>，处置完成后可发起复检。</p>
+              <button type="button" @click="viewWorkOrder">查看工单</button>
+            </div>
+          </template>
         </article>
 
         <!-- 处置进度 -->
@@ -156,15 +215,25 @@
       @cancel="confirmOpen = false"
       @confirm="doAction"
     />
+
+    <ExemptionFormDialog
+      :open="exemptionFormOpen"
+      title="申请豁免审批"
+      :message="`请填写对问题 ${selected?.issueId}（${selected?.title}）的豁免理由及有效期，提交后进入审批链路。`"
+      @cancel="exemptionFormOpen = false"
+      @confirm="submitExemptionForm"
+    />
   </section>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchVoyageHealthIssues, submitAction } from '@/mock/api.js'
+import ExemptionFormDialog from '@/components/ExemptionFormDialog.vue'
+import { advanceExemptionApproval, createVoyageHealthIssueDisposal, fetchIssueLinkedWorkOrder, fetchVoyageHealthIssues, reinspectIssue, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const issues = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
@@ -174,6 +243,23 @@ const confirmOpen = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
 const pendingAction = ref('')
+const lastFlow = ref(null)
+const linkedWorkOrder = ref(null)
+const exemptionFormOpen = ref(false)
+const exemptBusy = ref(false)
+const EXEMPTION_STEPS = ['待审批', '机务评估中', '船级社备案中', '已批准']
+const routeContext = computed(() => navigation?.routeContext?.value || {})
+
+const canReinspect = computed(() => {
+  if (!selected.value) return false
+  return selected.value.linkedWorkOrderStatus === '已闭环' && selected.value.reinspectionStatus !== '复检通过'
+})
+const isClosed = computed(() => selected.value?.status === '已闭环')
+const emptyMessage = computed(() =>
+  routeContext.value.checkId
+    ? '当前航前检查无拦截问题需要处置。'
+    : '请先在健康校验看板的问题清单中选择一条不通过项。',
+)
 
 onMounted(reload)
 
@@ -182,17 +268,25 @@ async function reload() {
   errorMsg.value = ''
   try {
     const data = await fetchVoyageHealthIssues()
-    issues.value = data
-    selected.value = data[0] || null
-    uiState.value = data.length ? 'success' : 'empty'
+    issues.value = routeContext.value.checkId
+      ? data.filter((issue) => issue.checkId === routeContext.value.checkId)
+      : []
+    selected.value = routeContext.value.issueId
+      ? issues.value.find((issue) => issue.issueId === routeContext.value.issueId) || issues.value[0] || null
+      : issues.value[0] || null
+    if (selected.value) {
+      linkedWorkOrder.value = await fetchIssueLinkedWorkOrder(selected.value.issueId)
+    }
+    uiState.value = issues.value.length ? 'success' : 'empty'
   } catch (e) {
     errorMsg.value = e?.message || '加载失败'
     uiState.value = 'error'
   }
 }
 
-function selectIssue(issue) {
+async function selectIssue(issue) {
   selected.value = issue
+  linkedWorkOrder.value = await fetchIssueLinkedWorkOrder(issue.issueId)
 }
 
 function sevClass(sev) {
@@ -208,12 +302,101 @@ function openAction(action) {
   confirmOpen.value = true
 }
 
+// 豁免审批：弹出表单
+function openExemptionForm() {
+  exemptionFormOpen.value = true
+}
+
+async function submitExemptionForm(payload) {
+  if (!selected.value) return
+  try {
+    lastFlow.value = await createVoyageHealthIssueDisposal({
+      issueId: selected.value.issueId,
+      checkId: selected.value.checkId,
+      action: '豁免审批',
+      reason: payload.reason,
+      validUntil: payload.validUntil,
+    })
+    selected.value.exemptionStatus = '待审批'
+    selected.value.exemptionReason = payload.reason
+    selected.value.exemptionValidUntil = payload.validUntil
+    selected.value.exemptionFlowId = lastFlow.value.flowId
+    selected.value.status = '豁免待审批'
+    selected.value.disposalProgress = 30
+    exemptionFormOpen.value = false
+  } catch (e) {
+    errorMsg.value = e?.message || '豁免申请提交失败'
+  }
+}
+
+function isExemptionStepDone(step) {
+  const cur = selected.value?.exemptionStatus
+  if (!cur) return false
+  if (step === '已批准') return cur === '已批准'
+  return EXEMPTION_STEPS.indexOf(step) < EXEMPTION_STEPS.indexOf(cur)
+}
+
+async function advanceExemption() {
+  if (!selected.value) return
+  exemptBusy.value = true
+  try {
+    const issue = await advanceExemptionApproval(selected.value.issueId, { approve: true })
+    Object.assign(selected.value, issue)
+    if (issue.exemptionStatus === '已批准') {
+      lastFlow.value = null
+    }
+  } catch (e) {
+    errorMsg.value = e?.message || '审批推进失败'
+  } finally {
+    exemptBusy.value = false
+  }
+}
+
+async function rejectExemption() {
+  if (!selected.value) return
+  exemptBusy.value = true
+  try {
+    const issue = await advanceExemptionApproval(selected.value.issueId, { approve: false, rejectReason: '机务主管评估后驳回' })
+    Object.assign(selected.value, issue)
+  } catch (e) {
+    errorMsg.value = e?.message || '审批驳回失败'
+  } finally {
+    exemptBusy.value = false
+  }
+}
+
+function resetExemption() {
+  if (!selected.value) return
+  selected.value.exemptionStatus = null
+  selected.value.exemptionReason = ''
+  selected.value.exemptionValidUntil = ''
+  selected.value.exemptionFlowId = null
+  selected.value.status = '处置中'
+  selected.value.disposalProgress = 0
+  lastFlow.value = null
+}
+
 async function doAction() {
   try {
-    await submitAction(pendingAction.value, { issueId: selected.value?.issueId })
-    if (selected.value) {
-      selected.value.status = '处置中'
-      selected.value.disposalProgress = Math.min(100, (selected.value.disposalProgress || 0) + 20)
+    if (pendingAction.value === '复检') {
+      await doReinspect()
+      confirmOpen.value = false
+      return
+    }
+    if (['紧急工单', '物资调拨', '豁免审批'].includes(pendingAction.value)) {
+      lastFlow.value = await createVoyageHealthIssueDisposal({
+        issueId: selected.value?.issueId,
+        checkId: selected.value?.checkId,
+        action: pendingAction.value,
+      })
+    } else {
+      await submitAction(pendingAction.value, { issueId: selected.value?.issueId })
+      lastFlow.value = null
+    }
+    if (selected.value && lastFlow.value) {
+      selected.value.status = lastFlow.value.status || '处置中'
+      selected.value.disposalProgress = lastFlow.value.disposalProgress || selected.value.disposalProgress
+      linkedWorkOrder.value = await fetchIssueLinkedWorkOrder(selected.value.issueId)
     }
     confirmOpen.value = false
   } catch (e) {
@@ -222,13 +405,46 @@ async function doAction() {
   }
 }
 
-function viewWorkOrder() { openAction('查看工单') }
+function viewWorkOrder() {
+  if (!selected.value?.linkedWorkOrderId) return
+  navigation?.navigateTo?.('WorkOrderAuditDetail', {
+    workOrderId: selected.value.linkedWorkOrderId,
+    from: 'VoyageHealthIssueDetail',
+  })
+}
 function viewMaterial() { openAction('查看物资') }
 function viewCertificate() { openAction('查看证书') }
+
+async function doReinspect() {
+  if (!selected.value) return
+  try {
+    await reinspectIssue(selected.value.issueId)
+    selected.value.reinspectionStatus = '复检通过'
+    selected.value.disposalProgress = 100
+    selected.value.status = '已闭环'
+    linkedWorkOrder.value = await fetchIssueLinkedWorkOrder(selected.value.issueId)
+    lastFlow.value = { action: '复检', flowId: 'REINSPECT-' + selected.value.issueId }
+  } catch (e) {
+    errorMsg.value = e?.message || '复检失败'
+    throw e
+  }
+}
+
+function openReinspectConfirm() {
+  pendingAction.value = '复检'
+  confirmTitle.value = '复检确认'
+  confirmMessage.value = `确认对问题 ${selected.value?.issueId}（${selected.value?.title}）执行复检？复检通过后问题将闭环。`
+  confirmOpen.value = true
+}
+function goBack() {
+  navigation?.navigateTo?.('VoyageHealthDashboard', {
+    checkId: selected.value?.checkId || routeContext.value.checkId,
+  })
+}
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; min-width: 0; max-width: 100%; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -257,7 +473,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .sev-dot.pending { background: #64748b; }
 .tab-title { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 
-.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .info-grid > div { display: grid; gap: 4px; border-bottom: 1px solid #e7edf4; padding-bottom: 8px; }
 .info-grid > div.wide { grid-column: 1 / -1; }
 .info-grid dt { color: #64748b; font-size: 12px; font-weight: 800; }
@@ -267,7 +483,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .sev-badge.warn { color: #8a5a00; background: #fff2cc; }
 .sev-badge.pending { color: #53657c; background: #e7edf4; }
 
-.link-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.link-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .link-card { display: grid; gap: 8px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 14px; background: #f8fbfe; }
 .link-card.empty { opacity: .7; background: #fafbfc; }
 .link-head { display: flex; align-items: center; gap: 8px; }
@@ -276,7 +492,8 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .link-card .muted { color: #8b9aab; font-weight: 600; }
 .link-card button { justify-self: start; font-size: 12px; padding: 5px 10px; }
 
-.action-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.action-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.flow-tip { margin: 0 0 12px; color: #11734d; font-size: 12px; font-weight: 900; }
 .action-card { display: grid; gap: 6px; text-align: left; padding: 16px; border-radius: 8px; border: 1px solid; cursor: pointer; font: inherit; }
 .action-card strong { font-size: 15px; }
 .action-card span { font-size: 12px; color: #53657c; font-weight: 600; }
@@ -301,6 +518,18 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .step-list strong { display: block; font-size: 13px; }
 .step-list small { color: #64748b; font-size: 11px; }
 .muted { color: #8b9aab; }
+.reinspection-area { display: grid; gap: 12px; padding: 12px; border: 1px dashed #1e6fd9; border-radius: 8px; background: #f5f9ff; }
+.exemption-area { display: grid; gap: 14px; padding: 14px; border: 1px solid #1e6fd9; border-radius: 8px; background: #f5f9ff; }
+.exempt-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.exempt-steps li { font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 999px; border: 1px solid #cbd7e4; background: #fff; color: #64748b; }
+.exempt-steps li.done { color: #1e6fd9; border-color: #1e6fd9; background: #edf5ff; }
+.exempt-steps li.current { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
+.exemption-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+button.danger { color: #fff; border-color: #b4232d; background: #b4232d; }
+button.primary:disabled, button.danger:disabled { opacity: .5; cursor: not-allowed; }
+.linked-workorder-area { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #d9e4ef; border-radius: 8px; background: #f8fbfe; }
+.status-tip { margin: 0; color: #53657c; font-size: 13px; }
+.status-tip b { color: #172033; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }
