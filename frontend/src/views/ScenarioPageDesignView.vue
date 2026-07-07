@@ -4,7 +4,7 @@
       eyebrow="Scenario → Page"
       title="场景→页面一体化设计工作台"
       title-id="spd-title"
-      description="分阶段调用 LLM：先基于 requirement.md 生成业务场景，再逐个场景生成功能模块，最后按模块生成页面设计，避免单次输出过大。"
+      description="分阶段调用 LLM：先基于 requirement.md 生成业务场景清单，再逐个补全场景详情、功能模块和页面设计，避免重复生成。"
     />
 
     <!-- Requirement Summary (collapsible) -->
@@ -25,7 +25,7 @@
     <div class="gen-bar">
       <div>
         <strong>{{ editableScenarios.length ? editableScenarios.length + ' 个场景' : '尚未生成场景' }}</strong>
-        <p>仅读取 requirement.md 完整内容生成业务场景数量、场景详情和建议页面模块；功能模块与页面设计在场景内逐个生成。</p>
+        <p>读取 requirement.md 中的结构化摘要生成业务场景清单；场景详情、功能模块与页面设计在场景内逐个生成。</p>
       </div>
       <button class="gen-btn" type="button" :disabled="isGenBusy" @click="generateAllScenarios">
         {{ isGenBusy ? '⏳ 生成中...' : '⚡ 生成业务场景' }}
@@ -52,7 +52,7 @@
           <span class="s-priority">{{ s.priority }}</span>
           <div>
             <strong>{{ s.name }}</strong>
-            <small>{{ s.pageMapping?.role || '未指定' }} · {{ activeModules(s).length }}模块 · {{ activePages(s).length }}页</small>
+            <small>{{ s.pageMapping?.role || '未指定角色' }} · {{ isScenarioDetailReady(s) ? '详情已生成' : '待生成详情' }} · {{ activeModules(s).length }}模块 · {{ activePages(s).length }}页</small>
           </div>
           <button
             class="mini-gen"
@@ -99,8 +99,8 @@
                 <option v-for="r in editableRoles" :key="r.id" :value="r.name">{{ r.name }}</option>
               </select>
             </label>
-            <label><span>建议页面文件</span><input v-model.trim="activeScenario.pageMapping.page" type="text" @input="markDirty" /></label>
-            <label class="full"><span>页面模块（顿号分隔）</span><input v-model.trim="moduleText" type="text" placeholder="模块1、模块2" @input="onModuleTextChange" /></label>
+            <label><span>建议页面文件</span><input v-model.trim="activeScenario.pageMapping.page" type="text" placeholder="生成场景详情后填充" @input="markDirty" /></label>
+            <label class="full"><span>模块线索（可选，顿号分隔）</span><input v-model.trim="moduleText" type="text" placeholder="功能模块将在下一步单独生成；这里可手工补充约束" @input="onModuleTextChange" /></label>
           </div>
           <h4>任务流程</h4>
           <div class="editable-list">
@@ -355,25 +355,103 @@ const requirementAnalysis = computed(() =>
   requirementStepResult.value?.analysis || props.projectContext.requirementAnalysis || {}
 )
 
-const requirementText = computed(() => {
+function excerptText(text, limit = 1200) {
+  const value = String(text || '').trim()
+  return value.length > limit ? `${value.slice(0, limit)}...` : value
+}
+
+function listText(items) {
+  return (items || [])
+    .map((item) => {
+      if (!item) return ''
+      if (typeof item === 'string') return item
+      return item.description || item.title || item.name || JSON.stringify(item)
+    })
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .join(' ')
+}
+
+function compactQuestionResponses(items) {
+  return (items || [])
+    .map((item) => ({
+      question: item.question || '',
+      answer: item.answer || '',
+    }))
+    .filter((item) => item.question || item.answer)
+}
+
+function compactClarificationInsights(items) {
+  return (items || [])
+    .map((item) => ({
+      category: item.category || '业务补充',
+      title: item.title || '',
+      detail: excerptText(item.detail || '', 500),
+      scenarioValue: item.scenarioValue || '',
+    }))
+    .filter((item) => item.title || item.detail || item.scenarioValue)
+}
+
+function uniqueTextParts(parts) {
+  const selected = []
+  parts
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      if (selected.some((existing) => existing === part || existing.includes(part))) return
+      for (let index = selected.length - 1; index >= 0; index -= 1) {
+        if (part.includes(selected[index])) selected.splice(index, 1)
+      }
+      selected.push(part)
+    })
+  return selected
+}
+
+const sourceRequirementExcerpt = computed(() => {
   const a = requirementAnalysis.value || {}
-  const questionResponses = (a.questionResponses || [])
+  return excerptText(
+    requirementStepResult.value?.sourceRequirement ||
+      props.projectContext.sourceRequirement ||
+      a.sourceText ||
+      '',
+    1200
+  )
+})
+
+const requirementBriefForLlm = computed(() => {
+  const a = requirementAnalysis.value || {}
+  return {
+    projectName: requirementStepResult.value?.projectName || props.projectContext.projectName || '',
+    customerName: requirementStepResult.value?.customerName || props.projectContext.customerName || '',
+    projectStage: requirementStepResult.value?.projectStage || props.projectContext.projectStage || '',
+    businessBackground: a.businessBackground || '',
+    painPoints: a.painPoints || [],
+    businessGoals: a.businessGoals || a.goals || [],
+    userRoles: a.userRoles || [],
+    questions: a.questions || [],
+    questionResponses: compactQuestionResponses(a.questionResponses || []),
+    clarificationInsights: compactClarificationInsights(a.clarificationInsights || []),
+    sourceExcerpt: sourceRequirementExcerpt.value,
+  }
+})
+
+const requirementText = computed(() => {
+  const brief = requirementBriefForLlm.value
+  const questionResponses = (brief.questionResponses || [])
     .map((item) => `${item.question || '问题'}：${item.answer || ''}`)
     .join(' ')
-  const clarificationInsights = (a.clarificationInsights || [])
+  const clarificationInsights = (brief.clarificationInsights || [])
     .map((item) => `${item.category || '业务补充'}：${item.title || ''}，${item.detail || ''}，场景价值：${item.scenarioValue || ''}`)
     .join(' ')
-  return [
-    requirementStepResult.value?.sourceRequirement || props.projectContext.sourceRequirement || '',
-    requirementStepResult.value?.manualRequirement || '',
-    requirementStepResult.value?.attachmentText || '',
-    a.businessBackground || '',
-    (a.painPoints || []).map((p) => p.description || p).join(' '),
-    (a.businessGoals || a.goals || []).join(' '),
-    (a.userRoles || []).map((r) => `${r.name}:${r.responsibility}`).join(' '),
+  return uniqueTextParts([
+    brief.businessBackground || '',
+    listText(brief.painPoints),
+    listText(brief.businessGoals),
+    (brief.userRoles || []).map((r) => `${r.name || r.role || ''}:${r.responsibility || r.description || ''}`).join(' '),
     questionResponses,
     clarificationInsights,
-  ].join(' ')
+    brief.sourceExcerpt || '',
+  ]).join(' ')
 })
 
 const requirementSummary = computed(() => {
@@ -411,16 +489,17 @@ function applySavedOutput(output) {
   if (scenarios.length) {
     editableScenarios.value = scenarios.map(normalizeScenarioInput)
   }
+  const scenarioKeys = new Set(editableScenarios.value.map((scenario) => scenario.key))
 
   // Restore modules
   if (output.modulesByScenarioKey) {
-    modulesByScenarioKey.value = output.modulesByScenarioKey
+    modulesByScenarioKey.value = pruneByScenarioKeys(output.modulesByScenarioKey, scenarioKeys)
   }
-  scenarioDetailReadyByKey.value = output.scenarioDetailReadyByKey || {}
+  scenarioDetailReadyByKey.value = pruneByScenarioKeys(output.scenarioDetailReadyByKey, scenarioKeys)
 
   // Restore page designs
   if (output.pageDesignsByScenarioKey) {
-    pageDesignsByScenarioKey.value = output.pageDesignsByScenarioKey
+    pageDesignsByScenarioKey.value = pruneByScenarioKeys(output.pageDesignsByScenarioKey, scenarioKeys)
   }
   scenarioGenerationMeta.value = output.scenarioGenerationMeta || null
 
@@ -431,6 +510,24 @@ function applySavedOutput(output) {
   } else if (editableScenarios.value.length) {
     activeKey.value = editableScenarios.value[0].key
   }
+}
+
+function pruneByScenarioKeys(source, scenarioKeys) {
+  return Object.fromEntries(
+    Object.entries(source || {}).filter(([key]) => scenarioKeys.has(key))
+  )
+}
+
+function resetScenarioGenerationState() {
+  editableScenarios.value = []
+  modulesByScenarioKey.value = {}
+  pageDesignsByScenarioKey.value = {}
+  scenarioDetailReadyByKey.value = {}
+  scenarioGenerationMeta.value = null
+  activeKey.value = ''
+  selectedPageKey.value = ''
+  activeTab.value = 'scenario'
+  dirty.value = false
 }
 
 function normalizeRoleInput(role, index = 0) {
@@ -449,11 +546,12 @@ function normalizeScenarioInput(scenario, index = 0) {
     name: scenario.name || '',
     priority: scenario.priority || 'P1',
     description: scenario.description || '',
-    workflow: Array.isArray(scenario.workflow) ? scenario.workflow.filter(Boolean) : ['进入页面', '查看信息', '处理任务'],
+    summary: scenario.summary || scenario.objective || '',
+    workflow: Array.isArray(scenario.workflow) ? scenario.workflow.filter(Boolean) : [],
     pageMapping: {
-      role: pm.role || editableRoles.value[0]?.name || '',
-      page: pm.page || 'WorkspaceView.vue',
-      modules: Array.isArray(pm.modules) ? pm.modules.filter(Boolean) : ['列表区', '详情区', '操作区'],
+      role: pm.role || scenario.role || editableRoles.value[0]?.name || '',
+      page: pm.page || '',
+      modules: Array.isArray(pm.modules) ? pm.modules.filter(Boolean) : [],
     },
   }
 }
@@ -608,31 +706,10 @@ function buildScenariosFromRoles(roles) {
       key: 'scenario-' + Date.now() + '-' + i,
       name: role.name + mainTag,
       priority: i < 2 ? 'P0' : 'P1',
-      description: role.name + '在' + domain.process + '中负责' + mainTag + '。',
-      workflow: ['查看' + mainTag + '概览', '处理核心任务', '确认结果并同步'],
-      pageMapping: {
-        role: role.name,
-        page: domain.pagePrefix + toBusinessPageName(role.name + mainTag) + 'View.vue',
-        modules: [mainTag + '总览', '任务处理', '结果确认'],
-      },
+      role: role.name,
+      summary: role.name + '在' + domain.process + '中负责' + mainTag + '。',
     }
   })
-}
-
-function toBusinessPageName(value) {
-  var s = String(value || '')
-  var map = [
-    { keys: ['现场调度', '调度'], name: 'OnsiteDispatch' },
-    { keys: ['任务接收', '接收'], name: 'TaskReceiving' },
-    { keys: ['门岗', '入场', '核验'], name: 'GateAccessCheck' },
-    { keys: ['总览', '业务状态'], name: 'BusinessStatus' },
-    { keys: ['异常', '问题', '反馈'], name: 'IssueHandling' },
-    { keys: ['资源', '协调'], name: 'ResourceCoordination' },
-    { keys: ['进度', '跟踪'], name: 'ProgressTracking' },
-    { keys: ['报表', '分析'], name: 'AnalyticsDashboard' },
-  ]
-  var m = map.find(function (item) { return item.keys.some(function (k) { return s.includes(k) }) })
-  return m ? m.name : 'ScenarioWorkspace'
 }
 
 function buildModules(scenario) {
@@ -773,24 +850,28 @@ async function generateAllScenarios() {
     return
   }
 
+  resetScenarioGenerationState()
+  emitDraft()
+
   // Step 2: 基于 requirement.md 的完整结构化内容，生成每个业务场景
   try {
     var sResult = await requestLlm(
       'scenarioPageDesignScenarios',
-      '场景→页面一体化：基于 requirement.md 完整内容生成业务场景',
+      '场景→页面一体化：基于需求结构化摘要生成业务场景清单',
       [
         '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-        '你将收到上一阶段写入 requirement.md 的完整结构化结果，包括原始需求、附件文本、需求拆解草案、待确认问题回复，以及业务澄清对话整理出的补充信息。',
-        '请基于这些完整输入，完成业务场景规划和页面前置设计，不要只按角色机械生成。',
-        '必须充分使用 analysis.questionResponses 与 analysis.clarificationInsights 中的补充信息，把接口方式、弱网/移动端、异常阈值、费用口径、系统集成等内容转化为具体场景、流程步骤和页面模块。',
-        '返回严格JSON：{"roles":[{"name":"角色名","focus":"职责边界","tags":["标签1"]}],"scenarios":[{"key":"sc-序号","name":"场景名称（要具体，如\\"调度员现场调度派车与异常处理\\"）","priority":"P0或P1","description":"详细场景说明（30字以上，描述该角色在什么业务触发条件下完成什么目标）","workflow":["触发/进入","查看/判断","操作/协同","确认/留痕"],"pageMapping":{"role":"对应角色名","page":"建议的Vue文件名.vue","modules":["页面模块1","页面模块2","异常处理模块"]}}],"planningNotes":["规划依据1"]}',
+        '你将收到上一阶段需求拆解后的精简结构化摘要，包括业务背景、痛点、目标、角色、待确认问题回复、业务澄清补充，以及少量原始需求摘录。',
+        '本次只做业务场景识别和排序：判断应该拆出哪些业务场景、每个场景属于哪个角色、优先级是什么。',
+        '不要生成场景详情、任务流程、页面文件、页面模块、功能模块、API、组件或页面设计；这些会在后续步骤逐个生成。',
+        '必须充分使用 requirementBrief.questionResponses 与 requirementBrief.clarificationInsights 中的补充信息，识别弱网/移动端、异常处理、费用口径、系统集成等是否应拆成独立场景。',
+        '返回严格JSON：{"roles":[{"name":"角色名","focus":"职责边界","tags":["标签1"]}],"scenarios":[{"key":"sc-序号","name":"场景名称（要具体，如\\"调度员现场调度派车与异常处理\\"）","priority":"P0或P1","role":"对应角色名","summary":"一句话场景边界，只说明业务触发和目标，不写流程"}],"planningNotes":["规划依据1"]}',
         '场景数量由业务复杂度决定：每个核心角色至少一个 P0/P1 场景；如果同一角色存在明显不同闭环，可拆成多个场景。',
-        '页面模块名要能直接指导下一步页面设计，避免“管理模块”“查询模块”这类泛化名称。',
-        '不要编造 requirement.md 中没有依据的外部系统或规则；推断项要在 description 或 planningNotes 中说明需确认。',
+        '场景名称必须可区分业务闭环，避免“管理”“查询”“维护”这类泛化名称。',
+        '不要编造 requirement.md 中没有依据的外部系统或规则；推断项要在 summary 或 planningNotes 中说明需确认。',
       ].join('\n'),
       {
-        requirementMarkdownResult: requirementPayload,
-        normalizedRequirementText: requirementText.value.substring(0, 8000),
+        requirementBrief: requirementBriefForLlm.value,
+        normalizedRequirementText: requirementText.value.substring(0, 5000),
         rolesFromRequirement: editableRoles.value.map(function (r) { return { name: r.name, focus: r.focus, tags: splitTags(r.tagText) } }),
         existingScenarios: buildScenariosFromRoles(editableRoles.value),
       },
@@ -811,7 +892,7 @@ async function generateAllScenarios() {
         requirementSavedAt: requirementPayload?.savedAt || requirementPayload?.analysis?.savedAt || '',
         requirementProjectName: requirementPayload?.projectName || props.projectContext.projectName || '',
       }
-      setGenMsg('已基于 requirement.md 完整内容生成 ' + llmScenarios.length + ' 个场景，并写入 scenariopagedesign.md。')
+      setGenMsg('已基于需求结构化摘要生成 ' + llmScenarios.length + ' 个业务场景清单，并写入 scenariopagedesign.md。请逐个生成场景详情。')
     } else {
       throw new Error('大模型未返回有效场景')
     }
@@ -849,27 +930,33 @@ async function generateScenarioDetail(scenario) {
       '场景→页面：生成/更新单个业务场景详情',
       [
         '[更新当前场景] 只返回当前目标场景的完整详情 JSON，不要返回功能模块或页面设计。',
-        '你将收到 requirement.md 完整输入、全部业务场景摘要，以及当前目标场景草稿。',
-        '请基于 requirement.md 中的业务背景、痛点、角色、待确认问题回复、业务澄清补充，生成/更新当前场景详情页内容。',
+        '你将收到需求拆解后的精简结构化摘要、全部业务场景摘要，以及当前目标场景草稿。',
+        '请基于 requirementBrief 中的业务背景、痛点、角色、待确认问题回复、业务澄清补充，生成/更新当前场景详情页内容。',
         '返回严格JSON：',
-        '{"scenario":{"key":"保持原key","name":"具体场景名称","priority":"P0或P1","description":"详细场景说明，说明触发条件、角色目标、关键判断和闭环结果","workflow":["步骤1","步骤2","步骤3","步骤4"],"pageMapping":{"role":"对应角色名","page":"建议Vue文件名.vue","modules":["建议页面模块1","建议页面模块2"]}}}',
+        '{"scenario":{"key":"保持原key","name":"具体场景名称","priority":"P0或P1","description":"详细场景说明，说明触发条件、角色目标、关键判断和闭环结果","workflow":["步骤1","步骤2","步骤3","步骤4"],"pageMapping":{"role":"对应角色名","page":"建议Vue文件名.vue"}}}',
         '要求：',
         '1. key 必须保持 currentScenario.key，不要改成新 key。',
         '2. description 要比场景列表摘要更具体，能直接支撑后续功能模块设计。',
         '3. workflow 必须体现业务触发、查看判断、操作协同、结果同步/留痕。',
-        '4. pageMapping.modules 只是页面模块建议，不要生成详细功能模块字段。',
-        '5. 不要生成 pageDesign，不要生成 components，不要生成 API 细节。',
+        '4. 不要生成 pageMapping.modules、功能模块、pageDesign、components 或 API 细节。',
+        '5. 建议页面文件只输出一个承载该场景的 Vue 文件名；页面拆分由后续页面设计步骤决定。',
       ].join('\n'),
       {
-        requirementMarkdownResult: requirementStepResult.value,
-        normalizedRequirementText: requirementText.value.substring(0, 8000),
+        requirementBrief: requirementBriefForLlm.value,
+        normalizedRequirementText: requirementText.value.substring(0, 5000),
         allScenarios: editableScenarios.value,
         currentScenario: scenario,
       },
       90000
     )
 
-    var nextScenario = normalizeScenarioInput(Object.assign({}, result.scenario || {}, { key: scenario.key }))
+    var nextScenarioRaw = Object.assign({}, scenario, result.scenario || {}, { key: scenario.key })
+    nextScenarioRaw.pageMapping = {
+      role: result.scenario?.pageMapping?.role || scenario.pageMapping?.role || '',
+      page: result.scenario?.pageMapping?.page || scenario.pageMapping?.page || '',
+      modules: [],
+    }
+    var nextScenario = normalizeScenarioInput(nextScenarioRaw)
     editableScenarios.value = editableScenarios.value.map(function (item) {
       return item.key === scenario.key ? nextScenario : item
     })
@@ -914,7 +1001,7 @@ async function generateScenarioModules(scenario) {
       '场景→页面：根据单个场景详情生成功能模块',
       [
         '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-        '你将收到 requirement.md 完整输入、全部业务场景摘要，以及当前目标场景详情。',
+        '你将收到需求拆解后的精简结构化摘要、全部业务场景摘要，以及当前目标场景详情。',
         '请只为当前目标场景生成功能模块，不要生成其他场景的模块，也不要生成页面设计。',
         '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
         '场景说明：' + (scenario.description || ''),
@@ -925,13 +1012,13 @@ async function generateScenarioModules(scenario) {
         '1. 模块数量不要固定，根据该场景职责复杂度决定。',
         '2. 模块名要具体，如“车辆实时地图监控”“异常告警分级处理”。',
         '3. 每个模块 features 列出 2-4 个真实操作能力。',
-        '4. dataNeeds/stateRules 要吸收 requirement.md 中的待确认回复和业务澄清补充。',
+        '4. dataNeeds/stateRules 要吸收 requirementBrief 中的待确认回复和业务澄清补充。',
         '5. apiHint 只输出接口方向或候选路径，正式字段、参数、响应和错误码由下一步“交互与API”生成。',
         '6. 如果某些规则来自推断，请在 description 或 stateRules 中标注“建议确认”。',
       ].join('\n'),
       {
-        requirementMarkdownResult: requirementStepResult.value,
-        normalizedRequirementText: requirementText.value.substring(0, 6000),
+        requirementBrief: requirementBriefForLlm.value,
+        normalizedRequirementText: requirementText.value.substring(0, 4500),
         allScenarios: editableScenarios.value,
         targetScenario: scenario,
         existingModules: buildModules(scenario),
@@ -999,7 +1086,7 @@ async function generatePageDesignForScenario(scenario) {
       '场景→页面：根据单个场景功能模块生成页面设计',
       [
         '[全新生成] 忽略当前输出结构，直接返回以下全新JSON。',
-        '你将收到 requirement.md 完整输入、当前目标场景，以及该场景已经生成的功能模块。',
+        '你将收到需求拆解后的精简结构化摘要、当前目标场景，以及该场景已经生成的功能模块。',
         '请只为当前场景生成详细页面设计，不要生成代码，不要生成其他场景页面。',
         '当前目标场景：' + scenario.name + '（角色：' + (scenario.pageMapping && scenario.pageMapping.role || '未指定') + '）',
         '已生成的功能模块：' + JSON.stringify(modules.map(function (m) { return { name: m.name, description: m.description, features: m.features, apiHint: resolveModuleApiHint(m), dataNeeds: m.dataNeeds, stateRules: m.stateRules } })),
@@ -1012,7 +1099,7 @@ async function generatePageDesignForScenario(scenario) {
         '4. 每个页面承载的模块不宜超过 4 个；模块流程分界明显时拆页。',
       ].join('\n'),
       {
-        requirementMarkdownResult: requirementStepResult.value,
+        requirementBrief: requirementBriefForLlm.value,
         targetScenario: scenario,
         modules: modules,
         existingPageDesign: buildPageDesign(scenario),
@@ -1136,15 +1223,30 @@ function updateSelectedPage(updater) {
 // Save & Confirm
 // ============================================================
 function buildDraft() {
+  var scenarioKeys = new Set(editableScenarios.value.map(function (scenario) { return scenario.key }))
+  var prunedModules = pruneByScenarioKeys(modulesByScenarioKey.value, scenarioKeys)
+  var prunedReady = pruneByScenarioKeys(scenarioDetailReadyByKey.value, scenarioKeys)
+  var prunedPageDesigns = Object.fromEntries(
+    editableScenarios.value.map(function (scenario) {
+      var design = pageDesignsByScenarioKey.value[scenario.key] || { pages: [] }
+      return [
+        scenario.key,
+        Object.assign({}, design, {
+          pages: Array.isArray(design.pages) ? design.pages : [],
+        }),
+      ]
+    })
+  )
+
   return {
     roles: editableRoles.value,
     sourceRoles: editableRoles.value.map(function (r) { return { name: r.name, focus: r.focus, tags: splitTags(r.tagText) } }),
     scenarios: editableScenarios.value,
     availableScenarios: editableScenarios.value,
     selectedScenarioKey: activeKey.value,
-    modulesByScenarioKey: modulesByScenarioKey.value,
-    scenarioDetailReadyByKey: scenarioDetailReadyByKey.value,
-    pageDesignsByScenarioKey: pageDesignsByScenarioKey.value,
+    modulesByScenarioKey: prunedModules,
+    scenarioDetailReadyByKey: prunedReady,
+    pageDesignsByScenarioKey: prunedPageDesigns,
     requirementInputSnapshot: requirementStepResult.value,
     scenarioGenerationMeta: scenarioGenerationMeta.value,
     activeKey: activeKey.value,

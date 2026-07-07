@@ -109,6 +109,40 @@ const createEmptyStepResults = () => ({
   prototype: null,
 })
 
+const downstreamStepMap = {
+  requirement: ['scenarioPageDesign', 'interactionApi', 'prototype'],
+  scenarioPageDesign: ['interactionApi', 'prototype'],
+  interactionApi: ['prototype'],
+  prototype: [],
+}
+
+const createInvalidatedStepResult = (stepKey, invalidatedBy, reason) => ({
+  invalidated: true,
+  invalidatedBy,
+  invalidatedAt: new Date().toISOString(),
+  reason,
+  stepKey,
+  roles: [],
+  scenarios: [],
+  availableScenarios: [],
+  modulesByScenarioKey: {},
+  scenarioDetailReadyByKey: {},
+  pageDesignsByScenarioKey: {},
+  generatedPagesByKey: {},
+  generatedApiByPageKey: {},
+  scenarioPageGroups: [],
+  pages: [],
+  viewFiles: [],
+  pageDetailSpecs: [],
+  pageApiMapping: [],
+  navigationRoutes: [],
+  componentFiles: [],
+  mockDataFiles: [],
+  stepPrompts: [],
+  generationPlan: [],
+  summary: reason,
+})
+
 const createDefaultProjectContext = () => ({
   projectName: '海工生产运营示范项目',
   customerName: '示范客户',
@@ -343,6 +377,133 @@ const activeStepResult = computed(() => {
   return resultKey ? projectContext.value.stepResults?.[resultKey] || null : null
 })
 
+function stableSerialize(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`
+  }
+  return JSON.stringify(value ?? null)
+}
+
+function createSnapshotKey(value) {
+  if (!value) return ''
+  const text = stableSerialize(value)
+  let hash = 0x811c9dc5
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `v1:${(hash >>> 0).toString(16).padStart(8, '0')}:${text.length}`
+}
+
+function compactRequirementAnalysisForSnapshot(analysis) {
+  if (!analysis) return null
+  const {
+    sourceText,
+    sourceRequirement,
+    manualRequirement,
+    attachmentText,
+    importedMarkdown,
+    ...rest
+  } = analysis
+  return rest
+}
+
+function normalizeRequirementResult(result) {
+  if (!result) return result
+  const analysis = result.analysis || null
+  const sourceRequirement = result.sourceRequirement || analysis?.sourceText || ''
+  const manualRequirement = result.manualRequirement && result.manualRequirement !== sourceRequirement
+    ? result.manualRequirement
+    : ''
+  const attachmentText = result.attachmentText && !String(sourceRequirement || '').includes(result.attachmentText)
+    ? result.attachmentText
+    : ''
+
+  return {
+    ...result,
+    sourceRequirement,
+    manualRequirement,
+    attachmentText,
+    analysis: compactRequirementAnalysisForSnapshot(analysis),
+  }
+}
+
+function createRequirementSnapshotKey(result) {
+  if (!result) return ''
+  const normalized = normalizeRequirementResult(result)
+  return createSnapshotKey({
+    sourceRequirement: normalized.sourceRequirement || '',
+    manualRequirement: normalized.manualRequirement || '',
+    attachmentText: normalized.attachmentText || '',
+    analysis: normalized.analysis,
+  })
+}
+
+function createScenarioPageSnapshotKey(result) {
+  if (!result) return ''
+  return createSnapshotKey({
+    scenarios: result.scenarios || result.availableScenarios || [],
+    modulesByScenarioKey: result.modulesByScenarioKey || {},
+    pageDesignsByScenarioKey: result.pageDesignsByScenarioKey || {},
+  })
+}
+
+function createInteractionApiSnapshotKey(result) {
+  if (!result) return ''
+  return createSnapshotKey({
+    generatedPagesByKey: result.generatedPagesByKey || {},
+    generatedApiByPageKey: result.generatedApiByPageKey || {},
+    scenarioPageGroups: result.scenarioPageGroups || [],
+  })
+}
+
+function enrichStepResultWithSourceKeys(stepKey, result) {
+  if (!result || result.invalidated) return result
+  const stepResults = projectContext.value.stepResults || createEmptyStepResults()
+  if (stepKey === 'scenarioPageDesign') {
+    return {
+      ...result,
+      requirementSnapshotKey: createRequirementSnapshotKey(stepResults.requirement),
+    }
+  }
+  if (stepKey === 'interactionApi') {
+    return {
+      ...result,
+      scenarioPageSnapshotKey: createScenarioPageSnapshotKey(stepResults.scenarioPageDesign),
+    }
+  }
+  if (stepKey === 'prototype') {
+    return {
+      ...result,
+      scenarioPageSnapshotKey: createScenarioPageSnapshotKey(stepResults.scenarioPageDesign),
+      interactionApiSnapshotKey: createInteractionApiSnapshotKey(stepResults.interactionApi),
+    }
+  }
+  return result
+}
+
+function isStepResultCompatible(stepKey, result) {
+  if (!result || result.invalidated) return false
+  const stepResults = projectContext.value.stepResults || createEmptyStepResults()
+  if (stepKey === 'scenarioPageDesign') {
+    return Boolean(result.requirementSnapshotKey) &&
+      result.requirementSnapshotKey === createRequirementSnapshotKey(stepResults.requirement)
+  }
+  if (stepKey === 'interactionApi') {
+    return Boolean(result.scenarioPageSnapshotKey) &&
+      result.scenarioPageSnapshotKey === createScenarioPageSnapshotKey(stepResults.scenarioPageDesign)
+  }
+  if (stepKey === 'prototype') {
+    return Boolean(result.scenarioPageSnapshotKey && result.interactionApiSnapshotKey) &&
+      result.scenarioPageSnapshotKey === createScenarioPageSnapshotKey(stepResults.scenarioPageDesign) &&
+      result.interactionApiSnapshotKey === createInteractionApiSnapshotKey(stepResults.interactionApi)
+  }
+  return true
+}
+
 const selectWorkspace = async (key) => {
   const targetKey = key === 'factoryWorkbench' ? 'requirementInput' : key
   await hydrateRequiredMethodInputs(targetKey, { preferSaved: true })
@@ -368,16 +529,18 @@ const selectMethodStep = async (key) => {
 }
 
 const writeStepResult = (stepKey, result, options = {}) => {
+  const normalizedResult = stepKey === 'requirement' ? normalizeRequirementResult(result) : result
+  const nextResult = enrichStepResultWithSourceKeys(stepKey, normalizedResult)
   projectContext.value = {
     ...projectContext.value,
     stepResults: {
       ...(projectContext.value.stepResults || createEmptyStepResults()),
-      [stepKey]: result,
+      [stepKey]: nextResult,
     },
   }
 
   if (options.persistMarkdown !== false) {
-    return saveStepResultToMarkdown(stepKey, result)
+    return saveStepResultToMarkdown(stepKey, nextResult)
   }
 
   return Promise.resolve(null)
@@ -424,10 +587,54 @@ const readStepResultFromMarkdown = async (stepKey) => {
     }
 
     const payload = await response.json()
-    return payload.result || null
+    const result = payload.result || null
+    return result?.invalidated ? null : result
   } catch (error) {
     console.warn('Failed to read method step Markdown', error)
     return null
+  }
+}
+
+const invalidateDownstreamStepResults = async (stepKey, reason) => {
+  const downstreamKeys = downstreamStepMap[stepKey] || []
+  if (!downstreamKeys.length) {
+    return
+  }
+
+  const invalidatedResults = Object.fromEntries(
+    downstreamKeys.map((key) => [key, createInvalidatedStepResult(key, stepKey, reason)])
+  )
+
+  projectContext.value = {
+    ...projectContext.value,
+    stepResults: {
+      ...(projectContext.value.stepResults || createEmptyStepResults()),
+      ...Object.fromEntries(downstreamKeys.map((key) => [key, null])),
+    },
+    selectedScenario: downstreamKeys.includes('scenarioPageDesign') ? null : projectContext.value.selectedScenario,
+    scenarioPageDesignResult: downstreamKeys.includes('scenarioPageDesign') ? null : projectContext.value.scenarioPageDesignResult,
+    selectedInteractionPage: downstreamKeys.includes('interactionApi') ? null : projectContext.value.selectedInteractionPage,
+    selectedApiContract: downstreamKeys.includes('interactionApi') ? null : projectContext.value.selectedApiContract,
+    interactionApiResult: downstreamKeys.includes('interactionApi') ? null : projectContext.value.interactionApiResult,
+    selectedPrototypeSuggestion: downstreamKeys.includes('prototype') ? null : projectContext.value.selectedPrototypeSuggestion,
+  }
+
+  await Promise.all(downstreamKeys.map((key) => saveStepResultToMarkdown(key, invalidatedResults[key])))
+}
+
+const clearStepResultFromContext = (stepKey) => {
+  projectContext.value = {
+    ...projectContext.value,
+    stepResults: {
+      ...(projectContext.value.stepResults || createEmptyStepResults()),
+      [stepKey]: null,
+    },
+    selectedScenario: stepKey === 'scenarioPageDesign' ? null : projectContext.value.selectedScenario,
+    scenarioPageDesignResult: stepKey === 'scenarioPageDesign' ? null : projectContext.value.scenarioPageDesignResult,
+    selectedInteractionPage: stepKey === 'interactionApi' ? null : projectContext.value.selectedInteractionPage,
+    selectedApiContract: stepKey === 'interactionApi' ? null : projectContext.value.selectedApiContract,
+    interactionApiResult: stepKey === 'interactionApi' ? null : projectContext.value.interactionApiResult,
+    selectedPrototypeSuggestion: stepKey === 'prototype' ? null : projectContext.value.selectedPrototypeSuggestion,
   }
 }
 
@@ -445,14 +652,19 @@ const hydrateRequiredMethodInputs = async (targetWorkspaceKey, options = {}) => 
     }
 
     const savedResult = await readStepResultFromMarkdown(definition.resultKey)
-    if (savedResult) {
+    if (savedResult && isStepResultCompatible(definition.resultKey, savedResult)) {
       applyStoredStepResult(definition.resultKey, savedResult)
+    } else if (savedResult && !isStepResultCompatible(definition.resultKey, savedResult)) {
+      clearStepResultFromContext(definition.resultKey)
+    } else if (existingResults[definition.resultKey] && options.preferSaved) {
+      clearStepResultFromContext(definition.resultKey)
     }
   }
 }
 
 const applyStoredStepResult = (stepKey, result) => {
-  writeStepResult(stepKey, result, { persistMarkdown: false })
+  const storedResult = stepKey === 'requirement' ? normalizeRequirementResult(result) : result
+  writeStepResult(stepKey, storedResult, { persistMarkdown: false })
 
   const nextContext = {
     ...projectContext.value,
@@ -460,73 +672,75 @@ const applyStoredStepResult = (stepKey, result) => {
   }
 
   if (stepKey === 'requirement') {
-    nextContext.projectName = result.projectName || nextContext.projectName
-    nextContext.customerName = result.customerName || nextContext.customerName
-    nextContext.projectStage = result.projectStage || nextContext.projectStage
-    nextContext.sourceRequirement = result.sourceRequirement || nextContext.sourceRequirement
-    nextContext.manualRequirement = result.manualRequirement || nextContext.manualRequirement
-    nextContext.attachmentText = result.attachmentText || nextContext.attachmentText
-    nextContext.requirementAttachments = result.attachments || nextContext.requirementAttachments
-    nextContext.requirementAnalysis = result.analysis || result
+    nextContext.projectName = storedResult.projectName || nextContext.projectName
+    nextContext.customerName = storedResult.customerName || nextContext.customerName
+    nextContext.projectStage = storedResult.projectStage || nextContext.projectStage
+    nextContext.sourceRequirement = Object.prototype.hasOwnProperty.call(storedResult, 'sourceRequirement') ? storedResult.sourceRequirement : nextContext.sourceRequirement
+    nextContext.manualRequirement = Object.prototype.hasOwnProperty.call(storedResult, 'manualRequirement') ? storedResult.manualRequirement : nextContext.manualRequirement
+    nextContext.attachmentText = Object.prototype.hasOwnProperty.call(storedResult, 'attachmentText') ? storedResult.attachmentText : nextContext.attachmentText
+    nextContext.requirementAttachments = storedResult.attachments || nextContext.requirementAttachments
+    nextContext.requirementAnalysis = storedResult.analysis || storedResult
   }
 
   if (stepKey === 'scenarioPageDesign') {
-    nextContext.selectedScenario = result.scenarios?.[0] || result
-    nextContext.scenarioPageDesignResult = result
+    nextContext.selectedScenario = storedResult.scenarios?.[0] || storedResult
+    nextContext.scenarioPageDesignResult = storedResult
   }
 
   if (stepKey === 'interactionApi') {
-    nextContext.selectedInteractionPage = result.page || result
-    nextContext.selectedApiContract = result.apiContract || result
-    nextContext.interactionApiResult = result
+    nextContext.selectedInteractionPage = storedResult.page || storedResult
+    nextContext.selectedApiContract = storedResult.apiContract || storedResult
+    nextContext.interactionApiResult = storedResult
   }
 
   if (stepKey === 'prototype') {
-    nextContext.selectedPrototypeSuggestion = result.suggestion || result
+    nextContext.selectedPrototypeSuggestion = storedResult.suggestion || storedResult
   }
 
   projectContext.value = nextContext
 }
 
 const applyStepResultToContext = (stepKey, result) => {
+  const normalizedResult = stepKey === 'requirement' ? normalizeRequirementResult(result) : result
+  const nextResult = enrichStepResultWithSourceKeys(stepKey, normalizedResult)
   const nextContext = {
     ...projectContext.value,
     contextStatus: '已保存大模型修改结果',
     stepResults: {
       ...(projectContext.value.stepResults || createEmptyStepResults()),
-      [stepKey]: result,
+      [stepKey]: nextResult,
     },
   }
 
   if (stepKey === 'requirement') {
-    nextContext.sourceRequirement = result.sourceRequirement || nextContext.sourceRequirement
-    nextContext.manualRequirement = result.manualRequirement || nextContext.manualRequirement
-    nextContext.attachmentText = result.attachmentText || nextContext.attachmentText
-    nextContext.requirementAttachments = result.attachments || nextContext.requirementAttachments
-    nextContext.requirementAnalysis = result.analysis || result
+    nextContext.sourceRequirement = Object.prototype.hasOwnProperty.call(nextResult, 'sourceRequirement') ? nextResult.sourceRequirement : nextContext.sourceRequirement
+    nextContext.manualRequirement = Object.prototype.hasOwnProperty.call(nextResult, 'manualRequirement') ? nextResult.manualRequirement : nextContext.manualRequirement
+    nextContext.attachmentText = Object.prototype.hasOwnProperty.call(nextResult, 'attachmentText') ? nextResult.attachmentText : nextContext.attachmentText
+    nextContext.requirementAttachments = nextResult.attachments || nextContext.requirementAttachments
+    nextContext.requirementAnalysis = nextResult.analysis || nextResult
     nextContext.summary = '需求拆解结果已由大模型修改并保存到本地版本。'
   }
 
   if (stepKey === 'scenarioPageDesign') {
-    nextContext.selectedScenario = result.scenarios?.[0] || result
-    nextContext.scenarioPageDesignResult = result
-    nextContext.summary = `场景→页面设计结果已由大模型修改并保存：${result.scenarios?.length || 0} 个场景。`
+    nextContext.selectedScenario = nextResult.scenarios?.[0] || nextResult
+    nextContext.scenarioPageDesignResult = nextResult
+    nextContext.summary = `场景→页面设计结果已由大模型修改并保存：${nextResult.scenarios?.length || 0} 个场景。`
   }
 
   if (stepKey === 'interactionApi') {
-    nextContext.selectedInteractionPage = result.page || result
-    nextContext.selectedApiContract = result.apiContract || result
-    nextContext.interactionApiResult = result
+    nextContext.selectedInteractionPage = nextResult.page || nextResult
+    nextContext.selectedApiContract = nextResult.apiContract || nextResult
+    nextContext.interactionApiResult = nextResult
     nextContext.summary = `交互与API设计结果已由大模型修改并保存：${nextContext.selectedInteractionPage?.name || '未命名页面'}。`
   }
 
   if (stepKey === 'prototype') {
-    nextContext.selectedPrototypeSuggestion = result.suggestion || result
+    nextContext.selectedPrototypeSuggestion = nextResult.suggestion || nextResult
     nextContext.summary = '前端原型方案已由大模型修改并保存到本地版本。'
   }
 
   projectContext.value = nextContext
-  saveStepResultToMarkdown(stepKey, result)
+  saveStepResultToMarkdown(stepKey, nextResult)
 }
 
 const handleStepRevisionApplied = ({ stepKey, revisedOutput, revisionInstruction }) => {
@@ -585,9 +799,11 @@ const restoreMarkdownSession = async () => {
   const loadedResults = createEmptyStepResults()
   for (const definition of methodStepDefinitions) {
     const result = await readStepResultFromMarkdown(definition.resultKey)
-    if (result) {
+    if (result && isStepResultCompatible(definition.resultKey, result)) {
       loadedResults[definition.resultKey] = result
       applyStoredStepResult(definition.resultKey, result)
+    } else if (result) {
+      clearStepResultFromContext(definition.resultKey)
     }
   }
 
@@ -683,10 +899,38 @@ const handleRequirementAnalysisComplete = async ({ projectName = '', customerNam
   }
 
   await savePromise
+  await invalidateDownstreamStepResults(
+    'requirement',
+    '需求拆解已重新确认，下游场景、交互/API 和前端原型方案需要重新生成。'
+  )
   await selectWorkspace('scenarioPageDesign')
 }
 
 const handleRequirementAnalysisDraftUpdate = (result) => {
+  if (result?.invalidated) {
+    saveStepResultToMarkdown('requirement', result)
+    projectContext.value = {
+      ...projectContext.value,
+      currentStepLabel: '客户需求输入',
+      contextStatus: '需求拆解正在重新生成',
+      stepResults: {
+        ...(projectContext.value.stepResults || createEmptyStepResults()),
+        requirement: null,
+      },
+      sourceRequirement: result.sourceRequirement || '',
+      manualRequirement: result.manualRequirement || '',
+      attachmentText: result.attachmentText || '',
+      requirementAttachments: result.attachments || [],
+      requirementAnalysis: null,
+      summary: result.reason || '正在重新生成需求拆解草案，旧 requirement.md 已失效。',
+    }
+    invalidateDownstreamStepResults(
+      'requirement',
+      '需求拆解正在重新生成，下游场景、交互/API 和前端原型方案需要重新生成。'
+    )
+    return
+  }
+
   writeStepResult('requirement', result)
   projectContext.value = {
     ...projectContext.value,
@@ -699,6 +943,10 @@ const handleRequirementAnalysisDraftUpdate = (result) => {
     requirementAnalysis: result.analysis,
     summary: '需求拆解草稿已覆盖保存，requirement.md 保持唯一最新版本。',
   }
+  invalidateDownstreamStepResults(
+    'requirement',
+    '需求拆解草稿已更新，下游场景、交互/API 和前端原型方案需要重新生成。'
+  )
 }
 
 const handleScenarioPageConfirm = async (result) => {
@@ -713,6 +961,10 @@ const handleScenarioPageConfirm = async (result) => {
     summary: `已确认 ${result.scenarios?.length || 0} 个场景的方案，下一步进入交互与API设计。`,
   }
   await savePromise
+  await invalidateDownstreamStepResults(
+    'scenarioPageDesign',
+    '场景与页面设计已重新确认，下游交互/API 和前端原型方案需要重新生成。'
+  )
   await selectWorkspace('interactionApi')
 }
 
@@ -725,6 +977,10 @@ const handleScenarioPageDraftUpdate = (result) => {
     scenarioPageDesignResult: result,
     summary: `已覆盖保存 ${result.scenarios?.length || 0} 个场景的方案到本地 scenarioPageDesign.md。`,
   }
+  invalidateDownstreamStepResults(
+    'scenarioPageDesign',
+    '场景与页面设计草稿已更新，下游交互/API 和前端原型方案需要重新生成。'
+  )
 }
 
 const handleInteractionApiConfirm = async ({ page, apiContract, design }) => {
@@ -742,6 +998,10 @@ const handleInteractionApiConfirm = async ({ page, apiContract, design }) => {
   }
 
   await savePromise
+  await invalidateDownstreamStepResults(
+    'interactionApi',
+    '交互与 API 设计已重新确认，前端原型方案需要重新生成。'
+  )
   await selectWorkspace('frontendSuggestion')
 }
 
@@ -756,6 +1016,10 @@ const handleInteractionApiDraftUpdate = (result) => {
     interactionApiResult: result,
     summary: `已覆盖保存「${result.selectedPage?.name || '未命名页面'}」的交互与 API 设计草稿到本地 interactionApi.md。`,
   }
+  invalidateDownstreamStepResults(
+    'interactionApi',
+    '交互与 API 设计草稿已更新，前端原型方案需要重新生成。'
+  )
 }
 
 const handlePrototypeDraftUpdate = (result) => {

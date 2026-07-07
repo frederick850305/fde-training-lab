@@ -272,6 +272,10 @@ const recommendedPages = computed(() =>
   selectedScenarioPages.value.length ? selectedScenarioPages.value : []
 )
 
+const currentPageKeySet = computed(() =>
+  new Set(scenarioPageGroups.value.flatMap((group) => group.pages.map((page) => page.key)))
+)
+
 const selectedPageDesign = computed(
   () => recommendedPages.value.find((item) => item.key === selectedKey.value) || recommendedPages.value[0] || null
 )
@@ -317,8 +321,21 @@ const primaryGenerateLabel = computed(() => {
 
 const stateLabels = { empty: '空状态', loading: '加载中', success: '成功', error: '失败' }
 
+function pruneByCurrentPageKeys(value) {
+  const keys = currentPageKeySet.value
+  return Object.fromEntries(
+    Object.entries(value || {}).filter(([key]) => keys.has(key))
+  )
+}
+
+function pruneGeneratedResults() {
+  generatedPagesByKey.value = pruneByCurrentPageKeys(generatedPagesByKey.value)
+  generatedApiByPageKey.value = pruneByCurrentPageKeys(generatedApiByPageKey.value)
+}
+
 // --- Watchers ---
 watch(scenarioPageGroups, (groups) => {
+  pruneGeneratedResults()
   if (!groups.some((s) => s.key === selectedScenarioKey.value)) {
     selectedScenarioKey.value = groups[0]?.key || ''
   }
@@ -333,8 +350,9 @@ watch(recommendedPages, (items) => {
 watch(
   () => props.projectContext.interactionApiResult || props.projectContext.stepResults?.interactionApi,
   (result) => {
-    if (result?.generatedPagesByKey) generatedPagesByKey.value = result.generatedPagesByKey
-    if (result?.generatedApiByPageKey) generatedApiByPageKey.value = result.generatedApiByPageKey
+    if (result?.invalidated) return
+    if (result?.generatedPagesByKey) generatedPagesByKey.value = pruneByCurrentPageKeys(result.generatedPagesByKey)
+    if (result?.generatedApiByPageKey) generatedApiByPageKey.value = pruneByCurrentPageKeys(result.generatedApiByPageKey)
   },
   { immediate: true }
 )
@@ -359,9 +377,11 @@ function confirmAndNext() {
 
 // --- Build helpers ---
 function buildDraft() {
+  const prunedPagesByKey = pruneByCurrentPageKeys(generatedPagesByKey.value)
+  const prunedApiByPageKey = pruneByCurrentPageKeys(generatedApiByPageKey.value)
   return {
-    generatedPagesByKey: generatedPagesByKey.value,
-    generatedApiByPageKey: generatedApiByPageKey.value,
+    generatedPagesByKey: prunedPagesByKey,
+    generatedApiByPageKey: prunedApiByPageKey,
     scenarioPageGroups: scenarioPageGroups.value,
     pageDesign: scenarioPageResult.value,
     selectedPage: currentGeneratedPage.value,
