@@ -6,10 +6,6 @@
         <h1>采购订单跟踪</h1>
         <p>跟踪采购订单的到货进度、供应商与附件信息，支持确认到货、更新进度操作。选中订单查看明细与到货进度条。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="confirmReceipt" :disabled="!canConfirm">确认到货</button>
-      </div>
     </header>
 
     <!-- 加载骨架 -->
@@ -307,7 +303,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

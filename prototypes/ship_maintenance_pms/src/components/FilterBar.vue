@@ -8,10 +8,7 @@
       状态
       <select :value="status" @change="$emit('update:status', $event.target.value)">
         <option value="">全部状态</option>
-        <option>待处理</option>
-        <option>进行中</option>
-        <option>异常</option>
-        <option>已闭环</option>
+        <option v-for="item in statusOptions" :key="item">{{ item }}</option>
       </select>
     </label>
     <label>
@@ -32,6 +29,7 @@ defineProps({
   keyword: { type: String, default: '' },
   status: { type: String, default: '' },
   ship: { type: String, default: '' },
+  statusOptions: { type: Array, default: () => ['待处理', '进行中', '异常', '已闭环'] },
 })
 
 defineEmits(['update:keyword', 'update:status', 'update:ship', 'search'])

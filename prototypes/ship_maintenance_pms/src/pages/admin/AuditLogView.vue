@@ -2,15 +2,13 @@
   <section class="page-screen">
     <header class="page-header">
       <div>
-        <span class="module-label">系统管理 / 审计日志</span>
-        <h1>配置变更审计日志</h1>
-        <p>查看系统配置变更（用户/角色/流程）的完整审计记录，支持按操作类型、对象类型检索，点击行展开 before/after 差异，可导出日志报表。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" @click="exportLogs" :disabled="!logs.length">导出日志</button>
-      </div>
-    </header>
+<div>
+            <span class="module-label">系统管理 / 审计日志</span>
+            <h1>配置变更审计日志</h1>
+          </div>
+<p>查看系统配置变更（用户/角色/流程）的完整审计记录，支持按操作类型、对象类型检索，点击行展开 before/after 差异，可导出日志报表。</p>
+</div>
+      </header>
 
     <!-- 加载骨架 -->
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -140,7 +138,6 @@ import { fetchConfigAuditLogs, submitAction } from '@/mock/api.js'
 const logs = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
-
 const keyword = ref('')
 const opTypeFilter = ref('')
 const objTypeFilter = ref('')
@@ -243,7 +240,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

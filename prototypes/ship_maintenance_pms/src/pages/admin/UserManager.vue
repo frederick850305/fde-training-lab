@@ -4,15 +4,9 @@
       <div>
         <span class="module-label">系统管理 / 用户管理</span>
         <h1>用户管理</h1>
-        <p>维护系统账号、部门归属与角色分配，支持新增/编辑/启停用户，以及批量导入导出。选中用户行可在右侧编辑表单中调整信息并分配角色。</p>
+        <p class="page-desc">维护系统账号、部门归属与角色分配，支持新增/编辑/启停用户，以及批量导入导出。选中用户行可在右侧编辑表单中调整信息并分配角色。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" @click="importUsers">批量导入</button>
-        <button type="button" @click="exportUsers">导出</button>
-        <button type="button" class="primary" @click="openCreate">新增用户</button>
-      </div>
-    </header>
+      </header>
 
     <!-- 状态：加载骨架 -->
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -48,7 +42,10 @@
         <article class="panel user-list-panel">
           <div class="panel-title">
             <h2>用户列表</h2>
-            <span>{{ filteredUsers.length }} / {{ users.length }} 人</span>
+            <div class="panel-title-actions">
+              <span class="panel-count">{{ filteredUsers.length }} / {{ users.length }} 人</span>
+              <button type="button" class="primary" @click="openCreate">新增用户</button>
+            </div>
           </div>
           <div class="filter-row">
             <input v-model="keyword" placeholder="搜索账号 / 姓名 / 部门" />
@@ -331,24 +328,10 @@ async function confirmAction() {
     confirmMessage.value = '操作失败：' + (e?.message || '未知错误')
   }
 }
-
-function importUsers() {
-  pendingAction.value = { type: 'import' }
-  confirmTitle.value = '批量导入用户'
-  confirmMessage.value = '将通过模板文件批量导入用户，导入前请下载标准模板并按格式填写。'
-  confirmOpen.value = true
-}
-
-function exportUsers() {
-  pendingAction.value = { type: 'export' }
-  confirmTitle.value = '导出用户列表'
-  confirmMessage.value = `将导出当前 ${users.value.length} 个用户数据（含账号、姓名、部门、角色、状态、最后登录）为 Excel 文件。`
-  confirmOpen.value = true
-}
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -380,6 +363,8 @@ button.mini.ok { color: #11734d; border-color: #bfe6cf; background: #e8f8ef; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
+.panel-title-actions { display: flex; align-items: center; gap: 10px; }
+.panel-count { color: #64748b; font-size: 12px; font-weight: 800; }
 
 .filter-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .filter-row input, .filter-row select { min-height: 38px; border: 1px solid #cbd7e4; border-radius: 7px; padding: 8px 10px; color: #172033; background: #fff; }

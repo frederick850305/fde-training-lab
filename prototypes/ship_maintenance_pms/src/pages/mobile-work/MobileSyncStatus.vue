@@ -44,13 +44,22 @@
             <div class="sync-action-card">
               <div class="sync-row">
                 <span>手动同步</span>
-                <button :disabled="syncing" @click="startSync">{{ syncing ? '同步中...' : '立即同步' }}</button>
+                <em>{{ syncing ? '同步中...' : (syncDone ? '已完成' : '待触发') }}</em>
               </div>
               <div v-if="syncing" class="sync-progress">
                 <div class="sync-fill" :style="{ width: syncProgress + '%' }"></div>
                 <span>{{ syncProgress }}%</span>
               </div>
               <p v-if="syncDone" class="sync-result">同步完成，剩余 {{ overview.pendingCount }} 项待处理</p>
+              <button
+                v-if="uiState === 'success'"
+                type="button"
+                class="sync-btn"
+                :disabled="syncing"
+                :title="syncing ? '同步中...' : '立即同步'"
+                aria-label="手动同步"
+                @click="startSync"
+              >{{ syncing ? '同步中' : '手动同步' }}</button>
             </div>
 
             <!-- 同步队列 -->
@@ -68,6 +77,10 @@
                     <span>{{ t.recordId }}</span>
                   </div>
                   <p class="task-summary">{{ t.summary }}</p>
+                  <div v-if="t.taskId?.startsWith('OFFLINE-')" class="task-ops">
+                    <button class="ghost" @click="retryItem(t)">重试</button>
+                    <button class="ghost danger" @click="ignoreItem(t)">忽略</button>
+                  </div>
                 </li>
               </ul>
               <p v-else class="empty-note">暂无待同步任务</p>
@@ -119,6 +132,7 @@
               </div>
               <p class="queue-info">离线队列：{{ offlineQueue.length }} 项</p>
             </div>
+
           </template>
         </div>
       </article>
@@ -144,6 +158,8 @@ import {
   clearOfflineQueue,
   readOfflineQueue,
   getStorageUsage,
+  getOfflineQueueForDisplay,
+  removeOfflineItem,
 } from '@/mock/api.js'
 
 const uiState = ref('loading')
@@ -157,7 +173,13 @@ const syncProgress = ref(0)
 const syncDone = ref(false)
 const confirmClear = ref(false)
 
-const pendingTasks = computed(() => syncTasks.value.filter(t => t.status === '待同步'))
+const pendingTasks = computed(() => {
+  // 优先展示离线队列中刚提交的报工/盘点/领料/退料
+  const offlineItems = getOfflineQueueForDisplay().filter(t => t.status === '待同步')
+  // 合并静态同步任务中的待同步项
+  const staticPending = syncTasks.value.filter(t => t.status === '待同步')
+  return [...offlineItems, ...staticPending]
+})
 const conflictTasks = computed(() => syncTasks.value.filter(t => t.status === '冲突'))
 const storagePercent = computed(() => (storage.value.total ? Math.round((storage.value.used / storage.value.total) * 100) : 0))
 
@@ -180,8 +202,11 @@ function startSync() {
       clearInterval(timer)
       syncing.value = false
       syncDone.value = true
-      // 模拟同步后减少待同步数
-      overview.value.pendingCount = Math.max(0, overview.value.pendingCount - 2)
+      // 同步完成后清空离线队列
+      clearOfflineQueue()
+      offlineQueue.value = readOfflineQueue()
+      storage.value = getStorageUsage()
+      overview.value.pendingCount = 0
     }
   }, 300)
 }
@@ -189,6 +214,25 @@ function startSync() {
 function resolveConflict(task) {
   task.status = '已完成'
   overview.value.conflictCount = Math.max(0, overview.value.conflictCount - 1)
+}
+
+function retryItem(task) {
+  // 模拟重试：标记为同步中然后完成
+  task.status = '同步中'
+  setTimeout(() => {
+    task.status = '已完成'
+    overview.value.pendingCount = Math.max(0, overview.value.pendingCount - 1)
+    offlineQueue.value = readOfflineQueue()
+  }, 1500)
+}
+
+function ignoreItem(task) {
+  // 从离线队列中移除
+  const queue = readOfflineQueue()
+  const item = queue.find(q => task.taskId?.includes(q.queuedAt?.slice(-6)))
+  if (item) removeOfflineItem(item.queuedAt)
+  offlineQueue.value = readOfflineQueue()
+  overview.value.pendingCount = Math.max(0, overview.value.pendingCount - 1)
 }
 
 function doClear() {
@@ -225,13 +269,14 @@ onMounted(reload)
 
 <style scoped>
 .mobile-page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .phone-shell { display: flex; justify-content: center; padding: 8px 0; }
 .phone-frame {
+  position: relative;
   width: 390px; max-width: 100%;
   border: 12px solid #172033; border-radius: 34px; background: #172033;
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22); overflow: hidden;
@@ -257,12 +302,13 @@ onMounted(reload)
 
 .sync-action-card { background: #fff; border: 1px solid #d9e4ef; border-radius: 10px; padding: 12px 13px; display: grid; gap: 8px; }
 .sync-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 900; color: #172033; }
-.sync-row button { border: 0; border-radius: 7px; padding: 7px 14px; background: #1e6fd9; color: #fff; font-weight: 900; font-size: 12px; }
-.sync-row button:disabled { background: #b9c8d8; }
+.sync-row em { font-style: normal; color: #64748b; font-size: 12px; font-weight: 800; }
 .sync-progress { position: relative; height: 20px; border-radius: 999px; background: #e7edf4; overflow: hidden; display: grid; align-items: center; padding: 0 10px; }
 .sync-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #1e6fd9; transition: width .3s; }
 .sync-progress span { position: relative; color: #fff; font-size: 11px; font-weight: 900; }
 .sync-result { margin: 0; color: #11734d; font-size: 12px; font-weight: 800; }
+.sync-btn { border: 0; border-radius: 8px; padding: 10px; background: #1e6fd9; color: #fff; font-weight: 900; font-size: 13px; }
+.sync-btn:disabled { background: #b9c8d8; cursor: not-allowed; }
 
 .section-card { background: #fff; border: 1px solid #d9e4ef; border-radius: 10px; padding: 12px 13px; display: grid; gap: 8px; }
 .section-title { margin: 0; font-size: 14px; color: #172033; display: flex; justify-content: space-between; align-items: center; }
@@ -301,4 +347,7 @@ onMounted(reload)
 .storage-ops { display: flex; justify-content: flex-end; }
 .storage-ops button { border: 1px solid #f3c2c6; border-radius: 7px; padding: 6px 12px; background: #fff0f1; color: #b4232d; font-weight: 900; font-size: 12px; }
 .queue-info { margin: 0; font-size: 11px; color: #64748b; }
+.task-ops { display: flex; gap: 6px; margin-top: 4px; }
+.task-ops button { border: 1px solid #cfdae6; border-radius: 6px; padding: 4px 10px; background: #f6f9fc; color: #24415f; font-size: 11px; font-weight: 800; }
+.task-ops button.danger { color: #b4232d; border-color: #f3c2c6; background: #fff0f1; }
 </style>

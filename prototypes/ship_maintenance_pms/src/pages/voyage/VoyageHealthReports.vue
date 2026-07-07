@@ -6,10 +6,6 @@
         <h1>航前健康检查报告</h1>
         <p>检索历史航前健康检查记录，生成检查报告，查看已生成报告下载记录与检查相关操作日志。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" :disabled="!selectedCheck" @click="generateReport">生成报告</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -33,7 +29,10 @@
       <article class="panel">
         <div class="panel-title">
           <h2>历史检查记录检索</h2>
-          <span>{{ filteredChecks.length }} 条记录</span>
+          <div class="panel-title-actions">
+            <span>{{ filteredChecks.length }} 条记录</span>
+            <button type="button" class="primary" :disabled="!selectedCheck" @click="generateReport">生成报告</button>
+          </div>
         </div>
         <FilterBar
           v-model:keyword="filters.keyword"
@@ -211,7 +210,7 @@ function downloadReport(rep) {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -232,6 +231,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
+.panel-title-actions { display: flex; align-items: center; gap: 10px; }
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
 th, td { padding: 11px 10px; border-bottom: 1px solid #e7edf4; text-align: left; }

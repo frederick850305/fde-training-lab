@@ -4,14 +4,9 @@
       <div>
         <span class="module-label">系统管理 / 流程设计</span>
         <h1>审批流程设计器</h1>
-        <p>可视化编辑审批流程，画布展示节点与连线，支持节点选中、条件分支、审批人/超时/转交策略配置。顶部切换流程，编辑后可保存发布。</p>
+        <p class="page-desc">可视化编辑审批流程，画布展示节点与连线，支持节点选中、条件分支、审批人/超时/转交策略配置。顶部切换流程，编辑后可保存发布。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" @click="addNode" :disabled="!selectedWorkflow">追加节点</button>
-        <button type="button" @click="askPublish" class="primary" :disabled="!selectedWorkflow">保存发布</button>
-      </div>
-    </header>
+      </header>
 
     <div class="workflow-topbar">
       <label>
@@ -75,6 +70,10 @@
             <span><i class="dot normal"></i> 普通节点</span>
             <span><i class="dot branch"></i> 条件分支</span>
             <span><i class="dot end"></i> 终止节点</span>
+          </div>
+          <div class="canvas-actions">
+            <button type="button" class="primary" :disabled="!selectedWorkflow" :title="selectedWorkflow ? '保存并发布流程' : '请先选择流程'" @click="askPublish">保存发布</button>
+            <button type="button" :disabled="!selectedWorkflow" :title="selectedWorkflow ? '追加节点' : '请先选择流程'" @click="addNode">追加节点</button>
           </div>
         </article>
 
@@ -292,7 +291,7 @@ async function confirmAction() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

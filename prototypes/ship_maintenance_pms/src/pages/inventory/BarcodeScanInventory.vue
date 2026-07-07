@@ -78,10 +78,10 @@
             <p v-if="diffValue !== 0 && actualQty !== null" class="diff-tip" :class="diffTone">
               {{ diffValue > 0 ? '盘盈' : '盘亏' }} {{ Math.abs(diffValue) }} {{ scannedMaterial.unit }}，将生成差异记录
             </p>
-            <div class="submit-row">
-              <button class="primary" :disabled="!canSubmit" @click="submitCount">生成差异记录</button>
-            </div>
             <p v-if="submitHint" class="submit-hint">{{ submitHint }}</p>
+            <div class="submit-row">
+              <button type="button" class="primary" :disabled="!canSubmit" @click="submitCount">提交盘点</button>
+            </div>
           </div>
 
           <!-- 拍照留痕 -->
@@ -124,9 +124,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import FileUploader from '@/components/FileUploader.vue'
-import { fetchMaterials, fetchPhysicalCountRecords, submitAction } from '@/mock/api.js'
+import { fetchMaterials, fetchPhysicalCountRecords, submitPhysicalCount } from '@/mock/api.js'
+
+const nav = inject('prototypeNavigation', null)
 
 const uiState = ref('loading')
 const materials = ref([])
@@ -200,13 +202,17 @@ async function submitCount() {
     location: scannedMaterial.value.location,
   }
   records.value = [newRecord, ...records.value]
-  await submitAction('submitPhysicalCount', newRecord)
-  submitHint.value = `差异记录 ${newRecord.taskId} 已生成，状态：待同步`
+  await submitPhysicalCount(newRecord)
+  submitHint.value = `差异记录 ${newRecord.taskId} 已生成，已加入待同步队列`
   // 重置
   scannedMaterial.value = null
   barcodeInput.value = ''
   actualQty.value = null
   photoFiles.value = []
+  // 返回工作台
+  setTimeout(() => {
+    if (nav) nav.navigateTo('InventoryWorkbench')
+  }, 1200)
 }
 
 async function reload() {
@@ -225,11 +231,11 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page { display: grid; gap: 16px; position: relative; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .state-panel { border: 1px solid #d9e4ef; border-radius: 10px; padding: 32px; text-align: center; background: #fff; }
 .state-panel h2 { margin: 0 0 8px; color: #b4232d; }

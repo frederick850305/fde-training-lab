@@ -27,7 +27,7 @@
         <strong>{{ editableScenarios.length ? editableScenarios.length + ' 个场景' : '尚未生成场景' }}</strong>
         <p>读取 requirement.md 中的结构化摘要生成业务场景清单；场景详情、功能模块与页面设计在场景内逐个生成。</p>
       </div>
-      <button class="gen-btn" type="button" :disabled="isGenBusy" @click="generateAllScenarios">
+      <button class="gen-btn" type="button" :disabled="isGenBusy || isScenarioPipelineBusy" @click="generateAllScenarios">
         {{ isGenBusy ? '⏳ 生成中...' : '⚡ 生成业务场景' }}
       </button>
     </div>
@@ -57,11 +57,11 @@
           <button
             class="mini-gen"
             type="button"
-            :disabled="genScenarioKey === s.key"
-            @click.stop="generateScenarioDetail(s)"
-            :title="'调用大模型生成/更新此场景详情'"
+            :disabled="isScenarioPipelineBusy"
+            @click.stop="generateFullScenarioDesign(s)"
+            :title="'自动生成此场景详情、功能模块和页面设计'"
           >
-            {{ genScenarioKey === s.key ? '⏳' : '⚡' }}
+            {{ autoScenarioKey === s.key ? '⏳' : '⚡' }}
           </button>
           <button
             class="mini-delete"
@@ -116,22 +116,14 @@
             <button
               class="gen-btn"
               type="button"
-              :disabled="genScenarioKey === activeScenario.key"
-              @click="generateScenarioDetail(activeScenario)"
+              :disabled="isScenarioPipelineBusy"
+              @click="generateFullScenarioDesign(activeScenario)"
             >
-              {{ genScenarioKey === activeScenario.key ? '⏳ 生成中...' : '⚡ 生成/更新场景详情' }}
+              {{ autoScenarioKey === activeScenario.key ? '⏳ 自动生成中...' : '⚡ 生成/更新场景详情并继续' }}
             </button>
           </div>
           <div v-else class="stage-action">
             <p>下一步：基于当前场景详情，单独调用 LLM 生成功能模块设计。</p>
-            <button
-              class="gen-btn"
-              type="button"
-              :disabled="genModulesKey === activeScenario.key"
-              @click="generateScenarioModules(activeScenario)"
-            >
-              {{ genModulesKey === activeScenario.key ? '⏳ 生成中...' : '⚡ 生成此场景功能模块' }}
-            </button>
           </div>
         </article>
 
@@ -161,14 +153,6 @@
             </div>
             <div class="module-next-action">
               <p v-if="genPagesKey === activeScenario.key" class="gen-msg">⏳ 正在根据功能模块生成页面设计...</p>
-              <button
-                v-else
-                class="gen-btn"
-                type="button"
-                @click="generatePageDesignForScenario(activeScenario)"
-              >
-                → 根据功能模块生成页面设计
-              </button>
             </div>
           </template>
         </article>
@@ -297,6 +281,7 @@ const genError = ref(false)
 const genScenarioKey = ref('')
 const genModulesKey = ref('')
 const genPagesKey = ref('')
+const autoScenarioKey = ref('')
 
 // Core data (mirrors original components' state)
 const editableRoles = ref([])          // same as ScenarioIdentificationView
@@ -464,6 +449,10 @@ const analysisRoles = computed(() => requirementAnalysis.value?.userRoles || [])
 const requirementSignature = computed(() => JSON.stringify({
   requirementResult: requirementStepResult.value || null,
 }))
+
+const isScenarioPipelineBusy = computed(() =>
+  Boolean(autoScenarioKey.value || genScenarioKey.value || genModulesKey.value || genPagesKey.value)
+)
 
 // ============================================================
 // Restore from saved data
@@ -911,8 +900,35 @@ async function generateAllScenarios() {
 // ============================================================
 // Per-scenario: generate/update scenario detail via LLM (Button 2)
 // ============================================================
+async function generateFullScenarioDesign(scenario) {
+  if (!scenario || isScenarioPipelineBusy.value) return
+  autoScenarioKey.value = scenario.key
+  activeKey.value = scenario.key
+  activeTab.value = 'scenario'
+  genError.value = false
+
+  try {
+    const detailedScenario = await generateScenarioDetail(scenario)
+    if (!detailedScenario) return
+
+    activeTab.value = 'modules'
+    await nextTick()
+    const modulesReady = await generateScenarioModules(detailedScenario)
+    if (!modulesReady) return
+
+    activeTab.value = 'pages'
+    await nextTick()
+    const pagesReady = await generatePageDesignForScenario(detailedScenario)
+    if (pagesReady) {
+      setGenMsg('「' + detailedScenario.name + '」的场景详情、功能模块和页面设计已全部生成。')
+    }
+  } finally {
+    autoScenarioKey.value = ''
+  }
+}
+
 async function generateScenarioDetail(scenario) {
-  if (!scenario || genScenarioKey.value) return
+  if (!scenario || genScenarioKey.value) return false
   genScenarioKey.value = scenario.key
   genError.value = false
   setGenMsg('正在生成/更新「' + scenario.name + '」的场景详情...')
@@ -921,7 +937,7 @@ async function generateScenarioDetail(scenario) {
     genError.value = true
     setGenMsg('生成场景详情需要调用 LLM。请先配置 DeepSeek Key。', true)
     genScenarioKey.value = ''
-    return
+    return false
   }
 
   try {
@@ -968,9 +984,11 @@ async function generateScenarioDetail(scenario) {
     setGenMsg('「' + nextScenario.name + '」的场景详情已生成并写入 scenariopagedesign.md，可继续生成功能模块。')
     emitDraft()
     var _a, _b, _c
+    return nextScenario
   } catch (err) {
     genError.value = true
     setGenMsg('LLM 场景详情生成失败，未更新场景草稿：' + (err.message || ''), true)
+    return false
   } finally {
     genScenarioKey.value = ''
   }
@@ -980,10 +998,10 @@ async function generateScenarioDetail(scenario) {
 // Per-scenario: generate function modules via LLM (Button 3)
 // ============================================================
 async function generateScenarioModules(scenario) {
-  if (!scenario || genModulesKey.value) return
+  if (!scenario || genModulesKey.value) return false
   if (!isScenarioDetailReady(scenario)) {
     setGenMsg('请先生成/更新该业务场景的「场景详情」，再生成功能模块。', true)
-    return
+    return false
   }
   genModulesKey.value = scenario.key
   setGenMsg('正在为「' + scenario.name + '」生成功能模块...')
@@ -992,7 +1010,7 @@ async function generateScenarioModules(scenario) {
     genError.value = true
     setGenMsg('生成功能模块需要调用 LLM。请先配置 DeepSeek Key。', true)
     genModulesKey.value = ''
-    return
+    return false
   }
 
   try {
@@ -1038,13 +1056,14 @@ async function generateScenarioModules(scenario) {
     genError.value = true
     setGenMsg('LLM 模块生成失败，未更新场景草稿：' + (err.message || ''), true)
     genModulesKey.value = ''
-    return
+    return false
   }
 
   activeTab.value = 'modules'
   dirty.value = false
   emitDraft()
   genModulesKey.value = ''
+  return true
 }
 
 function normalizeGeneratedModule(module, index) {
@@ -1064,11 +1083,11 @@ function normalizeGeneratedModule(module, index) {
 // Generate page design from modules (button in 功能模块 tab)
 // ============================================================
 async function generatePageDesignForScenario(scenario) {
-  if (!scenario || genPagesKey.value) return
+  if (!scenario || genPagesKey.value) return false
   var modules = activeModules(scenario)
   if (!modules.length) {
     setGenMsg('请先生成功能模块，再生成页面设计。', true)
-    return
+    return false
   }
   genPagesKey.value = scenario.key
   setGenMsg('正在为「' + scenario.name + '」根据功能模块生成页面设计...')
@@ -1077,7 +1096,7 @@ async function generatePageDesignForScenario(scenario) {
     genError.value = true
     setGenMsg('生成页面设计需要调用 LLM。请先配置 DeepSeek Key。', true)
     genPagesKey.value = ''
-    return
+    return false
   }
 
   try {
@@ -1118,7 +1137,7 @@ async function generatePageDesignForScenario(scenario) {
     genError.value = true
     setGenMsg('LLM 页面设计生成失败，未更新场景草稿：' + (err.message || ''), true)
     genPagesKey.value = ''
-    return
+    return false
   }
 
   activeTab.value = 'pages'
@@ -1126,6 +1145,7 @@ async function generatePageDesignForScenario(scenario) {
   dirty.value = false
   emitDraft()
   genPagesKey.value = ''
+  return true
 }
 
 // ============================================================

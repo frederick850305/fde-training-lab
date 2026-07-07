@@ -1,13 +1,13 @@
 <template>
   <section class="page-screen sync-task-detail">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船岸数据同步 / 冲突明细</span>
         <h1>同步任务冲突处理</h1>
-        <p>对冲突任务进行船岸版本字段差异对比，逐字段选择采用版本后合并提交；支持重试与忽略操作。</p>
+        <p class="page-desc">对冲突任务进行船岸版本字段差异对比，逐字段选择采用版本后合并提交；支持重试与忽略操作。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
+        <button type="button" @click="goBack">返回任务列表</button>
       </div>
     </header>
 
@@ -93,13 +93,11 @@
           <div class="resolve-hint ok" v-else>
             <span>所有冲突字段已选择采用版本，可合并提交。</span>
           </div>
-        </section>
-
-        <!-- 底部操作 -->
-        <section class="action-bar">
-          <button type="button" @click="openConfirm('重试')">重试同步</button>
-          <button type="button" @click="openConfirm('忽略')">忽略冲突</button>
-          <button type="button" class="primary" :disabled="!allResolved" @click="openConfirm('合并提交')">合并提交</button>
+          <div class="action-bar">
+            <button type="button" @click="openConfirm('重试')">重试同步</button>
+            <button type="button" @click="openConfirm('忽略')">忽略冲突</button>
+            <button type="button" class="primary" :disabled="!allResolved" @click="openConfirm('合并提交')">合并提交</button>
+          </div>
         </section>
       </template>
     </template>
@@ -115,17 +113,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import DiffView from '@/components/DiffView.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchSyncConflicts, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const conflicts = ref([])
 const uiState = ref('loading')
 const selectedConflict = ref(null)
 const resolved = reactive({})
 const confirmOpen = ref(false)
 const pendingAction = ref('合并提交')
+const routeContext = computed(() => navigation?.routeContext?.value || {})
 
 const fieldLabelMap = {
   actualHours: '实际工时',
@@ -174,6 +174,12 @@ function openConfirm(action) {
   confirmOpen.value = true
 }
 
+function goBack() {
+  navigation?.navigateTo?.('SyncTaskList', {
+    shipId: routeContext.value.shipId,
+  })
+}
+
 async function confirmAction() {
   await submitAction(pendingAction.value, selectedConflict.value)
   if (pendingAction.value === '合并提交') {
@@ -194,7 +200,7 @@ async function reload() {
       uiState.value = 'empty'
       return
     }
-    selectedConflict.value = data[0]
+    selectedConflict.value = pickConflict(data)
     for (const k in resolved) delete resolved[k]
     uiState.value = 'success'
   } catch (e) {
@@ -203,10 +209,17 @@ async function reload() {
 }
 
 onMounted(reload)
+
+function pickConflict(data) {
+  if (routeContext.value.recordId) {
+    return data.find(c => c.workOrderId === routeContext.value.recordId) || data[0]
+  }
+  return data[0]
+}
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -249,7 +262,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .resolve-hint { margin-top: 12px; padding: 10px 12px; border-radius: 7px; background: #fff2cc; color: #8a5a00; font-size: 13px; font-weight: 800; }
 .resolve-hint.ok { background: #dff6e8; color: #11734d; }
 
-.action-bar { display: flex; justify-content: flex-end; gap: 10px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 14px 16px; background: #fff; }
+.action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e7edf4; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }

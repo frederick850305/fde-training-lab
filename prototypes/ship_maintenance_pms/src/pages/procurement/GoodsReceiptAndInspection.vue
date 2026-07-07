@@ -6,10 +6,6 @@
         <h1>收货与质检验收</h1>
         <p>扫码识别到货订单，录入检验结论与缺陷原因，合格则入库并确认预算核减，不合格则发起退换货。底部展示历史验收记录。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="submitInspection" :disabled="!canSubmit">提交验收</button>
-      </div>
     </header>
 
     <!-- 加载骨架 -->
@@ -436,7 +432,7 @@ function confirmDeduct() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }

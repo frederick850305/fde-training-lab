@@ -85,10 +85,10 @@ export const voyageHealthChecks = [
 ]
 
 export const voyageHealthIssues = [
-  { issueId: 'ISS-001', checkId: 'CHK-2026-007', category: '关键设备', severity: '高', title: '主机燃油泵出口压力低于阈值', relatedObject: 'EQ-ME-FP-001 主机燃油泵', expireDate: '2026-07-08', disposalProgress: 40, status: '处置中', description: '出口压力 2.1bar 低于标准 2.8bar，疑似滤器堵塞', linkedWorkOrder: null, linkedMaterial: '燃油滤芯 FP-200', linkedCertificate: null },
-  { issueId: 'ISS-002', checkId: 'CHK-2026-007', category: '备件库存', severity: '中', title: '消防泵密封件缺件预警', relatedObject: 'FP-SEAL-01 机械密封', expireDate: '2026-07-10', disposalProgress: 0, status: '待处置', description: '库存剩余1件，低于安全库存3件', linkedWorkOrder: null, linkedMaterial: 'FP-SEAL-01', linkedCertificate: null },
-  { issueId: 'ISS-003', checkId: 'CHK-2026-007', category: '船员证书', severity: '低', title: '轮机长适任证书临期', relatedObject: '证书 CERT-OPS-022', expireDate: '2026-07-20', disposalProgress: 0, status: '待处置', description: '证书将于13天后到期，需安排换证', linkedWorkOrder: null, linkedMaterial: null, linkedCertificate: 'CERT-OPS-022' },
-  { issueId: 'ISS-004', checkId: 'CHK-2026-007', category: '未闭环工单', severity: '中', title: '应急发电机试车工单未闭环', relatedObject: 'WO-2026-1188', expireDate: '2026-07-09', disposalProgress: 60, status: '处置中', description: '试车发现启动延时偏长，需复测', linkedWorkOrder: 'WO-2026-1188', linkedMaterial: null, linkedCertificate: null },
+  { issueId: 'ISS-001', checkId: 'CHK-2026-007', category: '关键设备', severity: '高', title: '主机燃油泵出口压力低于阈值', relatedObject: 'EQ-ME-FP-001 主机燃油泵', expireDate: '2026-07-08', disposalProgress: 40, status: '处置中', description: '出口压力 2.1bar 低于标准 2.8bar，疑似滤器堵塞', linkedWorkOrder: null, linkedWorkOrderId: null, linkedWorkOrderStatus: null, reinspectionStatus: null, linkedMaterial: '燃油滤芯 FP-200', linkedCertificate: null },
+  { issueId: 'ISS-002', checkId: 'CHK-2026-007', category: '备件库存', severity: '中', title: '消防泵密封件缺件预警', relatedObject: 'FP-SEAL-01 机械密封', expireDate: '2026-07-10', disposalProgress: 0, status: '待处置', description: '库存剩余1件，低于安全库存3件', linkedWorkOrder: null, linkedWorkOrderId: null, linkedWorkOrderStatus: null, reinspectionStatus: null, linkedMaterial: 'FP-SEAL-01', linkedCertificate: null },
+  { issueId: 'ISS-003', checkId: 'CHK-2026-007', category: '船员证书', severity: '低', title: '轮机长适任证书临期', relatedObject: '证书 CERT-OPS-022', expireDate: '2026-07-20', disposalProgress: 0, status: '待处置', description: '证书将于13天后到期，需安排换证', linkedWorkOrder: null, linkedWorkOrderId: null, linkedWorkOrderStatus: null, reinspectionStatus: null, linkedMaterial: null, linkedCertificate: 'CERT-OPS-022' },
+  { issueId: 'ISS-004', checkId: 'CHK-2026-007', category: '未闭环工单', severity: '中', title: '应急发电机试车工单未闭环', relatedObject: 'WO-2026-1188', expireDate: '2026-07-09', disposalProgress: 60, status: '处置中', description: '试车发现启动延时偏长，需复测', linkedWorkOrder: 'WO-2026-1188', linkedWorkOrderId: 'WO-2026-1188', linkedWorkOrderStatus: '执行中', reinspectionStatus: '待复检', linkedMaterial: null, linkedCertificate: null },
 ]
 
 export const healthCheckMatrix = [
@@ -107,6 +107,16 @@ export const workOrders = [
   { id: 'WO-2026-1190', type: '专项检查', status: '待审核', priority: '中', ship: 'HG-03 海工保障船', equipment: 'EQ-RUD-001 舵机液压站', planDate: '2026-07-03', planId: 'PLN-2026-004', executor: '机工 孙磊', reportData: { actualHours: 4, materials: [{ name: '液压油', qty: 20 }], findings: '油液更换完毕，取样化验中' }, attachments: 4, submittedAt: '2026-07-03 17:10' },
   { id: 'WO-2026-1188', type: '故障维修', status: '需整改', priority: '高', ship: 'HG-01 启航轮', equipment: 'EQ-GEN-001 应急发电机', planDate: '2026-07-02', planId: null, executor: '轮机长 陈海', reportData: { actualHours: 6, materials: [], findings: '启动延时2.8s偏长，建议复测调速器' }, attachments: 6, submittedAt: '2026-07-02 19:40' },
   { id: 'WO-2026-1180', type: '预防性维护', status: '已闭环', priority: '低', ship: 'HG-02 宏远轮', equipment: 'EQ-LIFE-001 救生艇吊架', planDate: '2026-06-30', planId: 'PLN-2026-008', executor: '机工 周明', reportData: { actualHours: 1.5, materials: [{ name: '润滑脂', qty: 1 }], findings: '吊架润滑完成，限位开关正常' }, attachments: 2, submittedAt: '2026-06-30 11:00' },
+]
+
+// 船端移动工单：待执行/执行中/待同步（区别于岸基审核工单的待审核/需整改/已闭环）
+export const mobileWorkOrders = [
+  { id: 'WO-2026-1301', type: '预防性维护', status: '待执行', priority: '高', ship: 'HG-01 启航轮', equipment: 'EQ-ME-FP-001 主机燃油泵', planDate: '2026-07-07', planId: 'PLN-2026-001', executor: '轮机长 陈海', reportData: { actualHours: null, materials: [], findings: '' }, attachments: 0, submittedAt: '', steps: ['断电挂牌穿戴PPE', '拆卸滤器检查密封面', '更换燃油滤芯及密封垫片', '复装管路恢复供电', '启泵试压记录参数'] },
+  { id: 'WO-2026-1302', type: '故障维修', status: '待执行', priority: '高', ship: 'HG-01 启航轮', equipment: 'EQ-FP-001 消防泵', planDate: '2026-07-07', planId: null, executor: '机工 刘洋', reportData: { actualHours: null, materials: [], findings: '' }, attachments: 0, submittedAt: '', steps: ['断电挂牌', '拆卸消防泵端盖', '检查机械密封磨损', '更换密封件', '复装试压'] },
+  { id: 'WO-2026-1303', type: '预防性维护', status: '执行中', priority: '中', ship: 'HG-01 启航轮', equipment: 'EQ-GEN-001 应急发电机', planDate: '2026-07-06', planId: 'PLN-2026-002', executor: '轮机长 陈海', reportData: { actualHours: 1.5, materials: [{ name: '柴油滤芯', qty: 1 }], findings: '已完成滤芯更换，待试车' }, attachments: 2, submittedAt: '', steps: ['断电挂牌', '更换柴油滤芯', '检查油路密封', '空载试车', '记录启动参数'] },
+  { id: 'WO-2026-1304', type: '专项检查', status: '待执行', priority: '中', ship: 'HG-01 启航轮', equipment: 'EQ-RUD-001 舵机液压站', planDate: '2026-07-08', planId: 'PLN-2026-004', executor: '机工 刘洋', reportData: { actualHours: null, materials: [], findings: '' }, attachments: 0, submittedAt: '', steps: ['检查液压油位', '取样化验', '检查管路渗漏', '测试转向响应', '记录压力参数'] },
+  { id: 'WO-2026-1305', type: '预防性维护', status: '待同步', priority: '低', ship: 'HG-01 启航轮', equipment: 'EQ-LIFE-001 救生艇吊架', planDate: '2026-07-05', planId: 'PLN-2026-008', executor: '机工 刘洋', reportData: { actualHours: 1.5, materials: [{ name: '润滑脂', qty: 1 }], findings: '吊架润滑完成，限位开关正常' }, attachments: 2, submittedAt: '2026-07-05 15:00', steps: ['检查吊架结构', '润滑活动部件', '测试限位开关', '记录保养结果'] },
+  { id: 'WO-2026-1306', type: '故障维修', status: '待执行', priority: '高', ship: 'HG-01 启航轮', equipment: 'EQ-ME-CYL 主机气缸单元', planDate: '2026-07-09', planId: 'PLN-2026-006', executor: '轮机长 陈海', reportData: { actualHours: null, materials: [], findings: '' }, attachments: 0, submittedAt: '', steps: ['拆检气缸盖', '测量缸套磨损', '更换密封圈', '复装测试', '记录参数'] },
 ]
 
 export const workOrderSteps = [

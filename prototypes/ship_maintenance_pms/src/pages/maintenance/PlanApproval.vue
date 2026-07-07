@@ -6,9 +6,6 @@
         <h1>维保计划审批</h1>
         <p>审核待审批的维保计划变更申请，对比变更前后差异，填写审批意见并查看审核日志。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -131,13 +128,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import DiffView from '@/components/DiffView.vue'
 import ApprovalActions from '@/components/ApprovalActions.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchApprovals, submitAction } from '@/mock/api.js'
+import { fetchApprovals, submitApprovalAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const approvals = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
@@ -150,6 +148,7 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const pendingComment = ref('')
 const pendingDecision = ref('')
+const routeContext = computed(() => navigation?.routeContext?.value || {})
 
 const diffFields = [
   { key: 'planType', label: '计划类型' },
@@ -166,9 +165,12 @@ async function reload() {
   errorMsg.value = ''
   try {
     const data = await fetchApprovals()
-    approvals.value = data
-    selected.value = data[0] || null
-    uiState.value = data.length ? 'success' : 'empty'
+    const generated = readGeneratedApproval()
+    approvals.value = mergeApprovals(data, generated)
+    selected.value = routeContext.value.approvalId
+      ? approvals.value.find((item) => item.id === routeContext.value.approvalId) || approvals.value[0] || null
+      : approvals.value[0] || null
+    uiState.value = approvals.value.length ? 'success' : 'empty'
   } catch (e) {
     errorMsg.value = e?.message || '加载失败'
     uiState.value = 'error'
@@ -206,8 +208,8 @@ function onReject(comment) {
 async function confirmSubmit() {
   submitting.value = true
   try {
-    await submitAction(pendingDecision.value === '通过' ? '审批通过' : '审批驳回', {
-      id: selected.value?.id,
+    await submitApprovalAction(selected.value?.id, {
+      decision: pendingDecision.value,
       comment: pendingComment.value,
     })
     if (selected.value) {
@@ -228,14 +230,28 @@ async function confirmSubmit() {
     submitting.value = false
   }
 }
+
+function readGeneratedApproval() {
+  if (routeContext.value.approval) return routeContext.value.approval
+  try {
+    return JSON.parse(sessionStorage.getItem('pms-maintenance-created-approval') || 'null')
+  } catch {
+    return null
+  }
+}
+
+function mergeApprovals(data, generated) {
+  if (!generated) return data
+  return [generated, ...data.filter((item) => item.id !== generated.id)]
+}
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
-p { max-width: 920px; margin: 0; color: #53657c; line-height: 1.55; }
+.page-header p { max-width: 920px; margin: 0; color: #53657c; line-height: 1.55; }
 .header-actions { display: flex; gap: 9px; flex-wrap: wrap; }
 button { border: 1px solid #cfdae6; border-radius: 7px; padding: 8px 13px; color: #24415f; background: #f6f9fc; font-weight: 900; cursor: pointer; }
 

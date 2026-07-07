@@ -84,11 +84,15 @@
               </label>
             </div>
             <p v-if="qtyError" class="qty-error">{{ qtyError }}</p>
-
-            <div class="submit-row">
-              <button class="primary" :disabled="!canSubmit" @click="submitRequisition">提交领料单</button>
+            <div v-if="shortageWarning" class="shortage-alert">
+              <strong>⚠ 缺件预警</strong>
+              <p>领用数量超出当前库存 {{ shortageQty }} {{ selectedMaterial.unit }}，系统将自动生成缺件申请单。</p>
             </div>
+
             <p v-if="submitHint" class="submit-hint">{{ submitHint }}</p>
+            <div class="submit-row">
+              <button type="button" class="primary" :disabled="!canSubmit" :title="shortageWarning ? '提交领料并生成缺件申请' : '提交领料单'" @click="submitRequisitionHandler">提交领料</button>
+            </div>
           </div>
         </div>
 
@@ -122,8 +126,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { fetchMaterials, fetchRequisitionOrders, fetchWorkOrders, submitAction } from '@/mock/api.js'
+import { computed, inject, onMounted, ref } from 'vue'
+import { fetchMaterials, fetchRequisitionOrders, fetchWorkOrders, submitRequisition, appendOfflineQueue } from '@/mock/api.js'
+
+const nav = inject('prototypeNavigation', null)
 
 const uiState = ref('loading')
 const materials = ref([])
@@ -138,6 +144,11 @@ const quantity = ref(null)
 const purpose = ref('')
 const qtyError = ref('')
 const submitHint = ref('')
+const shortageWarning = ref(false)
+const shortageQty = computed(() => {
+  if (!selectedMaterial.value || quantity.value === null) return 0
+  return Math.max(0, Number(quantity.value) - selectedMaterial.value.systemInventory)
+})
 
 const isLowStock = computed(() => selectedMaterial.value && selectedMaterial.value.systemInventory < selectedMaterial.value.safetyStock)
 const stockTone = computed(() => (isLowStock.value ? 'low' : 'ok'))
@@ -178,23 +189,28 @@ function selectMaterial(m) {
 
 function validateQty() {
   qtyError.value = ''
+  shortageWarning.value = false
   if (!selectedMaterial.value || quantity.value === null) return
   if (quantity.value < 1) { qtyError.value = '领用数量必须大于 0'; return }
   if (quantity.value > selectedMaterial.value.systemInventory) {
-    qtyError.value = `领用数量不能超过当前库存 ${selectedMaterial.value.systemInventory} ${selectedMaterial.value.unit}`
+    // 超库存时不阻止提交，而是显示缺件预警
+    shortageWarning.value = true
   }
 }
 
-async function submitRequisition() {
+async function submitRequisitionHandler() {
   if (!canSubmit.value) return
   const m = selectedMaterial.value
   const stockBefore = m.systemInventory
-  const stockAfter = stockBefore - Number(quantity.value)
+  const qty = Number(quantity.value)
+  // 如果超库存，实际领出 = 当前库存，缺件部分生成缺件申请
+  const actualOut = Math.min(qty, stockBefore)
+  const stockAfter = stockBefore - actualOut
   const newOrder = {
     orderId: `REQ-${Date.now().toString().slice(-4)}`,
     materialCode: m.code,
     materialName: m.name,
-    quantity: Number(quantity.value),
+    quantity: qty,
     unit: m.unit,
     purpose: purpose.value,
     relatedOrder: relatedOrder.value,
@@ -207,14 +223,31 @@ async function submitRequisition() {
   orders.value = [newOrder, ...orders.value]
   // 更新本地库存
   m.systemInventory = stockAfter
-  await submitAction('submitRequisition', newOrder)
-  submitHint.value = `领料单 ${newOrder.orderId} 已提交，状态：待同步，库存 ${stockBefore} → ${stockAfter}`
+  await submitRequisition(newOrder)
+  // 如果有缺件，生成缺件申请
+  if (shortageWarning.value && shortageQty.value > 0) {
+    appendOfflineQueue({
+      type: '缺件申请',
+      recordId: `PR-${Date.now().toString().slice(-4)}`,
+      shipName: '当前船舶',
+      summary: `${m.name} 缺件申请 ${shortageQty.value}${m.unit}，关联工单 ${relatedOrder.value}`,
+      status: '待同步',
+    })
+    submitHint.value = `领料单 ${newOrder.orderId} 已提交，缺件申请已生成（缺 ${shortageQty.value}${m.unit}）`
+  } else {
+    submitHint.value = `领料单 ${newOrder.orderId} 已提交，状态：待同步`
+  }
   // 重置表单
   selectedMaterial.value = null
   barcodeInput.value = ''
   relatedOrder.value = ''
   quantity.value = null
   purpose.value = ''
+  shortageWarning.value = false
+  // 返回工作台
+  setTimeout(() => {
+    if (nav) nav.navigateTo('InventoryWorkbench')
+  }, 1500)
 }
 
 async function reload() {
@@ -234,11 +267,11 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page { display: grid; gap: 16px; position: relative; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .state-panel { border: 1px solid #d9e4ef; border-radius: 10px; padding: 32px; text-align: center; background: #fff; }
 .state-panel h2 { margin: 0 0 8px; color: #b4232d; }
@@ -282,6 +315,9 @@ onMounted(reload)
 .form-grid span { color: #53657c; font-size: 12px; font-weight: 800; }
 .form-grid input { border: 1px solid #cbd7e4; border-radius: 7px; padding: 10px; font-size: 13px; color: #172033; background: #fff; }
 .qty-error { margin: 10px 0 0; color: #b4232d; font-size: 12px; font-weight: 800; }
+.shortage-alert { margin: 10px 0 0; padding: 10px 14px; border: 1px solid #f3d6c2; border-radius: 8px; background: #fff5e6; }
+.shortage-alert strong { display: block; color: #d4743f; font-size: 13px; margin-bottom: 4px; }
+.shortage-alert p { margin: 0; color: #8a5a00; font-size: 12px; line-height: 1.5; }
 
 .submit-row { margin-top: 14px; display: flex; justify-content: flex-end; }
 .submit-row .primary { border: 0; border-radius: 8px; padding: 10px 22px; background: #1e6fd9; color: #fff; font-weight: 900; font-size: 14px; }

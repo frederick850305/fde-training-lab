@@ -7,7 +7,7 @@
         <p>查看完整报工数据（工时/物料/发现）、附件照片留痕、逐项核验步骤，执行审核通过/退回并跟踪整改。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
+        <button type="button" @click="goBack">返回列表</button>
       </div>
     </header>
 
@@ -150,7 +150,7 @@
         </article>
 
         <!-- 审核操作 -->
-        <article class="panel">
+        <article v-if="selected.status !== '已闭环'" class="panel">
           <div class="panel-title">
             <h2>审核操作</h2>
             <span>{{ selected.status }}</span>
@@ -158,11 +158,19 @@
           <ApprovalActions
             ref="approvalRef"
             :loading="submitting"
-            :allow-approve="selected.status !== '已闭环'"
-            :allow-reject="selected.status !== '已闭环'"
+            :approve-disabled="doneSteps < steps.length"
+            placeholder="填写审核意见；退回时说明整改要求"
             @approve="onApprove"
             @reject="onReject"
           />
+          <p v-if="doneSteps < steps.length" class="verify-tip">完成逐项核验后才能审核通过。</p>
+        </article>
+        <article v-else class="panel">
+          <div class="panel-title">
+            <h2>审核结果</h2>
+            <StatusBadge label="已闭环" />
+          </div>
+          <p class="muted">该工单已审核闭环，可返回列表查看其他待处理工单。</p>
         </article>
       </template>
     </template>
@@ -178,13 +186,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import FileUploader from '@/components/FileUploader.vue'
 import ApprovalActions from '@/components/ApprovalActions.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
-import { fetchWorkOrders, fetchWorkOrderSteps, submitAction } from '@/mock/api.js'
+import { auditWorkOrder, fetchWorkOrders, fetchWorkOrderSteps, syncIssueOnWorkOrderClose } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const orders = ref([])
 const steps = ref([])
 const uiState = ref('loading')
@@ -198,6 +207,7 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const pendingComment = ref('')
 const pendingDecision = ref('')
+const routeContext = computed(() => navigation?.routeContext?.value || {})
 
 const reviewableOrders = computed(() => orders.value.filter((o) => o.status !== '已闭环'))
 const doneSteps = computed(() => steps.value.filter((s) => s.done).length)
@@ -230,7 +240,9 @@ async function reload() {
     const [o, s] = await Promise.all([fetchWorkOrders(), fetchWorkOrderSteps()])
     orders.value = o
     steps.value = s.map((step) => ({ ...step }))
-    selected.value = o.find((x) => x.status !== '已闭环') || o[0] || null
+    selected.value = routeContext.value.workOrderId
+      ? o.find((x) => x.id === routeContext.value.workOrderId) || o.find((x) => x.status !== '已闭环') || o[0] || null
+      : o.find((x) => x.status !== '已闭环') || o[0] || null
     uiState.value = o.length ? 'success' : 'empty'
   } catch (e) {
     errorMsg.value = e?.message || '加载失败'
@@ -249,6 +261,19 @@ function toggleStep(step) {
 
 function previewFile(file) {
   // 原型：模拟预览
+}
+
+function goBack() {
+  if (routeContext.value.from === 'VoyageHealthIssueDetail' && selected.value?.linkedIssueId) {
+    navigation?.navigateTo?.('VoyageHealthIssueDetail', {
+      issueId: selected.value.linkedIssueId,
+    })
+    return
+  }
+  navigation?.navigateTo?.('WorkOrderAuditList', {
+    workOrderId: selected.value?.id,
+    status: selected.value?.status,
+  })
 }
 
 function onApprove(comment) {
@@ -270,12 +295,16 @@ function onReject(comment) {
 async function confirmSubmit() {
   submitting.value = true
   try {
-    await submitAction(pendingDecision.value === '通过' ? '工单审核通过' : '工单退回整改', {
-      id: selected.value?.id,
+    await auditWorkOrder(selected.value?.id, {
+      decision: pendingDecision.value,
       comment: pendingComment.value,
+      rectifyRequirement: pendingDecision.value === '退回' ? pendingComment.value : '',
     })
     if (selected.value) {
       selected.value.status = pendingDecision.value === '通过' ? '已闭环' : '需整改'
+      if (pendingDecision.value === '通过') {
+        syncIssueOnWorkOrderClose(selected.value.id)
+      }
     }
     approvalRef.value?.clear()
     confirmOpen.value = false
@@ -289,7 +318,7 @@ async function confirmSubmit() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -354,6 +383,7 @@ th { color: #63748a; background: #f7fafc; font-weight: 900; }
 .progress-bar { flex: 1; height: 8px; border-radius: 999px; background: #e7edf4; overflow: hidden; }
 .progress-bar i { display: block; height: 100%; background: #b4232d; border-radius: 999px; }
 .rectify-progress b { color: #b4232d; font-size: 14px; }
+.verify-tip { margin: 8px 0 0; color: #8a5a00; font-size: 12px; font-weight: 800; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }

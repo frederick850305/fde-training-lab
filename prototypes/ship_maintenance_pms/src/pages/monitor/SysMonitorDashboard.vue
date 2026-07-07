@@ -1,15 +1,14 @@
 <template>
   <section class="monitor-dashboard">
     <header class="page-header">
-      <div class="header-text">
-        <span class="module-label">系统监控审计 / P0</span>
-        <h1>系统监控看板</h1>
-        <p>集中展示系统整体健康度、关键运行指标、模块运行状态与告警分级摘要，帮助管理员快速掌握系统运行态势并定位异常。</p>
-      </div>
-      <div class="header-actions">
-        <button type="button" @click="loadData">刷新</button>
-      </div>
-    </header>
+      <div>
+<div class="header-text">
+            <span class="module-label">系统监控审计 / P0</span>
+            <h1>系统监控看板</h1>
+          </div>
+<p>集中展示系统整体健康度、关键运行指标、模块运行状态与告警分级摘要，帮助管理员快速掌握系统运行态势并定位异常。</p>
+</div>
+      </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
       <span class="skeleton-block ring-skeleton"></span>
@@ -152,7 +151,6 @@ defineEmits(['jump-alerts'])
 
 const overview = ref(null)
 const uiState = ref('loading')
-
 const circumference = 2 * Math.PI * 84
 
 const dashOffset = computed(() => {
@@ -204,7 +202,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.monitor-dashboard { display: grid; gap: 16px; }
+.monitor-dashboard { display: grid; gap: 16px; position: relative; }
 
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;

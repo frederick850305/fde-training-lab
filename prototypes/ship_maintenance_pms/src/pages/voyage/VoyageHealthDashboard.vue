@@ -6,10 +6,6 @@
         <h1>航前健康看板</h1>
         <p>展示当前船舶健康分数与拦截/放行状态，分类校验矩阵结果，不通过问题清单，并支持导出健康报告。</p>
       </div>
-      <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
-        <button type="button" class="primary" @click="exportReport">导出报告</button>
-      </div>
     </header>
 
     <div v-if="uiState === 'loading'" class="state-panel skeleton">
@@ -56,10 +52,11 @@
       <article class="panel">
         <div class="panel-title">
           <h2>分类校验矩阵</h2>
-          <span>{{ matrix.length }} 个检查类别</span>
+          <span>{{ displayedMatrix.length }} 个检查类别</span>
         </div>
+        <div v-if="!displayedMatrix.length" class="empty-inline">当前检查暂无分类校验数据。</div>
         <div class="matrix-grid">
-          <div v-for="item in matrix" :key="item.name" :class="['matrix-cell', item.tone]">
+          <div v-for="item in displayedMatrix" :key="item.name" :class="['matrix-cell', item.tone]">
             <div class="cell-head">
               <strong>{{ item.name }}</strong>
               <span class="cell-result">{{ item.result }}</span>
@@ -74,11 +71,14 @@
       <article class="panel">
         <div class="panel-title">
           <h2>不通过问题清单</h2>
-          <span>{{ issues.length }} 项问题</span>
+          <div class="panel-title-actions">
+            <span>{{ visibleIssues.length }} 项问题</span>
+            <button type="button" class="primary" @click="exportReport">导出报告</button>
+          </div>
         </div>
-        <div v-if="!issues.length" class="empty-inline">当前检查无拦截问题，全部校验项通过。</div>
+        <div v-if="!visibleIssues.length" class="empty-inline">{{ currentCheck?.status === '进行中' ? '检查任务已创建，正在采集数据，暂未生成拦截问题。' : '当前检查无拦截问题，全部校验项通过。' }}</div>
         <ul v-else class="issue-list">
-          <li v-for="issue in issues" :key="issue.issueId" class="issue-item" @click="viewIssue(issue)">
+          <li v-for="issue in visibleIssues" :key="issue.issueId" class="issue-item" @click="viewIssue(issue)">
             <div class="issue-left">
               <span class="sev-badge" :class="sevClass(issue.severity)">{{ issue.severity }}</span>
               <div class="issue-main">
@@ -106,19 +106,28 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue'
 import { fetchVoyageHealthChecks, fetchVoyageHealthIssues, fetchHealthCheckMatrix, submitAction } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const checks = ref([])
 const issues = ref([])
 const matrix = ref([])
 const uiState = ref('loading')
 const errorMsg = ref('')
 const confirmOpen = ref(false)
+const createdCheck = ref(null)
+const routeContext = computed(() => navigation?.routeContext?.value || {})
 
-const currentCheck = computed(() => checks.value.find((c) => c.status === '不通过') || checks.value[0] || null)
+const currentCheck = computed(() => {
+  if (createdCheck.value) return createdCheck.value
+  if (routeContext.value.checkId) {
+    return checks.value.find((c) => c.checkId === routeContext.value.checkId) || null
+  }
+  return checks.value.find((c) => c.status === '不通过') || checks.value[0] || null
+})
 
 const scoreTone = computed(() => {
   const s = currentCheck.value?.score
@@ -135,11 +144,20 @@ const interceptTone = computed(() => {
   return 'pending'
 })
 
+const displayedMatrix = computed(() => {
+  if (!currentCheck.value || currentCheck.value.status === '进行中') return []
+  return matrix.value
+})
+const visibleIssues = computed(() => {
+  if (!currentCheck.value?.checkId || currentCheck.value.status === '进行中') return []
+  return issues.value.filter((issue) => issue.checkId === currentCheck.value.checkId)
+})
+
 const miniKpis = computed(() => [
-  { label: '拦截问题', value: issues.value.length, tone: 'danger' },
-  { label: '高风险', value: issues.value.filter((i) => i.severity === '高').length, tone: 'danger' },
-  { label: '中风险', value: issues.value.filter((i) => i.severity === '中').length, tone: 'warn' },
-  { label: '待处置', value: issues.value.filter((i) => i.status === '待处置').length, tone: 'warn' },
+  { label: '拦截问题', value: visibleIssues.value.length, tone: 'danger' },
+  { label: '高风险', value: visibleIssues.value.filter((i) => i.severity === '高').length, tone: 'danger' },
+  { label: '中风险', value: visibleIssues.value.filter((i) => i.severity === '中').length, tone: 'warn' },
+  { label: '待处置', value: visibleIssues.value.filter((i) => i.status === '待处置').length, tone: 'warn' },
 ])
 
 onMounted(reload)
@@ -148,6 +166,7 @@ async function reload() {
   uiState.value = 'loading'
   errorMsg.value = ''
   try {
+    createdCheck.value = readCreatedCheck()
     const [c, i, m] = await Promise.all([
       fetchVoyageHealthChecks(),
       fetchVoyageHealthIssues(),
@@ -163,6 +182,11 @@ async function reload() {
   }
 }
 
+function readCreatedCheck() {
+  if (routeContext.value.createdCheck) return routeContext.value.createdCheck
+  return null
+}
+
 function toneLabel(tone) {
   return { ok: '通过', warn: '预警', danger: '异常' }[tone] || ''
 }
@@ -174,8 +198,10 @@ function sevClass(sev) {
 }
 
 function viewIssue(issue) {
-  // 导航到问题详情（原型内仅提示）
-  confirmOpen.value = false
+  navigation?.navigateTo?.('VoyageHealthIssueDetail', {
+    checkId: currentCheck.value?.checkId,
+    issueId: issue.issueId,
+  })
 }
 
 function exportReport() {
@@ -194,7 +220,7 @@ async function doExport() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -244,6 +270,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
+.panel-title-actions { display: flex; align-items: center; gap: 10px; }
 
 .empty-inline { padding: 20px; text-align: center; color: #64748b; border: 1px dashed #cdd9e6; border-radius: 8px; }
 

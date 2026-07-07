@@ -4,7 +4,7 @@
       eyebrow="Interaction & API"
       title="交互与API一体化设计工作台"
       title-id="interaction-api-title"
-      description="选择一个页面，一次性生成字段、按钮、校验、状态和对应的 API 契约（路径、参数、响应、错误码）。"
+      description="选择一个场景，系统会按页面逐个生成交互设计与 API 契约；每个页面仍分两次请求完成，避免单次上下文过大。"
     />
 
     <!-- Scenario Page Overview (compact cards) -->
@@ -44,7 +44,7 @@
           class="gen-btn"
           type="button"
           :disabled="isGenerating || !selectedPageDesign"
-          @click="generateForSelectedPage"
+          @click="generateForSelectedScenario"
         >
           {{ primaryGenerateLabel }}
         </button>
@@ -69,6 +69,7 @@
         </span>
       </div>
       <p v-if="generationMessage" class="gen-status" :class="{ error: generationError }">{{ generationMessage }}</p>
+      <p v-if="scenarioGenerationProgress" class="gen-status">{{ scenarioGenerationProgress }}</p>
     </div>
 
     <!-- Side-by-side panels (always visible) -->
@@ -123,7 +124,7 @@
 
         <div v-else class="panel-placeholder">
           <span>📝</span>
-          <p>点击上方「生成交互与API」后，<br>字段、按钮、校验和状态会在这里展示。</p>
+          <p>点击上方「生成当前场景交互与API」后，<br>字段、按钮、校验和状态会在这里展示。</p>
         </div>
       </article>
 
@@ -183,7 +184,7 @@
         <div v-else class="panel-placeholder">
           <span>🔧</span>
           <p v-if="hasGeneratedInteractionCurrent">交互设计已生成。点击上方「生成 API 契约」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
-          <p v-else>点击上方「生成交互与API」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
+          <p v-else>点击上方「生成当前场景交互与API」后，<br>API 方法、路径、参数、响应和错误码会在这里展示。</p>
         </div>
       </article>
     </div>
@@ -221,6 +222,9 @@ const isGenerating = ref(false)
 const generationPhase = ref('')
 const generationMessage = ref('')
 const generationError = ref(false)
+const generatingScenarioKey = ref('')
+const generatingPageIndex = ref(-1)
+const generatingPageTotal = ref(0)
 
 // --- Computed: Read scenario→page design result (Phase 2 merged) ---
 const scenarioPageResult = computed(() =>
@@ -308,15 +312,26 @@ const currentApiContract = computed(() => {
 const hasGeneratedInteractionCurrent = computed(() => Boolean(generatedPagesByKey.value[selectedKey.value]))
 const hasGeneratedApiCurrent = computed(() => Boolean(generatedApiByPageKey.value[selectedKey.value]))
 const hasGeneratedCurrent = computed(() => hasGeneratedInteractionCurrent.value && hasGeneratedApiCurrent.value)
+const hasGeneratedSelectedScenario = computed(() =>
+  selectedScenarioPages.value.length > 0 &&
+  selectedScenarioPages.value.every((page) => generatedPagesByKey.value[page.key] && generatedApiByPageKey.value[page.key])
+)
+const hasPartialSelectedScenario = computed(() =>
+  selectedScenarioPages.value.some((page) => generatedPagesByKey.value[page.key] || generatedApiByPageKey.value[page.key])
+)
+const scenarioGenerationProgress = computed(() => {
+  if (!isGenerating.value || !generatingPageTotal.value) return ''
+  return `当前场景进度：${generatingPageIndex.value + 1}/${generatingPageTotal.value} 页`
+})
 const primaryGenerateLabel = computed(() => {
   if (isGenerating.value) {
     if (generationPhase.value === 'interaction') return '⏳ 步骤 1/2：生成交互设计...'
     if (generationPhase.value === 'api') return '⏳ 步骤 2/2：生成 API 契约...'
     return '⏳ 生成中...'
   }
-  if (hasGeneratedCurrent.value) return '🔄 重新生成交互与API'
-  if (hasGeneratedInteractionCurrent.value && !hasGeneratedApiCurrent.value) return '⚡ 生成 API 契约'
-  return '⚡ 生成交互与API'
+  if (hasGeneratedSelectedScenario.value) return '🔄 重新生成当前场景交互与API'
+  if (hasPartialSelectedScenario.value) return '⚡ 继续生成当前场景交互与API'
+  return '⚡ 生成当前场景交互与API'
 })
 
 const stateLabels = { empty: '空状态', loading: '加载中', success: '成功', error: '失败' }
@@ -588,7 +603,7 @@ function buildFallbackStates(page) {
 }
 
 // --- LLM Generation ---
-async function generateForSelectedPage() {
+async function generateForSelectedScenario() {
   if (!selectedPageDesign.value) {
     setGenError('请先选择一个页面。')
     return
@@ -601,63 +616,103 @@ async function generateForSelectedPage() {
   isGenerating.value = true
   generationError.value = false
   generationPhase.value = ''
+  generatingScenarioKey.value = selectedScenario.value?.key || ''
 
-  if (hasGeneratedInteractionCurrent.value && !hasGeneratedApiCurrent.value) {
-    await generateApiForCurrentPage(currentGeneratedPage.value)
-    isGenerating.value = false
-    generationPhase.value = ''
+  const pages = selectedScenarioPages.value.length ? selectedScenarioPages.value : [selectedPageDesign.value]
+  generatingPageTotal.value = pages.length
+  const shouldRegenerateAll = hasGeneratedSelectedScenario.value
+
+  try {
+    for (let index = 0; index < pages.length; index += 1) {
+      const page = pages[index]
+      generatingPageIndex.value = index
+      selectedKey.value = page.key
+      await generateForPage(page, selectedScenario.value, { force: shouldRegenerateAll })
+    }
+  } catch (err) {
+    setGenError(err.message || '当前场景交互与 API 生成失败。')
+    return
+  } finally {
+    resetGenerationState()
+  }
+
+  generationMessage.value = `「${selectedScenario.value?.name || '当前场景'}」下 ${pages.length} 个页面的交互设计与 API 契约已生成。`
+}
+
+async function generateForPage(page, scenario, options = {}) {
+  const moduleHints = getPageModuleHints(scenario, page)
+  const existingInteraction = generatedPagesByKey.value[page.key]
+
+  if (!options.force && existingInteraction && generatedApiByPageKey.value[page.key]) {
+    generationMessage.value = `「${page.name}」已生成，跳过并继续下一个页面。`
+    return
+  }
+
+  if (!options.force && existingInteraction && !generatedApiByPageKey.value[page.key]) {
+    await generateApiForPage(page, scenario, moduleHints, mergeGeneratedWithPageDesign(existingInteraction, page))
     return
   }
 
   generationPhase.value = 'interaction'
-  generationMessage.value = `步骤 1/2：正在生成「${selectedPageDesign.value.name}」的交互设计...`
+  generationError.value = false
+  generationMessage.value = `步骤 1/2：正在生成「${page.name}」的交互设计...`
 
-  // Step 1: Generate interaction
   let interactionResult
   try {
-    interactionResult = await callLlmForInteraction()
+    interactionResult = await callLlmForInteraction(page, scenario, moduleHints)
     generatedPagesByKey.value = {
       ...generatedPagesByKey.value,
       [interactionResult.key]: interactionResult,
     }
     emitDraftUpdate()
     generationPhase.value = 'api'
-    generationMessage.value = `步骤 1/2 完成。步骤 2/2：正在生成 API 契约...`
+    generationMessage.value = `「${page.name}」步骤 1/2 完成。步骤 2/2：正在生成 API 契约...`
   } catch (err) {
-    setGenError(err.message || '交互设计生成失败。')
-    isGenerating.value = false
-    generationPhase.value = ''
-    return
+    throw new Error(`「${page.name}」交互设计生成失败：${err.message || '请重试。'}`)
   }
 
-  await generateApiForCurrentPage(interactionResult)
-  isGenerating.value = false
-  generationPhase.value = ''
+  await generateApiForPage(page, scenario, moduleHints, interactionResult)
 }
 
-async function generateApiForCurrentPage(interactionResult) {
-  if (!interactionResult || !selectedPageDesign.value) return
+async function generateApiForPage(page, scenario, moduleHints, interactionResult) {
+  if (!interactionResult || !page) return
   generationPhase.value = 'api'
   generationError.value = false
-  generationMessage.value = `步骤 2/2：正在生成「${interactionResult.name}」的 API 契约...`
+  generationMessage.value = `步骤 2/2：正在生成「${page.name}」的 API 契约...`
 
   try {
-    const apiResult = await callLlmForApiContract(interactionResult)
+    const apiResult = await callLlmForApiContract(page, scenario, moduleHints, interactionResult)
     generatedApiByPageKey.value = {
       ...generatedApiByPageKey.value,
-      [selectedPageDesign.value.key]: apiResult,
+      [page.key]: apiResult,
     }
     emitDraftUpdate()
-    generationMessage.value = `「${interactionResult.name}」的交互设计与 API 契约已生成。`
+    generationMessage.value = `「${page.name}」的交互设计与 API 契约已生成。`
   } catch (err) {
-    generationError.value = true
-    generationMessage.value = `交互设计已保留，但 API 契约生成失败：${err.message || '请重试。'} 可点击上方「生成 API 契约」单独重试。`
     emitDraftUpdate()
+    throw new Error(`「${page.name}」API 契约生成失败：${err.message || '请重试。'}`)
   }
 }
 
-async function callLlmForInteraction() {
-  const page = selectedPageDesign.value
+function resetGenerationState() {
+  isGenerating.value = false
+  generationPhase.value = ''
+  generatingScenarioKey.value = ''
+  generatingPageIndex.value = -1
+  generatingPageTotal.value = 0
+}
+
+function getPageModuleHints(scenario, page) {
+  if (!scenario || !page) return []
+
+  const modules = modulesByScenarioKey.value[scenario.key] || []
+  const matched = modules.filter((module) => isModuleRelatedToPage(module, page))
+  const source = matched.length ? matched : modules
+
+  return source.slice(0, 5).map(sanitizeModuleHint)
+}
+
+async function callLlmForInteraction(page, scenario, moduleHints) {
   const featureItems = normalizeLimitedList(page.features?.length ? page.features : page.featureText, 8, 140)
   const sectionItems = normalizeLimitedList(page.sections?.length ? page.sections : featureItems, 8, 140)
   const pageContext = buildPageLlmContext(page, featureItems, sectionItems)
@@ -675,12 +730,12 @@ async function callLlmForInteraction() {
         'fields 每项含 name,label,type,required,description。actions 每项含 label,trigger,feedback。validations 为字符串数组。states 含 empty,loading,success,error。',
       ].join('\n'),
       current_output: {
-        scenario: selectedScenario.value ? { key: selectedScenario.value.key, name: selectedScenario.value.name } : null,
+        scenario: scenario ? { key: scenario.key, name: scenario.name } : null,
         page: pageContext,
         pageGoal: pageContext.goal,
         features: featureItems,
         sections: sectionItems,
-        moduleApiHints: selectedPageModuleHints.value,
+        moduleApiHints: moduleHints,
       },
       project_context: buildProjectContext(),
     }),
@@ -693,8 +748,7 @@ async function callLlmForInteraction() {
   return normalizeInteraction(output, page, featureItems, sectionItems)
 }
 
-async function callLlmForApiContract(interactionPage) {
-  const page = selectedPageDesign.value
+async function callLlmForApiContract(page, scenario, moduleHints, interactionPage) {
   const pageContext = buildPageLlmContext(
     page,
     normalizeLimitedList(page.features?.length ? page.features : page.featureText, 8, 140),
@@ -723,10 +777,11 @@ async function callLlmForApiContract(interactionPage) {
         '本次只生成 1 个核心接口，选择页面最重要的操作。',
       ].join('\n'),
       current_output: {
+        scenario: scenario ? { key: scenario.key, name: scenario.name } : null,
         page: pageContext,
         interaction: interactionContext,
         suggestedParams: requestParams,
-        moduleApiHints: selectedPageModuleHints.value,
+        moduleApiHints: moduleHints,
       },
       project_context: buildProjectContext(),
     }),

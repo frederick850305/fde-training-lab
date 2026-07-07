@@ -29,9 +29,9 @@
             </select>
             <select v-model="statusFilter" aria-label="按状态筛选">
               <option value="">全部状态</option>
-              <option value="待审核">待审核</option>
-              <option value="需整改">需整改</option>
-              <option value="已闭环">已闭环</option>
+              <option value="待执行">待执行</option>
+              <option value="执行中">执行中</option>
+              <option value="待同步">待同步</option>
             </select>
           </div>
 
@@ -94,13 +94,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import {
-  fetchWorkOrders,
+  fetchMobileWorkOrders,
   readOfflineQueue,
   getStorageUsage,
 } from '@/mock/api.js'
+
+const nav = inject('prototypeNavigation', null)
 
 const CACHE_KEY = 'pms-mobile-wo-cache'
 
@@ -130,8 +132,8 @@ function priorityTone(p) {
 }
 
 function onPick(wo) {
-  // 原型阶段：选中后写入 sessionStorage 供详情页读取
   sessionStorage.setItem('pms-current-wo', JSON.stringify(wo))
+  if (nav) nav.navigateTo('MobileWorkOrderDetail', { workOrderId: wo.id })
 }
 
 function resetFilters() {
@@ -142,7 +144,7 @@ function resetFilters() {
 async function reload() {
   uiState.value = 'loading'
   try {
-    const data = await fetchWorkOrders()
+    const data = await fetchMobileWorkOrders()
     workOrders.value = data
     // 写入本地缓存
     localStorage.setItem(CACHE_KEY, JSON.stringify(data))
@@ -162,8 +164,7 @@ async function reload() {
 }
 
 function goSync() {
-  // 原型占位：触发页面跳转提示
-  alert('跳转至移动端同步状态页（原型占位）')
+  if (nav) nav.navigateTo('MobileSyncStatus')
 }
 
 onMounted(reload)
@@ -171,10 +172,10 @@ onMounted(reload)
 
 <style scoped>
 .mobile-page { display: grid; gap: 16px; }
-.page-head { border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
+.page-head { position: relative; border: 1px solid #d9e4ef; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .eyebrow { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 .page-head h1 { margin: 6px 0 6px; font-size: 22px; color: #172033; }
-.page-head p { margin: 0; color: #64748b; font-size: 13px; max-width: 760px; }
+.page-head p { margin: 6px 0 0; color: #64748b; font-size: 13px; max-width: 760px; }
 
 .phone-shell { display: flex; justify-content: center; padding: 8px 0; }
 .phone-frame {

@@ -1,13 +1,12 @@
 <template>
   <section class="page-screen ship-monitoring-overview">
     <header class="page-header">
-      <div class="header-text">
+      <div>
         <span class="module-label">船舶监控调度 / 在线态势</span>
         <h1>船舶运行监控总览</h1>
-        <p>实时呈现船队在线态势与通信状态，支持地图与列表切换；点击船舶定位点查看航速、航向、运行状态及航线信息。</p>
+        <p class="page-desc">实时呈现船队在线态势与通信状态，支持地图与列表切换；点击船舶定位点查看航速、航向、运行状态及航线信息。</p>
       </div>
       <div class="header-actions">
-        <button type="button" @click="reload">刷新</button>
         <button type="button" class="primary" @click="toggleView">{{ viewMode === 'map' ? '切换列表' : '切换地图' }}</button>
       </div>
     </header>
@@ -153,6 +152,9 @@
                 <strong>{{ selectedVessel.position.lng }}, {{ selectedVessel.position.lat }}</strong>
               </div>
             </div>
+            <div class="detail-actions">
+              <button type="button" class="primary" @click="goDetail(selectedVessel)">进入船舶详情</button>
+            </div>
           </template>
           <div v-else class="empty-hint">请在左侧地图选择一艘船舶查看详情</div>
         </article>
@@ -177,6 +179,7 @@
               <th>健康分</th>
               <th>告警</th>
               <th>最后上报</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -196,6 +199,7 @@
               <td>{{ v.healthScore ?? '—' }}</td>
               <td>{{ v.alertCount }}</td>
               <td>{{ v.lastReport }}</td>
+              <td><button type="button" class="link-btn" @click.stop="goDetail(v)">详情</button></td>
             </tr>
           </tbody>
         </table>
@@ -205,10 +209,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { fetchVessels, fetchFleetStats } from '@/mock/api.js'
 
+const navigation = inject('prototypeNavigation', null)
 const vessels = ref([])
 const stats = ref(null)
 const uiState = ref('loading')
@@ -237,6 +242,14 @@ function dotStyle(v, index) {
 
 function selectVessel(id) {
   selectedId.value = id
+}
+
+function goDetail(vessel) {
+  if (!vessel) return
+  navigation?.navigateTo?.('ShipDetailBoard', {
+    vesselId: vessel.id,
+    vesselName: vessel.name,
+  })
 }
 
 function toggleView() {
@@ -269,7 +282,7 @@ onMounted(reload)
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; }
+.page-screen { display: grid; gap: 16px; position: relative; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -334,6 +347,7 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .detail-cell strong.weak { color: #d97706; }
 .detail-cell strong.offline { color: #b4232d; }
 .empty-hint { padding: 40px 0; text-align: center; color: #64748b; font-size: 13px; }
+.detail-actions { margin-top: 12px; display: flex; justify-content: flex-end; }
 
 /* list mode */
 .list-mode table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -345,6 +359,7 @@ tr.selected td { background: #edf5ff; }
 .comm-tag.online { color: #11734d; background: #dff6e8; }
 .comm-tag.weak { color: #8a5a00; background: #fff2cc; }
 .comm-tag.offline { color: #b4232d; background: #ffe1e3; }
+.link-btn { border: 0; background: transparent; color: #1e6fd9; padding: 4px 6px; font-weight: 900; }
 
 @media (max-width: 980px) {
   .page-header { flex-direction: column; }
