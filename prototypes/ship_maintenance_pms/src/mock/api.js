@@ -233,6 +233,13 @@ function findVoyageHealthIssue(issueId) {
 
 function syncIssueProgress(issue) {
   if (!issue) return
+  // 豁免已通过 → 100% 闭环
+  if (issue.exemptionStatus === '已批准') {
+    issue.disposalProgress = 100
+    issue.status = '已闭环'
+    return
+  }
+  // 复检通过 → 100% 闭环（工单路径）
   if (issue.reinspectionStatus === '复检通过') {
     issue.disposalProgress = 100
     issue.status = '已闭环'

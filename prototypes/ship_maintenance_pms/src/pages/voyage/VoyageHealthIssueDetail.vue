@@ -180,28 +180,28 @@
         <article class="panel">
           <div class="panel-title">
             <h2>处置进度</h2>
-            <span>{{ selected.disposalProgress }}%</span>
+            <span>{{ displayProgress }}%</span>
           </div>
           <div class="progress-wrap">
-            <div class="progress-bar"><i :style="{ width: `${selected.disposalProgress}%` }"></i></div>
-            <b>{{ selected.disposalProgress }}%</b>
+            <div class="progress-bar"><i :style="{ width: `${displayProgress}%` }"></i></div>
+            <b>{{ displayProgress }}%</b>
           </div>
           <ol class="step-list">
-            <li :class="{ done: selected.disposalProgress >= 0 }">
+            <li :class="{ done: true }">
               <span class="step-dot"></span>
               <div><strong>问题识别</strong><small>航前检查发现并登记</small></div>
             </li>
-            <li :class="{ done: selected.disposalProgress > 0 }">
+            <li :class="{ done: displayProgress > 0 }">
               <span class="step-dot"></span>
-              <div><strong>处置方案确定</strong><small>{{ selected.disposalProgress > 0 ? '已确定处置方案' : '待确定处置方案' }}</small></div>
+              <div><strong>处置方案确定</strong><small>{{ displayProgress > 0 ? '已确定处置方案' : '待确定处置方案' }}</small></div>
             </li>
-            <li :class="{ done: selected.disposalProgress >= 60 }">
+            <li :class="{ done: displayProgress >= 60 || isFinalStepDone }">
               <span class="step-dot"></span>
-              <div><strong>处置执行中</strong><small>{{ selected.disposalProgress >= 60 ? '正在执行处置' : '等待执行' }}</small></div>
+              <div><strong>处置执行中</strong><small>{{ (displayProgress >= 60 || isFinalStepDone) ? '正在执行处置' : '等待执行' }}</small></div>
             </li>
-            <li :class="{ done: selected.disposalProgress >= 100 }">
+            <li :class="{ done: isFinalStepDone }">
               <span class="step-dot"></span>
-              <div><strong>复检通过</strong><small>{{ selected.disposalProgress >= 100 ? '已复检通过' : '待复检' }}</small></div>
+              <div><strong>{{ finalStepLabel }}</strong><small>{{ isFinalStepDone ? finalStepDoneText : finalStepPendingText }}</small></div>
             </li>
           </ol>
         </article>
@@ -255,6 +255,18 @@ const canReinspect = computed(() => {
   return selected.value.linkedWorkOrderStatus === '已闭环' && selected.value.reinspectionStatus !== '复检通过'
 })
 const isClosed = computed(() => selected.value?.status === '已闭环')
+const isExemptionClosed = computed(() => {
+  return !!selected.value?.exemptionStatus && ['已批准'].includes(selected.value.exemptionStatus)
+})
+const isFinalStepDone = computed(() => isClosed.value || isExemptionClosed.value)
+const displayProgress = computed(() => {
+  if (isFinalStepDone.value) return 100
+  if (selected.value?.exemptionStatus) return Math.max(selected.value.disposalProgress ?? 0, 30)
+  return selected.value?.disposalProgress ?? 0
+})
+const finalStepLabel = computed(() => isExemptionClosed.value ? '豁免放行' : '复检通过')
+const finalStepDoneText = computed(() => isExemptionClosed.value ? '豁免审批通过，已闭环放行' : '已复检通过')
+const finalStepPendingText = computed(() => '待复检')
 const emptyMessage = computed(() =>
   routeContext.value.checkId
     ? '当前航前检查无拦截问题需要处置。'
@@ -343,6 +355,7 @@ async function advanceExemption() {
     const issue = await advanceExemptionApproval(selected.value.issueId, { approve: true })
     Object.assign(selected.value, issue)
     if (issue.exemptionStatus === '已批准') {
+      selected.value.disposalProgress = 100
       lastFlow.value = null
     }
   } catch (e) {
