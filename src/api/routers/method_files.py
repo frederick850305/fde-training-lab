@@ -143,7 +143,10 @@ def _read_saved_result_if_exists(step_key: str) -> dict[str, Any]:
     file_path = _step_file_path(step_key)
     if not file_path.exists():
         return {}
-    return _parse_markdown_result(file_path.read_text(encoding="utf-8"))
+    result = _parse_markdown_result(file_path.read_text(encoding="utf-8"))
+    if result.get("invalidated"):
+        return {}
+    return result
 
 
 def _build_prototype_package_readme(

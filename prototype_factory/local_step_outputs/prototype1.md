@@ -10,6 +10,112 @@
 - **客户**：HG
 - **摘要**：前端原型方案：38 个页面、38 个页面规格、38 个页面 API 映射。
 
+## 原型系统生成补充约束
+
+以下约束用于消除原 `prototype.md` 在代码生成时可能产生的歧义。本文件仍保留后续完整结构化数据，但生成 Vue 原型系统时必须优先遵守本节。
+
+### 1. 页面生成边界
+
+- 本文件的目标不是生成“原型说明展示页”，而是生成可交互的业务原型系统。
+- 禁止将 `prototype.md` 或结构化 JSON 内容直接展示为页面主体。
+- 禁止所有页面仅包裹同一个 `GenericPage`、`PrototypePage`、`PageRenderer` 或类似通用页面渲染器。
+- 每个页面组件必须包含自身独立的业务主结构和页面级交互逻辑。
+- 通用组件只能用于局部复用，例如状态标签、筛选栏、确认弹窗、资产树、表格、附件上传、差异对比等。
+- 页面文件可以复用组合式函数、mock API、样式变量和局部组件，但不能让 38 个菜单最终呈现同一套主体布局。
+
+### 2. 页面状态的正确理解
+
+- `uiStates` 中的 `empty`、`loading`、`success`、`error` 是页面内部状态要求，不是业务页面上的演示按钮。
+- 不允许在最终原型页面上展示“成功态 / 加载态 / 空态 / 错误态”等状态切换按钮。
+- 页面加载时应先进入 `loading`，mock 数据返回后进入 `success`。
+- 当筛选无结果或数据为空时进入 `empty`。
+- 当 mock API 抛错或请求失败时进入 `error`。
+- 状态 UI 应融入业务页面，例如骨架屏、空数据提示、错误提示和重试按钮，而不是作为说明区展示。
+
+### 3. 独立页面与路由要求
+
+- 必须根据 `navigationRoutes` 生成真实路由，并让左侧菜单点击后加载对应页面组件。
+- 每个路由的 `component` 必须指向对应的独立 `.vue` 页面文件。
+- 页面文件必须放置在 `/src/pages/` 下，并按业务模块分目录，例如 `/dispatch`、`/task`、`/collaboration`、`/admin`。
+- 每个页面组件必须能通过路由独立打开，并完成本页面的核心业务流程。
+- 不同菜单页面必须在视觉结构、信息组织和操作流程上有明显差异。
+
+### 4. 不同业务页面必须具备的差异化主布局
+
+生成页面时，应根据页面职责选择业务化布局，而不是统一使用“筛选栏 + 表格 + 详情面板”的模板。
+
+- `MaintenancePlanWorkbench.vue`：设备资产树 + 计划状态总览 + 选中设备详情 + 维保历史 + 快速操作。
+- `PlanEditor.vue`：设备选择区 + 计划参数表单 + 工单模板选择 + 冲突检测结果 + 提交审核区。
+- `PlanApproval.vue`：待审申请列表 + 变更前后差异对比 + 审批意见 + 审核日志时间线。
+- `VoyageHealthTrigger.vue`：待检查船舶卡片 + 自动/手动发起检查入口 + 检查任务状态。
+- `VoyageHealthDashboard.vue`：健康分数/拦截状态 + 分类校验矩阵 + 不通过问题清单 + 导出操作。
+- `VoyageHealthIssueDetail.vue`：问题基本信息 + 关联设备/物资/证书数据 + 紧急工单/物资调拨/豁免审批操作 + 处置进度。
+- `VoyageHealthReports.vue`：历史检查记录检索 + 报告生成入口 + 下载记录 + 日志查看。
+- `WorkOrderAuditList.vue`：待审核/已完成工单聚合视图 + 多维筛选 + 工单摘要卡或表格 + 快速定位。
+- `WorkOrderAuditDetail.vue`：完整报工数据 + 附件/照片留痕 + 逐项核验 + 审核通过/退回 + 整改跟踪。
+- `ShipMonitoringOverview.vue`：船舶地图或态势视图 + 船舶运行状态卡 + 通信连接状态 + 列表/地图切换。
+- `ShipDetailBoard.vue`：单船当前航次 + 工单进度 + 航前健康结果 + 船员证书预警 + 问题处置入口。
+- `DispatchCommandEditor.vue`：调度指令编辑表单 + 航前健康校验结果引用 + 下发确认 + 指令执行进度。
+- `DataSyncManager.vue`：船岸同步概览 + 异常船舶定位 + 同步状态统计 + 进入明细入口。
+- `SyncTaskList.vue`：同步任务列表 + 批量重试/忽略 + 冲突和失败任务快捷入口。
+- `SyncTaskDetail.vue`：冲突字段差异对比 + 船端/岸端版本选择 + 逐字段合并 + 重试/忽略操作。
+- `SyncReport.vue`：同步历史检索 + 健康度趋势 + 报告导出。
+- `MobileWorkOrderList.vue`：移动端任务卡片列表 + 离线标识 + 本地缓存加载 + 排序筛选。
+- `MobileWorkOrderDetail.vue`：移动端工单详情 + 设备信息 + 操作步骤 + 物料清单 + 安全注意事项 + 附件本地查看。
+- `MobileWorkOrderExecute.vue`：移动端步骤执行流 + 实际工时/消耗物料/异常填写 + 拍照/录像留痕 + 离线暂存。
+- `MobileSyncStatus.vue`：同步队列 + 冲突列表 + 手动同步 + 同步日志 + 本地缓存空间管理。
+- `InventoryWorkbench.vue`：盘点任务 + 领料提示 + 退料记录 + 网络状态 + 快速入口。
+- `BarcodeScanInventory.vue`：扫码识别区 + 物料信息 + 实物数量录入 + 系统库存对比 + 盘点差异生成。
+- `MaterialRequisition.vue`：物料扫码/搜索 + 库存校验 + 关联工单 + 领用数量 + 待同步领料单。
+- `MaterialReturn.vue`：退料扫码 + 退料原因 + 数量校验 + 本地库存更新 + 待同步退料单。
+- `DataSyncDetail.vue`：移动端同步队列详情 + 失败重试 + 冲突处理 + 同步进度。
+- `UserManager.vue`：用户列表 + 用户表单 + 角色分配 + 启用/禁用 + 批量导入导出。
+- `RolePermissionManager.vue`：角色列表 + 菜单/操作权限矩阵 + 复制角色 + 权限保存。
+- `WorkflowDesigner.vue`：流程画布 + 节点配置 + 条件分支 + 审批人/超时/转交策略。
+- `ConfigSimulation.vue`：模拟用户视角 + 权限验证结果 + 流程试运行 + 发布确认。
+- `AuditLogView.vue`：配置变更审计日志 + 检索 + 导出 + 日志详情。
+- `SysMonitorDashboard.vue`：系统健康度 + 关键运行指标 + 模块状态 + 告警摘要。
+- `AlertManagement.vue`：告警列表 + 分级响应 + 处置记录 + 关闭/升级操作。
+- `AuditLogSearch.vue`：多维日志检索 + 操作详情 + 违规标记 + 导出。
+- `ReportGenerator.vue`：报告模板选择 + 生成任务进度 + 报告下载。
+- `AuditLogWorkspace.vue`：审计员一体化工作台 + 日志筛选 + 变更差异 + 合规标记 + 审计行为留痕。
+- `ProcurementRequirementReview.vue`：采购需求列表 + BOM/预算校验 + 发起采购申请。
+- `ProcurementOrderTracking.vue`：采购订单列表 + 到货进度 + 供应商/附件信息 + 订单状态更新。
+- `GoodsReceiptAndInspection.vue`：扫码验收 + 检验结果录入 + 入库/退换货操作 + 预算核减确认。
+
+### 5. 通用组件使用原则
+
+- 通用组件应根据 `componentFiles` 生成并被页面局部引用。
+- 通用组件不得替代页面主体业务结构。
+- `AssetTree.vue` 适用于资产树区域，但不能让所有页面都变成资产树页面。
+- `FilterBar.vue` 适用于列表筛选区域，但不是所有页面都必须以筛选表格为中心。
+- `DiffView.vue` 应用于审批、同步冲突、审计差异等页面。
+- `FileUploader.vue` 应用于移动报工、扫码盘点、验收等需要附件和拍照留痕的页面。
+- `ConfirmationDialog.vue` 仅用于危险操作、提交、审批、下发、发布等二次确认。
+
+### 6. Mock 数据与 API 要求
+
+- 必须根据 `mockDataFiles` 生成独立 mock 数据模块，字段应符合 schema。
+- API 层应根据 `pageApiMapping` 封装页面调用函数，页面不应直接硬编码所有业务数据。
+- 原型阶段 API 可以返回 mock 数据并用延迟模拟请求。
+- 页面交互必须通过 mock API 或封装函数改变页面状态，而不是只做静态展示。
+- 移动端页面必须使用 `localStorage` 或 `IndexedDB` 模拟离线缓存、待同步队列和网络恢复后的同步。
+
+### 7. 需要修正或忽略的原文歧义
+
+- `generationPlan` 中出现的“入场核验、统计分析”等描述属于历史项目残留，生成船舶维护 PMS 原型时应忽略。
+- step prompt 中“P0 页面清单（共 16 个）”与实际列表数量不一致，应以结构化 JSON 中每个页面的 `priority` 字段为准。
+- `implementationDefaults.projectStructure` 中的 `/src/views/` 与 step prompt 中的 `/src/pages/` 不一致。本文件生成原型系统时统一采用 `/src/pages/`。
+- 如果 `navigationRoutes` 与 `pages`、`viewFiles` 存在命名差异，应优先保证每个 `pages.file` 都有可访问页面，再补齐路由。
+
+### 8. 最低验收标准
+
+- 左侧菜单点击后，右侧必须加载对应页面组件，而不是只改变标题或数据。
+- 至少每个业务模块的页面主布局应明显不同。
+- 页面不得出现用于解释原型规格的说明区，除非该说明本身是业务页面内容。
+- 38 个页面都应可访问、可交互、可触发 loading/empty/error/success 内部状态。
+- 构建必须通过，浏览器访问路由不得出现空白页或控制台编译错误。
+
 ## 结构化数据
 
 <!-- FDE_STEP_RESULT_JSON_START -->

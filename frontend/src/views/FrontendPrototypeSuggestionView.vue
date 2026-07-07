@@ -491,13 +491,14 @@ const activeTabIndex = computed(() => suggestionTabs.findIndex((item) => item.ke
 
 /* ===== 从 projectContext 恢复已保存的 LLM 生成数据 ===== */
 const initialProto = props.projectContext.stepResults?.prototype || null
+const validInitialProto = initialProto?.invalidated ? null : initialProto
 
-const generatedPageSpecs = ref(initialProto?.pageDetailSpecs || null)
-const generatedPageApiMapping = ref(initialProto?.pageApiMapping || null)
-const generatedNavigationRoutes = ref(initialProto?.navigationRoutes || null)
-const generatedComponentFiles = ref(initialProto?.componentFiles || null)
-const generatedMockDataFiles = ref(initialProto?.mockDataFiles || null)
-const generatedStepPrompts = ref(initialProto?.stepPrompts || null)
+const generatedPageSpecs = ref(validInitialProto?.pageDetailSpecs || null)
+const generatedPageApiMapping = ref(validInitialProto?.pageApiMapping || null)
+const generatedNavigationRoutes = ref(validInitialProto?.navigationRoutes || null)
+const generatedComponentFiles = ref(validInitialProto?.componentFiles || null)
+const generatedMockDataFiles = ref(validInitialProto?.mockDataFiles || null)
+const generatedStepPrompts = ref(validInitialProto?.stepPrompts || null)
 
 const generationStatusMessage = ref('')
 
@@ -586,18 +587,7 @@ async function requestLlmGeneration(stepKey, instruction, currentOutput) {
 
 /* ===== 保存当前结果到父组件 → 持久化到 MD ===== */
 function persistPrototypeResult() {
-  const existing = props.projectContext.stepResults?.prototype || {}
   const current = buildPrototypePayload()
-
-  // LLM 生成的字段：当前有值才覆盖，否则保留 prototype.md 中已有的数据
-  // 这样每个 Tab 只更新自己生成的内容，不会互相覆盖
-  const llmFields = ['pageDetailSpecs', 'pageApiMapping', 'navigationRoutes', 'componentFiles', 'mockDataFiles', 'stepPrompts']
-  for (const field of llmFields) {
-    if (!current[field] && existing[field]) {
-      current[field] = existing[field]
-    }
-  }
-
   emit('prototype-draft-update', current)
 }
 
@@ -656,6 +646,46 @@ function summarizeApiContract(contract) {
   }
 }
 
+const currentPageFileSet = computed(() =>
+  new Set(recommendedViewFiles.value.map((page) => page.file).filter(Boolean))
+)
+
+function prunePageSpecs(items) {
+  const files = currentPageFileSet.value
+  return (items || []).filter((item) => files.has(item.file))
+}
+
+function prunePageApiMappings(items) {
+  const files = currentPageFileSet.value
+  return (items || []).filter((item) => files.has(item.page))
+}
+
+function pruneNavigationGroups(groups) {
+  const files = currentPageFileSet.value
+  return (groups || [])
+    .map((group) => ({
+      ...group,
+      routes: (group.routes || []).filter((route) => files.has(route.component)),
+    }))
+    .filter((group) => group.routes.length)
+}
+
+function pruneFilesByUsedPages(items) {
+  const files = currentPageFileSet.value
+  return (items || [])
+    .map((item) => {
+      if (!Array.isArray(item.usedBy)) return item
+      const usedBy = item.usedBy.filter((file) => files.has(file))
+      return {
+        ...item,
+        usedBy,
+        stale: item.usedBy.length > 0 && usedBy.length === 0,
+      }
+    })
+    .filter((item) => !item.stale)
+    .map(({ stale, ...item }) => item)
+}
+
 function buildPrototypePayload() {
   const pages = recommendedViewFiles.value.map((page) => ({
     file: page.file,
@@ -672,11 +702,11 @@ function buildPrototypePayload() {
     sourceSummary: sourceSummary.value,
     pages,
     viewFiles: pages,
-    pageDetailSpecs: pageDetailSpecs.value,
-    pageApiMapping: pageApiMapping.value,
-    navigationRoutes: navigationRoutes.value,
-    componentFiles: recommendedComponentFiles.value,
-    mockDataFiles: recommendedMockDataFiles.value,
+    pageDetailSpecs: prunePageSpecs(pageDetailSpecs.value),
+    pageApiMapping: prunePageApiMappings(pageApiMapping.value),
+    navigationRoutes: pruneNavigationGroups(navigationRoutes.value),
+    componentFiles: pruneFilesByUsedPages(recommendedComponentFiles.value),
+    mockDataFiles: pruneFilesByUsedPages(recommendedMockDataFiles.value),
     generationPlan: recommendedSteps,
     stepPrompts: stepPrompts.value,
     implementationDefaults: {
@@ -738,7 +768,9 @@ const sourceSummary = computed(() => {
       key: scenario.key,
       name: scenario.name,
       priority: scenario.priority,
+      role: scenario.pageMapping?.role || scenario.role || '',
       page: scenario.pageMapping?.page,
+      summary: scenario.summary || scenario.description || scenario.goal || '',
     })),
     apiContractCount: contracts.length,
   }
@@ -747,7 +779,7 @@ const sourceSummary = computed(() => {
 /* ===== 2. 页面规格 - 增量生成：只生成缺失的页面，跳过已有规格 ===== */
 const PAGE_SPEC_BATCH_SIZE = 3
 const PAGE_SPEC_MAX_RETRIES = 1
-const pageDetailSpecs = computed(() => generatedPageSpecs.value || [])
+const pageDetailSpecs = computed(() => prunePageSpecs(generatedPageSpecs.value || []))
 
 async function generatePageSpecs() {
   if (!scenarioPageResult.value) {
@@ -761,7 +793,8 @@ async function generatePageSpecs() {
     return
   }
 
-  const existing = generatedPageSpecs.value || []
+  const existing = prunePageSpecs(generatedPageSpecs.value || [])
+  generatedPageSpecs.value = existing
   let accumulated = [...existing]
 
   // 如果已有生成内容，弹出确认对话框
@@ -825,11 +858,15 @@ async function doGeneratePageSpecs(allPages, pending, accumulated) {
         const instruction = [
           `请根据以下 ${batch.length} 个页面的设计信息，生成每个页面的详细规格。`,
           '只返回 JSON，不要 Markdown。JSON 结构为数组：[{ "file": "页面文件名.vue", "layoutZones": [{ "zone": "区域名", "content": "该区域的内容描述" }], "uiStates": [{ "state": "状态标识", "content": "该状态下的 UI 表现" }], "keyInteractions": ["交互描述1", "交互描述2"] }]。',
+          '输入中的 sourceSummary 仅用于理解业务背景和场景边界；页面规格必须以 pages 中的页面设计、区域、动作和状态为准。',
           '重要：file 字段必须严格使用上面提供的文件名，不要修改。',
         ].join('\n')
 
         try {
-          const raw = await requestLlmGeneration(`页面规格详情(${batchLabel})`, instruction, { pages: batch })
+          const raw = await requestLlmGeneration(`页面规格详情(${batchLabel})`, instruction, {
+            sourceSummary: sourceSummary.value,
+            pages: batch,
+          })
           const parsed = parseMaybeJson(raw)
           items = Array.isArray(parsed) ? parsed : (parsed?.pageSpecs || parsed?.specs || [])
 
@@ -902,7 +939,7 @@ function buildPageSpecPagesInput() {
 
 /* ===== 3. 页面-API映射 (步骤5+6) - 增量生成 ===== */
 const API_MAPPING_BATCH_SIZE = 5
-const pageApiMapping = computed(() => generatedPageApiMapping.value || [])
+const pageApiMapping = computed(() => prunePageApiMappings(generatedPageApiMapping.value || []))
 
 async function generatePageApiMapping() {
   var contracts = allApiContracts.value
@@ -918,7 +955,8 @@ async function generatePageApiMapping() {
   }
 
   const apiContracts = contracts
-  const existing = generatedPageApiMapping.value || []
+  const existing = prunePageApiMappings(generatedPageApiMapping.value || [])
+  generatedPageApiMapping.value = existing
   let accumulated = [...existing]
 
   if (existing.length) {
@@ -969,13 +1007,16 @@ async function doGenerateApiMapping(allPages, pending, apiContracts, accumulated
 
       const input = {
         pages: batch.map((p) => ({ file: p.file, responsibility: p.responsibility })),
+        pageSpecs: pageDetailSpecs.value
+          .filter((spec) => batchFiles.has(spec.file))
+          .map(summarizePageSpec),
         apiContracts: apiContracts.map((c) => ({ method: c.method, path: c.path, name: c.name, goal: c.goal, resourceGroupLabel: c.resourceGroupLabel })),
       }
       const instruction = [
-        `请根据 ${input.pages.length} 个页面和 ${input.apiContracts.length} 个 API 契约，建立页面到 API 的映射关系。`,
+        `请根据 ${input.pages.length} 个页面、页面规格摘要和 ${input.apiContracts.length} 个 API 契约，建立页面到 API 的映射关系。`,
         '只返回 JSON，不要 Markdown。JSON 结构为数组：[{ "page": "页面文件名", "apis": [{ "method": "GET/POST/PUT", "path": "/api/xxx", "usage": "调用说明" }] }]。',
         '每个页面映射 1-4 个最相关的 API，usage 用中文描述调用的业务时机。',
-        '优先匹配 resourceGroupLabel 与页面职责相关的 API。',
+        '优先依据 pageSpecs 中的 layoutZones、uiStates、keyInteractions 判断页面实际需要的数据读写，再匹配 resourceGroupLabel 与页面职责相关的 API。',
       ].join('\n')
 
       const raw = await requestLlmGeneration(`页面-API映射(${batchLabel})`, instruction, input)
@@ -1016,7 +1057,7 @@ async function doGenerateApiMapping(allPages, pending, apiContracts, accumulated
 }
 
 /* ===== 4. 导航路由 (步骤4) ===== */
-const navigationRoutes = computed(() => generatedNavigationRoutes.value || [])
+const navigationRoutes = computed(() => pruneNavigationGroups(generatedNavigationRoutes.value || []))
 
 async function generateNavigationRoutes() {
   if (!scenarioPageResult.value) {
@@ -1031,11 +1072,12 @@ async function generateNavigationRoutes() {
     const pages = recommendedViewFiles.value
     const input = {
       pages: pages.map((p) => ({ file: p.file, responsibility: p.responsibility, priority: p.priority })),
+      scenarios: sourceSummary.value.scenarios,
     }
     const instruction = [
       `请根据 ${input.pages.length} 个页面清单，设计导航路由结构。`,
       '只返回 JSON，不要 Markdown。JSON 结构为数组：[{ "group": "分组名", "icon": "emoji图标", "routes": [{ "path": "/xxx/yyy", "component": "组件名.vue", "title": "中文标题", "default": true/false }] }]。',
-      '按业务语义分为 3-5 个导航分组（如调度指挥、任务执行、场地管理等）。',
+      '按 scenarios 的业务场景语义分为 3-5 个导航分组（如调度指挥、任务执行、场地管理等），不要只按文件名机械分组。',
       '每个分组标记一个默认页（default: true）。',
       '路由 path 用小写 kebab-case，按分组前缀归类。',
     ].join('\n')
@@ -1060,7 +1102,7 @@ async function generateNavigationRoutes() {
 /* ===== 5. 组件契约 (步骤4 + 页面规格) ===== */
 /* ===== 5. 组件契约 (步骤4 + 页面规格) ===== */
 const recommendedComponentFiles = computed(() => {
-  if (generatedComponentFiles.value?.length) return generatedComponentFiles.value
+  if (generatedComponentFiles.value?.length) return pruneFilesByUsedPages(generatedComponentFiles.value)
 
   if (savedFileStructure.value.components?.length) {
     return savedFileStructure.value.components.map((file) => ({
@@ -1076,6 +1118,11 @@ const recommendedComponentFiles = computed(() => {
 async function generateComponentContracts() {
   if (!recommendedViewFiles.value.length) {
     generationStatusMessage.value = '请先确保页面文件清单已加载。'
+    return
+  }
+
+  if (!pageDetailSpecs.value.length) {
+    generationStatusMessage.value = '建议先生成「页面规格」，再生成组件拆分。页面规格会提供布局区域、UI 状态和关键交互，组件契约会更准确。'
     return
   }
 
@@ -1116,7 +1163,7 @@ async function generateComponentContracts() {
 /* ===== 6. Mock 数据 Schema (步骤6 + 组件契约) ===== */
 /* ===== 6. Mock 数据 Schema (步骤6 + 组件契约) ===== */
 const recommendedMockDataFiles = computed(() => {
-  if (generatedMockDataFiles.value?.length) return generatedMockDataFiles.value
+  if (generatedMockDataFiles.value?.length) return pruneFilesByUsedPages(generatedMockDataFiles.value)
 
   if (savedFileStructure.value.data?.length) {
     return savedFileStructure.value.data.map((file) => ({
@@ -1152,13 +1199,21 @@ async function generateMockDataSchemas() {
         file: spec.file,
         states: (spec.uiStates || []).slice(0, 6),
       })),
+      pageApiMapping: pageApiMapping.value.map((mapping) => ({
+        page: mapping.page,
+        apis: (mapping.apis || []).slice(0, 6).map((api) => ({
+          method: api.method,
+          path: api.path,
+          usage: api.usage,
+        })),
+      })),
     }
     const instruction = [
-      `请根据 API 契约和页面清单，设计 Mock 数据文件及其数据结构。`,
+      `请根据 API 契约、页面-API 映射和页面清单，设计 Mock 数据文件及其数据结构。`,
       '只返回 JSON，不要 Markdown。JSON 结构为数组：[{ "file": "mockXxx.js", "content": "文件用途描述", "usedBy": ["页面.vue"], "schema": [{ "field": "字段名", "type": "类型", "description": "说明" }] }]。',
       '按业务域拆分 4-6 个 mock 文件（如 mockDispatch、mockTasks、mockAlerts 等）。',
       '每个 mock 文件的 schema 列出 3-8 个核心字段。',
-      '字段类型与 API 契约的 requestParams 和 successResponse 保持一致。',
+      '优先根据 pageApiMapping 决定每个 mock 文件服务哪些页面；字段类型与 API 契约的 requestParams 和 successResponse 保持一致。',
     ].join('\n')
 
     const raw = await requestLlmGeneration('Mock 数据 Schema', instruction, input)

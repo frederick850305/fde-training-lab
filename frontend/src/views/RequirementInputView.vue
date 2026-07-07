@@ -4,29 +4,50 @@
       eyebrow="Requirement Intake"
       title="需求输入工作台"
       title-id="requirement-input-title"
-      description="上传客户材料或直接输入需求文本，系统先形成需求拆解草案；你回复待确认问题后，再提交给场景识别。"
+      description="直接输入客户需求，或导入外部 AI 已整理的 Markdown，系统先形成需求拆解草案；你回复待确认问题后，再提交给场景识别。"
     />
 
     <ProjectContextCard :context="projectContext" @context-update="emit('context-update', $event)" />
 
     <form class="intake-panel" @submit.prevent="handleAnalyze">
-      <section class="upload-block" aria-labelledby="attachment-title">
+      <section class="md-import-block" aria-labelledby="md-import-title">
         <div class="field-head">
-          <label id="attachment-title" for="requirement-files">需求附件</label>
-          <span>{{ uploadedFiles.length }} 个文件{{ isParsingFiles ? '，解析中' : '' }}</span>
+          <label id="md-import-title" for="requirement-md-file">导入已整理 MD</label>
+          <span>{{ pendingMarkdownImport?.fileName || importedMarkdownName || '可选' }}</span>
         </div>
         <input
-          id="requirement-files"
+          id="requirement-md-file"
           type="file"
-          multiple
-          accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.png,.jpg,.jpeg"
-          @change="handleFileChange"
+          accept=".md,.markdown,text/markdown,text/plain"
+          @change="handleMarkdownImport"
         />
-        <p>支持多附件上传。文本、CSV、Markdown、JSON、HTML、PDF、docx、xlsx、pptx 会在浏览器端提取文本；图片和旧版 Office 二进制文件会保留文件信息，后续可接入 OCR/解析服务。</p>
-        <div v-if="uploadedFiles.length" class="file-list">
-          <span v-for="file in uploadedFiles" :key="file.name + file.size" :class="file.parseStatus">
-            {{ file.name }} · {{ formatFileSize(file.size) }} · {{ file.parseLabel }}
-          </span>
+        <p>适合先用 Gemini、Codex、WorkBuddy 在系统外整理材料后导入。系统会按标题解析为需求拆解草案，并保留原始 Markdown 供后续步骤溯源。</p>
+        <p v-if="importMessage" class="import-message">{{ importMessage }}</p>
+        <div v-if="pendingMarkdownImport" class="md-import-preview">
+          <div class="panel-head">
+            <strong>待应用：{{ pendingMarkdownImport.fileName }}</strong>
+            <span>{{ pendingMarkdownImport.markdown.length }} 字</span>
+          </div>
+          <p class="section-desc">当前只是预览，尚未覆盖下方客户原始需求和需求拆解草案。点击应用后会替换当前草案并保存为最新需求拆解草稿。</p>
+          <dl>
+            <div>
+              <dt>业务背景</dt>
+              <dd>{{ pendingMarkdownImport.analysis.businessBackground }}</dd>
+            </div>
+            <div>
+              <dt>解析结果</dt>
+              <dd>
+                {{ pendingMarkdownImport.analysis.painPoints.length }} 个痛点，
+                {{ pendingMarkdownImport.analysis.businessGoals.length }} 个目标，
+                {{ pendingMarkdownImport.analysis.userRoles.length }} 个角色，
+                {{ pendingMarkdownImport.analysis.questions.length }} 个待确认问题
+              </dd>
+            </div>
+          </dl>
+          <div class="button-row">
+            <button class="secondary-button" type="button" @click="cancelMarkdownImport">取消导入</button>
+            <button class="gen-btn" type="button" @click="applyMarkdownImport">应用为当前需求拆解</button>
+          </div>
         </div>
       </section>
 
@@ -40,7 +61,7 @@
           id="customer-requirement"
           v-model.trim="requirementText"
           rows="3"
-          placeholder="可以直接粘贴客户需求、会议纪要、招标片段、方案描述；如果主要依赖附件，也可以先写一句材料背景。"
+          placeholder="可以直接粘贴客户需求、会议纪要、招标片段、方案描述；如材料较多，建议先用外部 AI 整理为 Markdown 后导入。"
           :aria-invalid="Boolean(errorMessage)"
         ></textarea>
 
@@ -48,11 +69,11 @@
       </section>
 
       <div class="button-row">
-        <button class="secondary-button" type="button" :disabled="isLoading || isParsingFiles" @click="clearInput">
+        <button class="secondary-button" type="button" :disabled="isLoading" @click="clearInput">
           清空
         </button>
-        <button class="gen-btn" type="submit" :disabled="isLoading || isParsingFiles">
-          {{ isLoading ? '正在生成草案...' : isParsingFiles ? '正在解析附件...' : '生成草案' }}
+        <button class="gen-btn" type="submit" :disabled="isLoading">
+          {{ isLoading ? '正在生成草案...' : '生成草案' }}
         </button>
       </div>
     </form>
@@ -67,6 +88,39 @@
       </button>
 
       <div v-if="isAnalysisOpen" class="analysis-body">
+        <section class="analysis-editor" aria-labelledby="analysis-editor-title">
+          <div class="panel-head">
+            <strong id="analysis-editor-title">可视化修改</strong>
+            <span>修改后会同步到需求拆解草案</span>
+          </div>
+
+          <label>
+            <span>业务背景</span>
+            <textarea v-model="editableAnalysis.businessBackground" rows="3" @input="syncEditableAnalysis"></textarea>
+          </label>
+
+          <div class="editor-grid">
+            <label>
+              <span>客户痛点（每行一项）</span>
+              <textarea v-model="editableAnalysis.painPointsText" rows="5" @input="syncEditableAnalysis"></textarea>
+            </label>
+            <label>
+              <span>业务目标（每行一项）</span>
+              <textarea v-model="editableAnalysis.businessGoalsText" rows="5" @input="syncEditableAnalysis"></textarea>
+            </label>
+          </div>
+
+          <label>
+            <span>用户角色（每行：角色 | 职责）</span>
+            <textarea v-model="editableAnalysis.userRolesText" rows="5" @input="syncEditableAnalysis"></textarea>
+          </label>
+
+          <label>
+            <span>待确认问题（每行一项）</span>
+            <textarea v-model="editableAnalysis.questionsText" rows="5" @input="syncEditableAnalysis"></textarea>
+          </label>
+        </section>
+
         <article class="analysis-card wide">
           <span>业务背景</span>
           <p>{{ analysisResult.businessBackground }}</p>
@@ -205,8 +259,6 @@ const emit = defineEmits(['analysis-complete', 'analysis-draft-update', 'context
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
 const requirementText = ref('')
-const uploadedFiles = ref([])
-const isParsingFiles = ref(false)
 const questionReplies = ref([])
 const activeQuestionIndex = ref(0)
 const clarificationInput = ref('')
@@ -218,6 +270,18 @@ const errorMessage = ref('')
 const isLoading = ref(false)
 const analysisResult = ref(null)
 const isAnalysisOpen = ref(true)
+const importedMarkdownName = ref('')
+const importedMarkdownText = ref('')
+const pendingMarkdownImport = ref(null)
+const importMessage = ref('')
+const editableAnalysis = ref({
+  businessBackground: '',
+  painPointsText: '',
+  businessGoalsText: '',
+  userRolesText: '',
+  questionsText: '',
+})
+const isSyncingEditableAnalysis = ref(false)
 
 const requirementLength = computed(() => requirementText.value.length)
 const activeQuestionText = computed(() => {
@@ -233,12 +297,14 @@ watch(
     }
 
     requirementText.value = savedRequirement.manualRequirement || savedRequirement.sourceRequirement || ''
-    uploadedFiles.value = savedRequirement.attachments || []
     analysisResult.value = savedRequirement.analysis
+    importedMarkdownText.value = savedRequirement.analysis.importedMarkdown || ''
+    importedMarkdownName.value = savedRequirement.analysis.importedMarkdownName || ''
     questionReplies.value = (savedRequirement.analysis.questionResponses || savedRequirement.analysis.questions || [])
       .map((item) => item.answer || '')
     clarificationMessages.value = savedRequirement.analysis.clarificationMessages || []
     clarificationInsights.value = savedRequirement.analysis.clarificationInsights || []
+    hydrateEditableAnalysis(savedRequirement.analysis)
   },
   { immediate: true },
 )
@@ -249,7 +315,7 @@ watch(analysisResult, (nextAnalysis) => {
 })
 
 const defaultAnalysis = {
-  businessBackground: '请补充客户业务背景或上传需求材料。',
+  businessBackground: '请补充客户业务背景或导入已整理的需求材料。',
   painPoints: ['需进一步识别客户当前流程中的痛点、约束和人工处理环节。'],
   businessGoals: ['明确本轮 FDE 原型要验证的核心业务流程和页面范围。'],
   userRoles: [
@@ -261,11 +327,63 @@ const defaultAnalysis = {
   questions: ['本轮原型最需要优先验证的业务闭环是什么？'],
 }
 
-const attachmentSummary = computed(() => uploadedFiles.value.map((file) => `${file.name}（${formatFileSize(file.size)}，${file.parseLabel}）`).join('；'))
+const combinedRequirementInput = computed(() => {
+  const parts = [requirementText.value]
+  if (importedMarkdownText.value && importedMarkdownText.value !== requirementText.value) {
+    parts.push(importedMarkdownText.value)
+  }
+  return parts.filter(Boolean).join('\n\n')
+})
 
-const extractedAttachmentText = computed(() => uploadedFiles.value.map((file) => file.extractedText || '').filter(Boolean).join('\n'))
+function listToText(items) {
+  return (items || []).map((item) => String(item || '').trim()).filter(Boolean).join('\n')
+}
 
-const combinedRequirementInput = computed(() => [requirementText.value, extractedAttachmentText.value].filter(Boolean).join('\n\n'))
+function textToList(text) {
+  return String(text || '')
+    .split('\n')
+    .map((item) => item.replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean)
+}
+
+function hydrateEditableAnalysis(analysis) {
+  isSyncingEditableAnalysis.value = true
+  editableAnalysis.value = {
+    businessBackground: analysis?.businessBackground || '',
+    painPointsText: listToText(analysis?.painPoints || []),
+    businessGoalsText: listToText(analysis?.businessGoals || []),
+    userRolesText: (analysis?.userRoles || [])
+      .map((role) => `${role.name || ''} | ${role.responsibility || ''}`.trim())
+      .filter(Boolean)
+      .join('\n'),
+    questionsText: listToText(analysis?.questions || []),
+  }
+  isSyncingEditableAnalysis.value = false
+}
+
+function parseRoleLine(line) {
+  const [name, ...rest] = String(line || '').split('|')
+  const roleName = name.trim()
+  const responsibility = rest.join('|').trim()
+  if (!roleName && !responsibility) return null
+  return {
+    name: roleName || '未命名角色',
+    responsibility,
+  }
+}
+
+function syncEditableAnalysis() {
+  if (!analysisResult.value || isSyncingEditableAnalysis.value) return
+  analysisResult.value = enrichAnalysis({
+    ...analysisResult.value,
+    businessBackground: editableAnalysis.value.businessBackground.trim(),
+    painPoints: textToList(editableAnalysis.value.painPointsText),
+    businessGoals: textToList(editableAnalysis.value.businessGoalsText),
+    userRoles: textToList(editableAnalysis.value.userRolesText).map(parseRoleLine).filter(Boolean),
+    questions: textToList(editableAnalysis.value.questionsText),
+  }, analysisResult.value.generationSource || 'manual')
+  questionReplies.value = (analysisResult.value.questions || []).map((_, index) => questionReplies.value[index] || '')
+}
 
 function splitSentences(text) {
   return text
@@ -274,170 +392,185 @@ function splitSentences(text) {
     .filter(Boolean)
 }
 
-function formatFileSize(size) {
-  if (size >= 1024 * 1024) {
-    return `${(size / 1024 / 1024).toFixed(1)} MB`
-  }
-
-  return `${Math.max(1, Math.round(size / 1024))} KB`
-}
-
-function buildFileRecord(file, parseStatus, parseLabel, extractedText = '') {
-  return {
-    name: file.name,
-    size: file.size,
-    type: file.type || 'unknown',
-    lastModified: file.lastModified,
-    parseStatus,
-    parseLabel,
-    extractedText,
-  }
-}
-
-function getFileExtension(fileName) {
-  return fileName.split('.').pop()?.toLowerCase() || ''
-}
-
-function normalizeExtractedText(text) {
+function normalizeMarkdownHeading(text) {
   return String(text || '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/^\s*\d+[.、]\s*/, '')
+    .replace(/[：:]\s*$/, '')
     .trim()
 }
 
-async function parseRequirementFile(file) {
-  const ext = getFileExtension(file.name)
+function parseMarkdownSections(markdown) {
+  const sections = []
+  let current = null
 
-  try {
-    if (['txt', 'md', 'csv', 'json', 'html', 'htm', 'xml'].includes(ext) || file.type.startsWith('text/')) {
-      const text = normalizeExtractedText(await file.text())
-      return buildFileRecord(file, text ? 'parsed' : 'empty', text ? '已解析文本' : '无可读文本', text)
-    }
-
-    if (ext === 'pdf') {
-      const text = normalizeExtractedText(extractPdfText(await file.arrayBuffer()))
-      return buildFileRecord(file, text ? 'parsed' : 'partial', text ? '已基础解析 PDF' : '未提取到 PDF 文本', text)
-    }
-
-    if (['docx', 'xlsx', 'pptx'].includes(ext)) {
-      const text = normalizeExtractedText(await extractOfficeOpenXmlText(await file.arrayBuffer(), ext))
-      return buildFileRecord(file, text ? 'parsed' : 'partial', text ? `已解析 ${ext}` : `${ext} 未提取到文本`, text)
-    }
-
-    return buildFileRecord(file, 'unsupported', '暂不支持内容解析')
-  } catch (error) {
-    return buildFileRecord(file, 'error', '解析失败')
-  }
-}
-
-function extractPdfText(buffer) {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  const chunkSize = 8192
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.slice(index, index + chunkSize))
-  }
-
-  const matches = [...binary.matchAll(/\(([^()]{2,})\)/g)]
-  return matches.map((match) => match[1].replace(/\\([()\\])/g, '$1')).join(' ')
-}
-
-async function extractOfficeOpenXmlText(buffer, ext) {
-  const entries = readZipEntries(buffer)
-  const targetPatterns = {
-    docx: [/^word\/document\.xml$/, /^word\/header\d*\.xml$/, /^word\/footer\d*\.xml$/],
-    xlsx: [/^xl\/sharedStrings\.xml$/, /^xl\/worksheets\/sheet\d+\.xml$/],
-    pptx: [/^ppt\/slides\/slide\d+\.xml$/],
-  }
-  const patterns = targetPatterns[ext] || []
-  const parts = []
-
-  for (const entry of entries) {
-    if (!patterns.some((pattern) => pattern.test(entry.name))) {
+  for (const line of String(markdown || '').split(/\r?\n/)) {
+    const heading = line.match(/^(#{1,6})\s+(.+)$/)
+    if (heading) {
+      current = {
+        level: heading[1].length,
+        title: normalizeMarkdownHeading(heading[2]),
+        lines: [],
+      }
+      sections.push(current)
       continue
     }
 
-    const content = await inflateZipEntry(entry)
-    parts.push(new TextDecoder('utf-8').decode(content))
+    if (current) current.lines.push(line)
   }
 
-  return parts.join(' ')
+  return sections
+    .map((section) => ({
+      ...section,
+      content: section.lines.join('\n').trim(),
+    }))
+    .filter((section) => section.title || section.content)
 }
 
-function readZipEntries(buffer) {
-  const view = new DataView(buffer)
-  const bytes = new Uint8Array(buffer)
-  const entries = []
-  let offset = 0
+function getSectionsByKeywords(sections, keywords) {
+  return sections.filter((section) => keywords.some((keyword) => section.title.includes(keyword)))
+}
 
-  while (offset < bytes.length - 30) {
-    if (view.getUint32(offset, true) !== 0x04034b50) {
-      offset += 1
-      continue
+function extractBulletItems(content) {
+  const lines = String(content || '').split(/\r?\n/)
+  const bulletItems = lines
+    .map((line) => line.match(/^\s*(?:[-*+]|\d+[.、])\s+(.+)$/)?.[1]?.trim())
+    .filter(Boolean)
+
+  if (bulletItems.length) return bulletItems
+  return String(content || '')
+    .split(/[。；;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function stripMarkdownTableCell(cell) {
+  return String(cell || '').replace(/\*\*/g, '').trim()
+}
+
+function extractRoles(content) {
+  const lines = String(content || '').split(/\r?\n/)
+  const tableRows = lines
+    .filter((line) => line.trim().startsWith('|') && line.trim().endsWith('|'))
+    .filter((line) => !/^\s*\|?\s*:?-{2,}:?/.test(line.replace(/\|/g, '')))
+    .map((line) => line.split('|').slice(1, -1).map(stripMarkdownTableCell))
+    .filter((cells) => cells.length >= 2 && !cells[0].includes('角色'))
+
+  if (tableRows.length) {
+    return tableRows.map((cells) => ({
+      name: cells[0] || '未命名角色',
+      responsibility: cells[1] || cells.slice(1).join('；'),
+    }))
+  }
+
+  return extractBulletItems(content).map((item) => {
+    const [name, ...rest] = item.split(/[：:|-]/)
+    return {
+      name: name.trim() || '未命名角色',
+      responsibility: rest.join(' ').trim() || item,
     }
-
-    const compressionMethod = view.getUint16(offset + 8, true)
-    const compressedSize = view.getUint32(offset + 18, true)
-    const uncompressedSize = view.getUint32(offset + 22, true)
-    const fileNameLength = view.getUint16(offset + 26, true)
-    const extraLength = view.getUint16(offset + 28, true)
-    const nameStart = offset + 30
-    const nameEnd = nameStart + fileNameLength
-    const dataStart = nameEnd + extraLength
-    const dataEnd = dataStart + compressedSize
-    const name = new TextDecoder('utf-8').decode(bytes.slice(nameStart, nameEnd))
-
-    if (!name.endsWith('/')) {
-      entries.push({
-        name,
-        compressionMethod,
-        compressedSize,
-        uncompressedSize,
-        data: bytes.slice(dataStart, dataEnd),
-      })
-    }
-
-    offset = dataEnd
-  }
-
-  return entries
+  })
 }
 
-async function inflateZipEntry(entry) {
-  if (entry.compressionMethod === 0) {
-    return entry.data
-  }
-
-  if (entry.compressionMethod !== 8 || typeof DecompressionStream === 'undefined') {
-    return new Uint8Array()
-  }
-
-  const stream = new Blob([entry.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
-  return new Uint8Array(await new Response(stream).arrayBuffer())
+function firstContent(sections, keywords) {
+  return getSectionsByKeywords(sections, keywords)[0]?.content || ''
 }
 
-async function handleFileChange(event) {
-  const files = Array.from(event.target.files || [])
-  errorMessage.value = ''
-  analysisResult.value = null
-  questionReplies.value = []
+function sectionItems(sections, keywords) {
+  return getSectionsByKeywords(sections, keywords).flatMap((section) => extractBulletItems(section.content))
+}
 
-  if (!files.length) {
-    uploadedFiles.value = []
+function buildInsightsFromSections(sections) {
+  const mappedTitles = ['项目背景', '客户目标', '业务目标', '当前痛点', '客户痛点', '用户角色', '角色', '待客户确认问题', '待确认问题']
+  return sections
+    .filter((section) => section.content && !mappedTitles.some((title) => section.title.includes(title)))
+    .map((section, index) => ({
+      id: `md-${Date.now()}-${index}`,
+      category: section.title || '导入补充',
+      title: section.title || 'Markdown 补充内容',
+      detail: section.content.slice(0, 1200),
+      scenarioValue: '来自导入 Markdown，可用于下一步补充场景、流程、页面和接口设计。',
+    }))
+}
+
+function parseMarkdownRequirement(markdown, fileName) {
+  const sections = parseMarkdownSections(markdown)
+  const background = firstContent(sections, ['项目背景', '业务背景', '背景'])
+  const goals = sectionItems(sections, ['客户目标', '业务目标', '目标'])
+  const painPoints = sectionItems(sections, ['当前痛点', '客户痛点', '痛点'])
+  const roleSection = getSectionsByKeywords(sections, ['用户角色', '角色与职责', '角色'])[0]
+  const questions = sectionItems(sections, ['待客户确认问题', '待确认问题', '待确认'])
+
+  return enrichAnalysis({
+    businessBackground: background || '已导入外部 AI 整理的 Markdown，请在可视化区域补充业务背景。',
+    painPoints: painPoints.length ? painPoints : defaultAnalysis.painPoints,
+    businessGoals: goals.length ? goals : defaultAnalysis.businessGoals,
+    userRoles: roleSection ? extractRoles(roleSection.content) : defaultAnalysis.userRoles,
+    questions: questions.length ? questions : defaultAnalysis.questions,
+    clarificationInsights: buildInsightsFromSections(sections),
+    importedMarkdown: markdown,
+    importedMarkdownName: fileName,
+  }, 'markdown-import')
+}
+
+async function handleMarkdownImport(event) {
+  const file = event.target.files?.[0]
+  importMessage.value = ''
+
+  if (!file) return
+  if (!/\.(md|markdown|txt)$/i.test(file.name)) {
+    importMessage.value = '请选择 Markdown 文件。'
+    event.target.value = ''
     return
   }
 
-  isParsingFiles.value = true
-  uploadedFiles.value = files.map((file) => buildFileRecord(file, 'pending', '等待解析'))
+  try {
+    const markdown = await file.text()
+    const parsedAnalysis = parseMarkdownRequirement(markdown, file.name)
+    pendingMarkdownImport.value = {
+      fileName: file.name,
+      markdown,
+      analysis: parsedAnalysis,
+    }
+    importMessage.value = `已读取 ${file.name}，请预览后决定是否应用。`
+  } catch (error) {
+    importMessage.value = 'Markdown 导入失败，请检查文件内容。'
+  } finally {
+    event.target.value = ''
+  }
+}
 
-  uploadedFiles.value = await Promise.all(files.map(parseRequirementFile))
-  isParsingFiles.value = false
+function cancelMarkdownImport() {
+  pendingMarkdownImport.value = null
+  importMessage.value = '已取消本次 Markdown 导入，当前内容未改变。'
+}
+
+function applyMarkdownImport() {
+  if (!pendingMarkdownImport.value) return
+
+  const hasExistingDraft = Boolean(requirementText.value || analysisResult.value)
+  if (hasExistingDraft && !window.confirm('应用导入 Markdown 会覆盖当前客户原始需求和需求拆解草案，是否继续？')) {
+    return
+  }
+
+  const pending = pendingMarkdownImport.value
+  importedMarkdownName.value = pending.fileName
+  importedMarkdownText.value = pending.markdown
+  requirementText.value = pending.markdown
+  analysisResult.value = pending.analysis
+  questionReplies.value = pending.analysis.questions.map(() => '')
+  activeQuestionIndex.value = 0
+  clarificationMessages.value = []
+  clarificationInsights.value = pending.analysis.clarificationInsights || []
+  clarificationError.value = ''
+  hydrateEditableAnalysis(pending.analysis)
+  pendingMarkdownImport.value = null
+  importMessage.value = `已应用 ${pending.fileName}，可在下方可视化修改后进入下一步。`
+  emit('analysis-draft-update', buildRequirementResult(pending.analysis, []))
 }
 
 function buildDynamicAnalysis(text) {
   const fallback = defaultAnalysis
-  const sourceText = [text, attachmentSummary.value].filter(Boolean).join(' ')
+  const sourceText = text
   const lowerText = sourceText.toLowerCase()
   const sentences = splitSentences(sourceText)
   const topSentences = sentences.slice(0, 4)
@@ -445,20 +578,16 @@ function buildDynamicAnalysis(text) {
 
   const businessBackground = firstSentence
     ? `基于当前输入，项目背景可归纳为：${firstSentence}。`
-    : uploadedFiles.value.length
-      ? `已收到 ${uploadedFiles.value.length} 个客户材料，需结合附件内容继续拆解业务背景。`
-      : fallback.businessBackground
+    : fallback.businessBackground
 
   const dynamicPainPoints = topSentences.length
     ? topSentences.map((item) => `需求中提到：${item}`)
-    : uploadedFiles.value.length
-      ? uploadedFiles.value.map((file) => `需从附件 ${file.name} 中提取客户痛点和业务约束`)
-      : fallback.painPoints
+    : fallback.painPoints
 
   const dynamicGoals = [
     '形成可落地的 FDE 原型方案。',
     '沉淀可复用的业务流程、页面和接口契约。',
-    uploadedFiles.value.length ? '结合上传材料完成需求理解和场景识别。' : '基于文本输入完成需求理解和场景识别。',
+    '基于文本输入完成需求理解和场景识别。',
   ]
 
   const roleRules = [
@@ -509,10 +638,6 @@ function buildDynamicAnalysis(text) {
 
   const dynamicQuestions = []
 
-  if (uploadedFiles.value.length) {
-    dynamicQuestions.push('上传附件中哪些内容是本轮原型必须覆盖的范围？')
-  }
-
   if (text.length < 80) {
     dynamicQuestions.push('当前需求描述较短，是否可以补充核心业务流程、角色边界和成功标准？')
   }
@@ -543,7 +668,6 @@ function buildDynamicAnalysis(text) {
     businessGoals: dynamicGoals,
     userRoles: dynamicRoles,
     questions: dynamicQuestions,
-    attachments: uploadedFiles.value,
   }
 }
 
@@ -708,7 +832,8 @@ function enrichAnalysis(analysis, source = 'local') {
     businessGoals: analysis.businessGoals?.length ? analysis.businessGoals : defaultAnalysis.businessGoals,
     userRoles: analysis.userRoles?.length ? analysis.userRoles : defaultAnalysis.userRoles,
     questions: analysis.questions?.length ? analysis.questions : defaultAnalysis.questions,
-    attachments: uploadedFiles.value,
+    clarificationInsights: analysis.clarificationInsights || clarificationInsights.value || [],
+    importedMarkdownName: analysis.importedMarkdownName || importedMarkdownName.value || '',
     generationSource: source,
   }
 }
@@ -721,7 +846,6 @@ async function requestDeepSeekAnalysis() {
       source_requirement: combinedRequirementInput.value,
       project_name: props.projectContext.projectName,
       customer_name: props.projectContext.customerName,
-      attachments: uploadedFiles.value.map(({ extractedText, ...file }) => file),
     }),
   })
 
@@ -736,8 +860,10 @@ async function requestDeepSeekAnalysis() {
 
 function clearInput() {
   requirementText.value = ''
-  uploadedFiles.value = []
-  isParsingFiles.value = false
+  importedMarkdownName.value = ''
+  importedMarkdownText.value = ''
+  pendingMarkdownImport.value = null
+  importMessage.value = ''
   questionReplies.value = []
   activeQuestionIndex.value = 0
   clarificationInput.value = ''
@@ -748,20 +874,45 @@ function clearInput() {
   analysisResult.value = null
 }
 
-async function handleAnalyze() {
-  if (isParsingFiles.value) {
-    errorMessage.value = '附件仍在解析中，请稍后再生成草案'
-    return
-  }
+function buildInvalidatedRequirementResult(reason) {
+  const sourceRequirement = combinedRequirementInput.value
+  const manualRequirement = requirementText.value === sourceRequirement ? '' : requirementText.value
 
-  if (!requirementText.value && !uploadedFiles.value.length) {
-    errorMessage.value = '请先输入客户原始需求，或上传至少一个需求附件'
+  return {
+    invalidated: true,
+    invalidatedBy: 'requirement-regenerate',
+    invalidatedAt: new Date().toISOString(),
+    reason,
+    projectName: props.projectContext.projectName || '',
+    customerName: props.projectContext.customerName || '',
+    projectStage: props.projectContext.projectStage || '',
+    sourceRequirement,
+    manualRequirement,
+    attachmentText: '',
+    attachments: [],
+    analysis: null,
+    summary: reason,
+  }
+}
+
+async function handleAnalyze() {
+  if (!requirementText.value) {
+    errorMessage.value = '请先输入客户原始需求，或导入已整理的 Markdown'
     return
   }
 
   const shouldUseDeepSeek = props.projectContext.executionMode === 'llm-ready' && props.projectContext.llmProvider === 'deepseek'
 
   errorMessage.value = ''
+  analysisResult.value = null
+  questionReplies.value = []
+  activeQuestionIndex.value = 0
+  clarificationInput.value = ''
+  clarificationMessages.value = []
+  clarificationInsights.value = []
+  clarificationError.value = ''
+  hydrateEditableAnalysis(null)
+  emit('analysis-draft-update', buildInvalidatedRequirementResult('正在重新生成需求拆解草案，上一轮 requirement.md 已失效。'))
   isLoading.value = true
 
   try {
@@ -770,6 +921,7 @@ async function handleAnalyze() {
       : enrichAnalysis(buildDynamicAnalysis(combinedRequirementInput.value), 'local')
 
     analysisResult.value = dynamicAnalysis
+    hydrateEditableAnalysis(dynamicAnalysis)
     questionReplies.value = dynamicAnalysis.questions.map(() => '')
     activeQuestionIndex.value = 0
     clarificationInput.value = ''
@@ -788,25 +940,39 @@ async function handleAnalyze() {
   }
 }
 
+function compactRequirementAnalysis(analysis, questionResponses) {
+  const {
+    sourceText,
+    manualRequirement,
+    sourceRequirement,
+    attachmentText,
+    importedMarkdown,
+    ...rest
+  } = analysis || {}
+
+  return {
+    ...rest,
+    importedMarkdownName: importedMarkdownName.value || rest.importedMarkdownName || '',
+    questionResponses,
+    clarificationMessages: clarificationMessages.value,
+    clarificationInsights: clarificationInsights.value,
+    generationSource: rest.generationSource || 'local',
+  }
+}
+
 function buildRequirementResult(analysis, questionResponses) {
+  const sourceRequirement = combinedRequirementInput.value
+  const manualRequirement = requirementText.value === sourceRequirement ? '' : requirementText.value
+
   return {
     projectName: props.projectContext.projectName || '',
     customerName: props.projectContext.customerName || '',
     projectStage: props.projectContext.projectStage || '',
-    sourceRequirement: combinedRequirementInput.value,
-    manualRequirement: requirementText.value,
-    attachmentText: extractedAttachmentText.value,
-    attachments: uploadedFiles.value,
-    analysis: {
-      ...analysis,
-      sourceText: combinedRequirementInput.value,
-      manualRequirement: requirementText.value,
-      attachmentText: extractedAttachmentText.value,
-      questionResponses,
-      clarificationMessages: clarificationMessages.value,
-      clarificationInsights: clarificationInsights.value,
-      generationSource: analysis.generationSource || 'local',
-    },
+    sourceRequirement,
+    manualRequirement,
+    attachmentText: '',
+    attachments: [],
+    analysis: compactRequirementAnalysis(analysis, questionResponses),
   }
 }
 
@@ -855,7 +1021,7 @@ function goNext() {
   padding: 22px;
 }
 
-.upload-block,
+.md-import-block,
 .text-block {
   display: grid;
   gap: 10px;
@@ -888,43 +1054,44 @@ input[type='file'] {
   color: #172033;
 }
 
-.upload-block p {
+.md-import-block p {
   margin: 0;
   color: #526174;
   line-height: 1.65;
 }
 
-.file-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.file-list span {
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: #eff6ff;
+.import-message {
+  border-left: 3px solid #2563eb;
+  padding-left: 10px;
   color: #1d4ed8;
-  font-size: 13px;
   font-weight: 800;
 }
 
-
-.file-list span.parsed {
-  background: #dcfce7;
-  color: #166534;
+.md-import-preview {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbff;
 }
 
-.file-list span.partial,
-.file-list span.unsupported,
-.file-list span.pending {
-  background: #fef3c7;
-  color: #92400e;
+.md-import-preview dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
 }
 
-.file-list span.error {
-  background: #fee2e2;
-  color: #991b1b;
+.md-import-preview dt {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.md-import-preview dd {
+  margin: 4px 0 0;
+  color: #526174;
+  line-height: 1.6;
 }
 
 textarea {
@@ -995,6 +1162,33 @@ textarea[aria-invalid='true'] {
 
 .analysis-body {
   margin-top: 16px;
+}
+
+.analysis-editor {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fbff;
+}
+
+.analysis-editor label {
+  display: grid;
+  gap: 8px;
+}
+
+.analysis-editor label span {
+  color: #263244;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 .analysis-heading {
   margin-bottom: 16px;
@@ -1069,23 +1263,30 @@ textarea[aria-invalid='true'] {
 .question-replies {
   margin-top: 14px;
   padding: 18px;
+  overflow: hidden;
 }
 
 .clarification-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
 }
 
 .question-list {
   display: grid;
   align-content: start;
   gap: 8px;
+  max-height: 620px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
 }
 
 .question-list button {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -1093,6 +1294,7 @@ textarea[aria-invalid='true'] {
   background: #f8fafc;
   color: #263244;
   text-align: left;
+  min-height: 52px;
 }
 
 .question-list button.active {
@@ -1119,29 +1321,40 @@ textarea[aria-invalid='true'] {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.55;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .chat-panel {
   display: grid;
+  grid-template-rows: auto auto auto;
+  align-content: start;
   gap: 12px;
   min-width: 0;
-}
-
-.chat-thread {
-  display: grid;
-  gap: 10px;
-  max-height: 360px;
-  overflow: auto;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 12px;
   background: #f8fafc;
 }
 
+.chat-thread {
+  display: grid;
+  gap: 10px;
+  min-height: 168px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
 .chat-message {
   display: grid;
   gap: 5px;
-  max-width: 78%;
+  max-width: 88%;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   padding: 10px 12px;
@@ -1181,6 +1394,11 @@ textarea[aria-invalid='true'] {
   gap: 8px;
 }
 
+.chat-input textarea {
+  min-height: 150px;
+  max-height: 220px;
+}
+
 .chat-input span {
   color: #263244;
   font-size: 13px;
@@ -1191,7 +1409,12 @@ textarea[aria-invalid='true'] {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
+}
+
+.chat-actions button {
+  min-height: 40px;
 }
 
 .insight-panel {
@@ -1272,6 +1495,7 @@ textarea[aria-invalid='true'] {
 }
 
 @media (max-width: 920px) {
+  .editor-grid,
   .analysis-grid {
     grid-template-columns: 1fr;
   }
