@@ -77,7 +77,7 @@ export const approvals = [
 ]
 
 export const voyageHealthChecks = [
-  { checkId: 'CHK-2026-007', shipId: 'HG-01', shipName: 'HG-01 启航轮', status: '不通过', score: 72, interceptStatus: '拦截', issueCount: 4, voyageNo: 'V2026-014', checkTime: '2026-07-07 08:00', summary: '2项设备异常+1项缺件预警+1项证书临期' },
+  { checkId: 'CHK-2026-007', shipId: 'HG-01', shipName: 'HG-01 启航轮', status: '不通过', score: 72, interceptStatus: '拦截', issueCount: 4, voyageNo: 'V2026-014', checkTime: '2026-07-07 08:00', summary: '1项设备异常+1项缺件+1项证书临期+1项工单未闭环' },
   { checkId: 'CHK-2026-006', shipId: 'HG-02', shipName: 'HG-02 宏远轮', status: '通过', score: 96, interceptStatus: '放行', issueCount: 0, voyageNo: 'V2026-009', checkTime: '2026-07-06 16:30', summary: '全部校验项通过' },
   { checkId: 'CHK-2026-005', shipId: 'HG-03', shipName: 'HG-03 海工保障船', status: '待检查', score: null, interceptStatus: '待定', issueCount: null, voyageNo: 'V2026-021', checkTime: null, summary: '等待发起航前检查' },
   { checkId: 'CHK-2026-004', shipId: 'HG-01', shipName: 'HG-01 启航轮', status: '通过', score: 91, interceptStatus: '放行', issueCount: 1, voyageNo: 'V2026-013', checkTime: '2026-07-01 09:00', summary: '1项豁免处置后通过' },
@@ -92,10 +92,10 @@ export const voyageHealthIssues = [
 ]
 
 export const healthCheckMatrix = [
-  { name: '关键设备', result: '2项异常', tone: 'danger', detail: '主机燃油泵压力异常、气缸温度偏高' },
+  { name: '关键设备', result: '1项异常', tone: 'danger', detail: '主机燃油泵出口压力低于阈值' },
   { name: '备件库存', result: '1项缺件', tone: 'warn', detail: '消防泵密封件低于安全库存' },
   { name: '船员证书', result: '1项临期', tone: 'warn', detail: '轮机长适任证书13天后到期' },
-  { name: '未闭环工单', result: '3项待审', tone: 'warn', detail: '含1项应急发电机试车工单' },
+  { name: '未闭环工单', result: '1项待审', tone: 'warn', detail: '应急发电机试车工单未闭环' },
   { name: '通信同步', result: '18分钟前', tone: 'ok', detail: '船岸数据同步正常' },
   { name: '开航判定', result: '暂不通过', tone: 'danger', detail: '存在高风险拦截项' },
 ]
