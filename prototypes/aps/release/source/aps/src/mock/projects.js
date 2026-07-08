@@ -1,0 +1,47 @@
+// 项目总体数据：驾驶舱 KPI、里程碑、专业进度、瓶颈资源、最近异常
+export const project = {
+  id: 'JKT-001',
+  name: '导管架 JKT-001 项目',
+  type: '海洋平台导管架',
+  owner: '某海洋工程有限公司',
+  planStart: '2026-09-20',
+  planEnd: '2027-03-30',
+  planDuration: '约 6.5 个月',
+  kpis: [
+    { label: '项目总进度', value: '62%', tone: 'blue', sub: '计划内推进' },
+    { label: '计划完成率', value: '87%', tone: 'green', sub: '较上周 +2%' },
+    { label: '物料齐套率', value: '76%', tone: 'amber', sub: '需重点关注' },
+    { label: '高风险任务', value: 12, tone: 'red', sub: '较上周 +3' },
+    { label: '瓶颈资源', value: 5, tone: 'violet', sub: '类资源告急' },
+    { label: '预计交付偏差', value: '+3 天', tone: 'amber', sub: '存在重排空间' },
+  ],
+  milestones: [
+    { name: '设计冻结', date: '2026-10-15', status: 'done' },
+    { name: '主材到货', date: '2026-11-10', status: 'done' },
+    { name: '片体完成', date: '2026-12-20', status: 'active' },
+    { name: '总装完成', date: '2027-02-10', status: 'risk' },
+    { name: '涂装完成', date: '2027-02-28', status: 'risk' },
+    { name: '装船发运', date: '2027-03-30', status: 'pending' },
+  ],
+  professionProgress: [
+    { name: '导管架结构', value: 64, tone: 'blue' },
+    { name: '管线', value: 58, tone: 'cyan' },
+    { name: '舾装', value: 47, tone: 'green' },
+    { name: '涂装', value: 39, tone: 'orange' },
+    { name: '总装', value: 22, tone: 'violet' },
+  ],
+  bottleneckResources: [
+    { name: '高级焊工', load: 135, status: '严重超负荷' },
+    { name: 'NDT 班组', load: 148, status: '严重超负荷' },
+    { name: '涂装房', load: 156, status: '严重超负荷' },
+    { name: '总装场地', load: 142, status: '冲突' },
+    { name: '卷板机', load: 118, status: '超负荷' },
+  ],
+  recentRisks: [
+    { level: '高', title: '涂装房资源冲突', desc: 'PAINT-001 面漆与 BLOCK 补漆争用同一涂装房', time: '今天 09:12' },
+    { level: '高', title: 'NDT 检验排队', desc: 'PIPE-001、BRACE-003 焊口积压，预计排队 2 天', time: '今天 08:40' },
+    { level: '中', title: '大口径管材晚到', desc: '管线包主材预计晚到 7 天，影响试压工序', time: '昨天 17:05' },
+    { level: '中', title: '焊接实绩偏低', desc: 'BRACE-001 组对后焊接仅完成 52/80 焊口', time: '昨天 16:20' },
+    { level: '低', title: '阳极未到货', desc: 'OUTFIT-001 安装为风险齐套，暂不影响当前', time: '昨天 14:30' },
+  ],
+}
