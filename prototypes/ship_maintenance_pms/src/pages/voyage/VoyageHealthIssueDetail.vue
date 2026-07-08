@@ -457,7 +457,7 @@ function goBack() {
 </script>
 
 <style scoped>
-.page-screen { display: grid; gap: 16px; position: relative; min-width: 0; max-width: 100%; }
+.page-screen { display: grid; gap: 16px; position: relative; min-width: 0; max-width: 100%; overflow-x: hidden; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #d9e4ef; border-radius: 8px; padding: 20px; background: #fff; }
 .module-label { color: #1e6fd9; font-size: 12px; font-weight: 900; }
 h1 { margin: 6px 0 8px; font-size: 24px; }
@@ -477,7 +477,8 @@ button.primary { color: #fff; border-color: #1e6fd9; background: #1e6fd9; }
 .panel-title h2 { margin: 0; font-size: 16px; }
 .panel-title span { color: #64748b; font-size: 12px; font-weight: 800; }
 
-.selector-panel .issue-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.selector-panel .issue-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.selector-panel .issue-tabs::-webkit-scrollbar { display: none; }
 .issue-tabs button { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0; }
 .issue-tabs button.selected { border-color: #1e6fd9; background: #edf5ff; color: #1e6fd9; }
 .sev-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; flex-shrink: 0; }

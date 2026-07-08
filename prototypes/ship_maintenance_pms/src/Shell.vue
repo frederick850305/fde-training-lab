@@ -40,7 +40,14 @@
     <main class="workspace">
       <header class="workspace-header">
         <label class="role-picker">
-          <span>当前业务角色</span>
+          <span class="role-icon-wrap" :class="currentRoleKey">
+            <svg v-if="currentRoleKey === 'shore_engineer'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <svg v-else-if="currentRoleKey === 'ship_manager'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-1.5 5-1.5s2.5 1.5 5 1.5 2.5-1.5 5-1.5c1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.16.72 4.15 1.92 5.86"/><path d="M12 2v6"/><path d="M8 4l4-2 4 2"/><circle cx="12" cy="12" r="2"/></svg>
+            <svg v-else-if="currentRoleKey === 'ship_operator'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="12" y1="11" x2="12" y2="17"/></svg>
+            <svg v-else-if="currentRoleKey === 'admin'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <svg v-else-if="currentRoleKey === 'auditor'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <svg v-else-if="currentRoleKey === 'procurement'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          </span>
           <select v-model="currentRoleKey" @change="resetRoute">
             <option v-for="role in data.roles" :key="role.key" :value="role.key">{{ role.label }}</option>
           </select>
@@ -142,7 +149,13 @@ function toggleGroup(key) {
 .workspace { min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 18px 24px 34px; background: #eef3f8; display: flex; flex-direction: column; gap: 18px; }
 .workspace-header { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .role-picker { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid #d9e4ef; border-radius: 10px; background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
-.role-picker span { font-size: 12px; color: #64748b; font-weight: 800; }
+.role-icon-wrap { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; }
+.role-icon-wrap.shore_engineer { color: #1e6fd9; background: #edf5ff; }
+.role-icon-wrap.ship_manager { color: #0d7377; background: #e6f7f7; }
+.role-icon-wrap.ship_operator { color: #b8860b; background: #fff9e8; }
+.role-icon-wrap.admin { color: #7c3aed; background: #f3effe; }
+.role-icon-wrap.auditor { color: #0891b2; background: #e0f7fa; }
+.role-icon-wrap.procurement { color: #059669; background: #ecfdf5; }
 .role-picker select { border: 1px solid #d9e4ef; border-radius: 8px; padding: 8px 10px; min-width: 140px; color: #172033; background: #f8fbfe; font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .role-picker select:focus { outline: none; border-color: #1e6fd9; box-shadow: 0 0 0 3px rgba(30, 111, 217, .1); }
 .role-picker em { color: #64748b; font-size: 12px; font-style: normal; }
