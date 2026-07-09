@@ -50,7 +50,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   tasks: { type: Array, required: true },
-  viewBy: { type: String, default: 'resource' }, // resource | profession | package
+  viewBy: { type: String, default: 'resource' }, // resource | profession | package | workorder
   today: { type: String, default: '' },
 })
 
@@ -64,7 +64,7 @@ function diff(a, b) {
   return Math.round((b - a) / 86400000)
 }
 
-const groupProp = computed(() => ({ resource: 'resource', profession: 'profession', package: 'pkg' }[props.viewBy] || 'resource'))
+const groupProp = computed(() => ({ resource: 'resource', profession: 'profession', package: 'pkg', workorder: 'wo' }[props.viewBy] || 'resource'))
 
 const minDate = computed(() => {
   const ds = props.tasks.map((t) => parse(t.start)).filter(Boolean)
