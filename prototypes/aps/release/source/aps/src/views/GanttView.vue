@@ -12,7 +12,7 @@
         <h3>短期甘特排程（未来 {{ windowDays }} 天）</h3>
         <div class="gantt-tools">
           <div class="filter-chips">
-            <button :class="{ active: viewBy === 'resource' }" @click="viewBy = 'resource'">按资源</button>
+            <button :class="{ active: viewBy === 'workorder' }" @click="viewBy = 'workorder'">按工单</button>
             <button :class="{ active: viewBy === 'profession' }" @click="viewBy = 'profession'">按专业</button>
             <button :class="{ active: viewBy === 'package' }" @click="viewBy = 'package'">按施工包</button>
           </div>
@@ -26,9 +26,10 @@
         </div>
       </div>
 
-      <GanttChart :tasks="displayTasks" :view-by="viewBy" :today="today" @select="onSelect" />
+      <ResourceGantt v-if="viewBy === 'workorder'" :tasks="displayTasks" :today="today" group-by="resource" />
+      <GanttChart v-else :tasks="displayTasks" :view-by="viewBy" :today="today" @select="onSelect" />
 
-      <div class="legend">
+      <div class="legend" v-if="viewBy !== 'workorder'">
         <span><i class="lg blue"></i>已排程</span>
         <span><i class="lg green"></i>执行中</span>
         <span><i class="lg gray"></i>已完成</span>
@@ -40,7 +41,7 @@
 
       <div v-if="selected" class="task-detail">
         <strong>{{ selected.name }}</strong>
-        <span class="muted">| 专业：{{ selected.profession }} | 资源：{{ selected.resource }} | 施工包：{{ selected.pkg }}</span>
+        <span class="muted">| 专业：{{ selected.profession }} | 资源：{{ selected.resource }} | 施工包：{{ selected.pkg }} | 工单：{{ selected.wo }}</span>
         <span class="muted">| {{ selected.start }} ~ {{ selected.end }} | <StatusTag :status="selected.status" /></span>
       </div>
     </div>
@@ -78,12 +79,13 @@ import { computed, ref } from 'vue'
 import KpiCard from '../components/KpiCard.vue'
 import StatusTag from '../components/StatusTag.vue'
 import GanttChart from '../components/GanttChart.vue'
+import ResourceGantt from '../components/ResourceGantt.vue'
 import {
   ganttTasks, ganttStats, ganttBaseDate, ganttWindowDays,
   runShortTerm, simulateException, reschedule, exceptionScenarios,
 } from '../mock/index.js'
 
-const viewBy = ref('resource')
+const viewBy = ref('workorder')
 const today = '2026-10-09'
 const windowDays = ganttWindowDays
 const scenarioKey = ref(exceptionScenarios[2].key)

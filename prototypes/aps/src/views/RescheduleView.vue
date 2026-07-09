@@ -42,6 +42,7 @@
           <button :class="{ active: viewBy === 'resource' }" @click="viewBy = 'resource'">按资源</button>
           <button :class="{ active: viewBy === 'profession' }" @click="viewBy = 'profession'">按专业</button>
           <button :class="{ active: viewBy === 'package' }" @click="viewBy = 'package'">按施工包</button>
+          <button :class="{ active: viewBy === 'workorder' }" @click="viewBy = 'workorder'">按工单</button>
         </div>
       </div>
       <GanttChart :tasks="displayTasks" :view-by="viewBy" :today="today" />

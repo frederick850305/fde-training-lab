@@ -1,0 +1,10 @@
+# 依赖与构建产物（接收方本地生成，无需随源码分发）
+node_modules/
+dist/
+
+# 本地环境
+.DS_Store
+*.local
+
+# 日志
+npm-debug.log*
