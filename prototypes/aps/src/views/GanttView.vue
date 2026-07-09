@@ -23,6 +23,10 @@
           <button class="btn" @click="simulate">模拟异常</button>
           <button class="btn primary" @click="doReschedule">重排</button>
           <button class="btn ghost" v-if="mode !== 'base'" @click="reset">重置</button>
+          <div class="rg-badges" v-if="viewBy === 'workorder'">
+            <span class="rg-badge conflict"><i></i>冲突 {{ stats.conflictCount }}</span>
+            <span class="rg-badge delay"><i></i>延期 {{ stats.delayCount }}</span>
+          </div>
         </div>
       </div>
 
@@ -108,13 +112,18 @@ const stats = computed(() => {
     return {
       taskCount: t.length,
       conflictCount: t.filter((x) => x.status === '资源冲突').length,
+      delayCount: t.filter((x) => x.status === '延期').length,
       criticalTaskCount: t.filter((x) => x.critical).length,
       kittingRiskCount: t.filter((x) => x.status === '齐套风险').length,
     }
   }
   if (mode.value === 'reschedule' && resResult.value) {
     const t = resResult.value.ganttTasks
-    return { ...ganttStats, conflictCount: 0 }
+    return {
+      ...ganttStats,
+      conflictCount: t.filter((x) => x.status === '资源冲突').length,
+      delayCount: t.filter((x) => x.status === '延期').length,
+    }
   }
   return ganttStats
 })
@@ -153,4 +162,11 @@ function reset() {
 .task-detail { margin-top: 12px; padding: 10px 14px; background: #f5f8fb; border-radius: 8px; font-size: 13px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .summary-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 14px; color: #53657c; font-size: 13px; }
 .summary-strip .ok { color: #1f9d63; }
+.rg-badges { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.rg-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+.rg-badge.conflict { background: #fee2e2; color: #b91c1c; }
+.rg-badge.delay { background: #fef3c7; color: #b45309; }
+.rg-badge i { width: 7px; height: 7px; border-radius: 50%; }
+.rg-badge.conflict i { background: #ef4444; }
+.rg-badge.delay i { background: #f59e0b; }
 </style>

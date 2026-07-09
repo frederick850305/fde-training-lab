@@ -103,8 +103,9 @@ export function simulateException(scenarioKey) {
   })
   if (scenarioKey === 'weld_defect') {
     adjusted.push({
-      id: 'T-REWORK', name: 'BRACE-001 返修', profession: '导管架', resource: '焊工2班',
-      pkg: 'BRACE-001', startOff: 8, dur: 2, status: '已排程', critical: true, rework: true,
+      id: 'T-REWORK', name: 'BRACE-001 返修', profession: '导管架',
+      resource: 'WLD-02', resourceName: '焊接工位', load: 20,
+      pkg: 'BRACE-001', wo: 'WO-3012', startOff: 8, dur: 2, status: '已排程', critical: true, rework: true,
     })
   }
   const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
