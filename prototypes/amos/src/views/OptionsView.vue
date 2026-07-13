@@ -35,11 +35,13 @@
             <input type="checkbox" :value="a.name" v-model="opt.selectedAlerts" /> {{ a.group }} · {{ a.name }}
           </label>
         </div>
+        <label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" v-model="opt.showGauge" /> Show Gauge（显示告警表盘）</label>
+        <label class="row" style="gap:6px;margin-top:6px"><input type="checkbox" v-model="opt.showWorkflowNotification" /> Show Workflow Notifications（显示通知区）</label>
         <div class="amos-field" style="margin-top:6px">
-          <label>URL（主页引入网页）</label><div class="ctrl"><input v-model="opt.dashboardUrl" class="amos-input" placeholder="https://" /></div>
+          <label>URL（右下角网页）</label><div class="ctrl"><input v-model="opt.dashboardUrl" class="amos-input" placeholder="https://" /></div>
         </div>
         <div class="amos-field" style="margin-top:6px">
-          <label>Image（背景图片）</label><div class="ctrl"><input v-model="opt.dashboardImage" class="amos-input" placeholder="图片地址" /></div>
+          <label>Image（左上角图片）</label><div class="ctrl"><input v-model="opt.dashboardImage" class="amos-input" placeholder="图片地址" /></div>
         </div>
       </section>
 
@@ -108,7 +110,7 @@ import { store } from '../store.js'
 import { dashboardAlerts } from '../mock/index.js'
 
 const opt = store.options
-const allAlerts = dashboardAlerts
+const allAlerts = dashboardAlerts.value
 
 // Views
 const newView = ref('')

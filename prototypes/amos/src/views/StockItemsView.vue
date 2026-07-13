@@ -2,6 +2,8 @@
   <div class="biz-win">
     <div class="bw-head">
       <h2>Stock Items</h2>
+      <span v-if="globalMode" class="scope-badge global-badge" title="手册 P21-23：Global 模式 — 跨 Department 搜索">🌐 Global：{{ globalDepts.length }} Dept</span>
+      <span v-else class="scope-badge" title="手册 P20：窗口仅显示当前 Department 范围内的记录">范围：{{ store.department }}</span>
       <div class="row" style="gap:6px">
         <button class="amos-btn sm" @click="reopenFilter">查找 / Find</button>
         <button class="amos-btn sm primary" @click="doNew">New</button>
@@ -12,6 +14,17 @@
     </div>
 
     <FilterDialog :basic="filterBasic" :advanced="filterAdvanced" @ok="applyFilter" @cancel="applyFilter" v-if="showFilter" />
+
+    <!-- Open Record 对话框 -->
+    <div v-if="showOpenDialog" class="open-dialog-overlay">
+      <div class="open-dialog">
+        <h3>Open Record — Stock Items</h3>
+        <p class="muted">输入 Item No. (SFI) 以定位并打开该库存项。</p>
+        <div class="amos-field"><label>Item No.</label><div class="ctrl"><input ref="openInputRef" class="amos-input" v-model="openKeyValue" @keydown.enter="confirmOpen" placeholder="如 SI-001" /></div></div>
+        <div class="od-actions"><button class="amos-btn" @click="showOpenDialog = false">Cancel</button><button class="amos-btn primary" @click="confirmOpen">OK</button></div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <section class="bw-list"><RecordList :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen" /></section>
       <section class="bw-detail" v-if="selected">
@@ -91,13 +104,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
 import { db, uid } from '../mock/index.js'
-import { store, showToast, setPresetFilter } from '../store.js'
+import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
 // 手册 2.3(2)：查找窗口——Number(SFI) / Name / Maker / Maker's Ref / Stock Class / Drawing No. / Location
@@ -112,7 +125,7 @@ const filterBasic = [
   { key: 'location', label: 'Location', type: 'text' },
 ]
 const filterAdvanced = [{ key: 'functionNo', label: 'Function (SFI)', type: 'text' }]
-const columns = [
+const columnsBase = [
   { key: 'stockItemNo', label: 'Item No.', width: '110px' },
   { key: 'description', label: 'Description' },
   { key: 'stockTypeNo', label: 'Stock Type', width: '110px' },
@@ -123,6 +136,12 @@ const columns = [
   { key: 'status', label: 'Status', width: '100px', tag: true },
   { key: 'unitCost', label: 'Unit Cost', align: 'right', width: '90px' },
 ]
+// 手册 P23：Global 模式下新增 Inst/Dept 列
+const columns = computed(() => {
+  const base = [...columnsBase]
+  if (globalMode.value) base.splice(1, 0, { key: '_instDept', label: 'Inst / Dept', width: '130px' })
+  return base
+})
 const tabs = [
   { id: 'general', label: 'General', fields: [
     { key: 'stockItemNo', label: 'Item No.' },
@@ -139,11 +158,11 @@ const tabs = [
   ] },
   { id: 'type', label: 'Type Details', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '材料的详细描述（备件号 / 型号等特殊信息）。' }] },
   { id: 'vendors', label: 'Vendors', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '所选材料采购或报价相关的供应商历史（来自 Stock Type）。' }] },
-  { id: 'forms', label: 'Outstanding Forms', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '处于采购或询价阶段的申请单 / 采购单。' }] },
-  { id: 'tx', label: 'Stock Transactions', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '所选备件的所有库存变更记录。' }] },
-  { id: 'component', label: 'Component', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '所选备件用于哪些设备。' }] },
-  { id: 'attachments', label: 'Attachments', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '附加描述文件。' }] },
-  { id: 'overview', label: 'Overview', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '过去 5 年存耗概况。' }] },
+  { id: 'forms', label: 'Outstanding Forms', fields: [] },
+  { id: 'tx', label: 'Stock Transactions', fields: [] },
+  { id: 'component', label: 'Component', fields: [] },
+  { id: 'attachments', label: 'Attachments', fields: [] },
+  { id: 'overview', label: 'Overview', fields: [] },
 ]
 
 const stockTypeByNo = computed(() => Object.fromEntries(db.stockTypes.map((s) => [s.stockTypeNo, s])))
@@ -154,6 +173,13 @@ const selected = ref(null)
 const moveOpen = ref(false)
 const moveTo = ref('')
 const moveQty = ref(1)
+// Open Record 对话框
+const showOpenDialog = ref(false)
+const openKeyValue = ref('')
+const openInputRef = ref(null)
+// 手册 P21-23：Global Search 状态
+const globalMode = ref(false)
+const globalDepts = ref([])
 
 const relForms = computed(() => {
   if (!selected.value) return []
@@ -183,29 +209,44 @@ const overview = computed(() => {
 })
 
 watch(() => store.activeKey, () => { if (store.activeKey === 'stock-items') { selected.value = null; applyPreset() } })
+watch(() => store.department, () => { if (store.activeKey === 'stock-items') { selected.value = null; applyPreset() } })
 
 function applyPreset() {
   if (store.presetFilter) { applyFilter(store.presetFilter); setPresetFilter(null) }
-  else viewRows.value = all.value.slice()
+  else viewRows.value = scopeRows(all.value)
+}
+
+// 手册 P21-23：Global 模式下按选中的 Dept 过滤（跨 Dept）；普通模式用 scopeByDepartment
+function scopeRows(rows) {
+  if (globalMode.value && globalDepts.value.length) {
+    return rows.filter((r) => !r.department || globalDepts.value.includes(r.department))
+  }
+  return scopeByDepartment(rows)
 }
 
 function applyFilter(c) {
   showFilter.value = false
   const crit = c || {}
-  viewRows.value = all.value.filter((r) => {
+  // 提取 Global Search 状态
+  globalMode.value = !!crit._globalSearch
+  globalDepts.value = crit._globalDepts || []
+  viewRows.value = scopeRows(all.value.filter((r) => {
     if (!matchRow(r, filterBasic, crit)) return false
     if (crit.maker) {
       const st = stockTypeByNo.value[r.stockTypeNo]
       if (!st || !String(st.maker ?? '').toLowerCase().includes(String(crit.maker).toLowerCase())) return false
     }
     return true
-  })
+  })).map((r) => ({
+    ...r,
+    _instDept: (r.department || store.department),
+  }))
 }
 function reopenFilter() { selected.value = null; showFilter.value = true }
 function onSelect(r) { selected.value = r }
 function onOpen(r) { selected.value = r }
 function doNew() {
-  const rec = { id: uid('si'), stockItemNo: 'SI-' + Math.floor(Math.random() * 900 + 100), description: '', stockTypeNo: '', maker: '', makerRef: '', drawingNo: '', stockClass: '', functionNo: '', quantity: 0, location: '', status: 'Active', unitCost: 0 }
+  const rec = { id: uid('si'), stockItemNo: 'SI-' + Math.floor(Math.random() * 900 + 100), description: '', stockTypeNo: '', maker: '', makerRef: '', drawingNo: '', stockClass: '', functionNo: '', quantity: 0, department: store.department, location: '', status: 'Active', unitCost: 0 }
   all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建库存项', 'ok')
 }
 function doMove() { moveTo.value = ''; moveQty.value = 1; moveOpen.value = true }
@@ -222,21 +263,39 @@ function confirmMove() {
 }
 function setStatus() { showToast('Set Status（原型演示）', 'info') }
 function viewPH() { showToast('查看采购历史（原型演示）', 'info') }
+// Open Record
+function doOpen() {
+  if (showFilter.value) return
+  openKeyValue.value = ''
+  showOpenDialog.value = true
+}
+function confirmOpen() {
+  const val = openKeyValue.value.trim()
+  if (!val) return showToast('请输入 Item No.', 'warn')
+  const rec = all.value.find((r) => String(r.stockItemNo || '').toLowerCase() === val.toLowerCase())
+  if (!rec) return showToast(`未找到 Item No. 为「${val}」的库存项`, 'warn')
+  if (!viewRows.value.find((r) => r.id === rec.id)) viewRows.value = [...viewRows.value, rec]
+  selected.value = rec; showOpenDialog.value = false
+  showToast(`已打开库存项：${rec.stockItemNo}`, 'ok')
+}
 function statusClass(v) {
   const s = String(v).toLowerCase()
   if (/(active)/.test(s)) return 'green'
   if (/(obsolete|scrapped)/.test(s)) return 'red'
   return 'gray'
 }
-function onAction(e) { if (e.detail?.action === 'filter') reopenFilter() }
+function onAction(e) { const a = e.detail?.action; if (a === 'filter') reopenFilter(); if (a === 'new') doNew(); if (a === 'open') doOpen() }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
+watch(showOpenDialog, (v) => { if (v) nextTick(() => openInputRef.value?.focus()) })
 </script>
 
 <style scoped>
 .biz-win { display: flex; flex-direction: column; height: 100%; }
 .bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); }
 .bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
+.scope-badge { font-size: 11.5px; color: #1f6fb2; background: #e8f2fb; border: 1px solid #b9d8f0; border-radius: 999px; padding: 2px 10px; }
+.global-badge { color: #0e6a30; background: #e4f7e8; border-color: #95d5a9; }
 .bw-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; min-height: 0; }
 .bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; }
 .bw-list > * { flex: 1; }
@@ -245,4 +304,10 @@ onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .sub { margin-top: 8px; }
 @media (max-width: 980px) { .bw-body { grid-template-columns: 1fr; } .bw-list { border-right: none; border-bottom: 1px solid var(--amos-border); } }
+/* Open Record 对话框 */
+.open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
+.open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }
+.open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
+.open-dialog .amos-field { margin-top: 12px; }
+.od-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 </style>

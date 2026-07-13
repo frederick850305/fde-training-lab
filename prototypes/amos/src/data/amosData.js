@@ -73,6 +73,7 @@ const pageDefs = {
 
   options: ['Options', '系统选项与配置', 'P2', 'tools'],
   'global-search': ['Global Search', '跨安装地点 / 部门全局搜索', 'P2', 'tools'],
+  'workflow-notifications': ['Workflow Notifications', '工作流通知：待确认列表', 'P2', 'tools'],
 }
 
 export const AMOS_PAGES = Object.entries(pageDefs).map(([key, [title, desc, priority, module]]) => ({
@@ -98,6 +99,7 @@ export const menu = [
     items: [
       { label: 'Print', action: 'print' },
       { label: 'Filter…', action: 'filter' },
+      { label: 'Switch Department', action: 'switch-department' },
       { label: 'Lock Application', action: 'lock' },
       { label: 'Save', action: 'save' },
       { label: 'Close Window', action: 'close' },
@@ -179,7 +181,6 @@ export const menu = [
       { label: 'Select View', action: 'select-view' },
       { label: 'Configuration', page: 'options' },
       { label: 'Change Password…', action: 'change-password' },
-      { label: 'Switch Department', action: 'switch-department' },
       { label: 'Global Search', page: 'global-search' },
       { label: 'License Update', action: 'license' },
     ],

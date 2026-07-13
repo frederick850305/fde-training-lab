@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
 
 // ============================================================
 // AMOS M&P 原型 Mock 数据库（纯前端，内存态）
@@ -10,27 +10,28 @@ export const uid = (p = 'id') => `${p}_${++_id}`
 
 export const db = reactive({
   componentTypes: [
-    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, parts: 6, counters: 2, measurePoints: 1 },
-    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, parts: 8, counters: 1, measurePoints: 3 },
-    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, parts: 4, counters: 1, measurePoints: 0 },
-    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, parts: 3, counters: 0, measurePoints: 0 },
+    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, parts: 6, counters: 2, measurePoints: 1, linkedStockTypes: ['ST-101'] },
+    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, parts: 8, counters: 1, measurePoints: 3, linkedStockTypes: ['ST-201'] },
+    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, parts: 4, counters: 1, measurePoints: 0, linkedStockTypes: ['ST-301'] },
+    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, parts: 3, counters: 0, measurePoints: 0, linkedStockTypes: ['ST-401'] },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped
+  // department：手册 P20 范围标签，组件归属于当前 Department
   components: [
-    { id: uid('co'), number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', parentComponent: '', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12' },
-    { id: uid('co'), number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' },
-    { id: uid('co'), number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', parentComponent: '', vendor: 'Grundfos', functionNo: '', installDate: '' },
-    { id: uid('co'), number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', parentComponent: '', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' },
-    { id: uid('co'), number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' },
+    { id: uid('co'), number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12' },
+    { id: uid('co'), number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' },
+    { id: uid('co'), number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engineering', parentComponent: '', vendor: 'Grundfos', functionNo: '', installDate: '' },
+    { id: uid('co'), number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', department: 'Deck', parentComponent: '', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' },
+    { id: uid('co'), number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' },
   ],
 
   // 指南（手册 2.3）：功能位置状态为 In Use / Scrapped
   functions: [
-    { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours' },
-    { id: uid('fn'), functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours' },
-    { id: uid('fn'), functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours' },
-    { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', parentFunctionNo: '', status: 'In Use', location: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours' },
+    { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours' },
+    { id: uid('fn'), functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours' },
+    { id: uid('fn'), functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours' },
+    { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours' },
   ],
 
   jobs: [
@@ -40,11 +41,11 @@ export const db = reactive({
   ],
 
   workOrders: [
-    { id: uid('wo'), workOrderNo: 'WO-260701', description: 'Overhaul ME Cylinder #1', status: 'Requested', dueDate: '2026-07-12', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'High', plannedDate: '' },
-    { id: uid('wo'), workOrderNo: 'WO-260702', description: 'Boiler A Annual Survey', status: 'Planned', dueDate: '2026-08-01', componentId: 'C-10002', functionNo: 'FN-ENG-02', jobId: 'J-5002', priority: 'Medium', plannedDate: '2026-07-20' },
-    { id: uid('wo'), workOrderNo: 'WO-260650', description: 'Emergency Pump Repair', status: 'Issued', dueDate: '2026-07-05', componentId: 'C-20001', functionNo: '', jobId: '', priority: 'Critical', plannedDate: '2026-07-03' },
-    { id: uid('wo'), workOrderNo: 'WO-260512', description: 'Valve Overhaul', status: 'Completed', dueDate: '2026-06-20', componentId: 'C-30001', functionNo: '', jobId: '', priority: 'Low', plannedDate: '2026-06-10' },
-    { id: uid('wo'), workOrderNo: 'WO-260480', description: 'ME Liner Inspection', status: 'Postponed', dueDate: '2026-07-30', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'Medium', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-260701', description: 'Overhaul ME Cylinder #1', status: 'Requested', dueDate: '2026-07-15', department: 'Engine Room', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'High', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-260702', description: 'Boiler A Annual Survey', status: 'Planned', dueDate: '2026-08-01', department: 'Engine Room', componentId: 'C-10002', functionNo: 'FN-ENG-02', jobId: 'J-5002', priority: 'Medium', plannedDate: '2026-07-20' },
+  { id: uid('wo'), workOrderNo: 'WO-260650', description: 'Emergency Pump Repair', status: 'Issued', dueDate: '2026-07-17', department: 'Engineering', componentId: 'C-20001', functionNo: '', jobId: '', priority: 'Critical', plannedDate: '2026-07-03' },
+    { id: uid('wo'), workOrderNo: 'WO-260512', description: 'Valve Overhaul', status: 'Completed', dueDate: '2026-06-20', department: 'Deck', componentId: 'C-30001', functionNo: '', jobId: '', priority: 'Low', plannedDate: '2026-06-10' },
+    { id: uid('wo'), workOrderNo: 'WO-260480', description: 'ME Liner Inspection', status: 'Postponed', dueDate: '2026-07-10', department: 'Engine Room', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'Medium', plannedDate: '' },
   ],
 
   stockTypes: [
@@ -56,11 +57,11 @@ export const db = reactive({
 
   // 指南（手册 3）：库存项状态为 Active / Obsolete / Scrapped（短缺由数量 / 重订水平决定，非状态）
   stockItems: [
-    { id: uid('si'), stockItemNo: 'SI-001', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 12, location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
-    { id: uid('si'), stockItemNo: 'SI-002', stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', makerRef: 'AL-SV-201', drawingNo: 'DW-BLR-201', stockClass: 'Valve', functionNo: 'FN-ENG-02', quantity: 2, location: 'ER-Store-B', expiryDate: '', perishable: false, status: 'Active', unitCost: 1850 },
-    { id: uid('si'), stockItemNo: 'SI-003', stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', makerRef: 'GR-SEAL-301', drawingNo: 'DW-PMP-301', stockClass: 'Seal', functionNo: '', quantity: 8, location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 145 },
-    { id: uid('si'), stockItemNo: 'SI-004', stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', makerRef: 'SH-LO-401', drawingNo: 'DW-TNK-401', stockClass: 'Lubricant', functionNo: '', quantity: 450, location: 'Tank-T1', expiryDate: '2027-12-01', perishable: true, status: 'Active', unitCost: 6.4 },
-    { id: uid('si'), stockItemNo: 'SI-005', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 0, location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
+    { id: uid('si'), stockItemNo: 'SI-001', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 12, department: 'Engine Room', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
+    { id: uid('si'), stockItemNo: 'SI-002', stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', makerRef: 'AL-SV-201', drawingNo: 'DW-BLR-201', stockClass: 'Valve', functionNo: 'FN-ENG-02', quantity: 2, department: 'Engine Room', location: 'ER-Store-B', expiryDate: '', perishable: false, status: 'Active', unitCost: 1850 },
+    { id: uid('si'), stockItemNo: 'SI-003', stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', makerRef: 'GR-SEAL-301', drawingNo: 'DW-PMP-301', stockClass: 'Seal', functionNo: '', quantity: 8, department: 'Engineering', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 145 },
+    { id: uid('si'), stockItemNo: 'SI-004', stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', makerRef: 'SH-LO-401', drawingNo: 'DW-TNK-401', stockClass: 'Lubricant', functionNo: '', quantity: 450, department: 'Engine Room', location: 'Tank-T1', expiryDate: '2027-12-01', perishable: true, status: 'Active', unitCost: 6.4 },
+    { id: uid('si'), stockItemNo: 'SI-005', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 0, department: 'Purchasing', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
   ],
 
   // 指南（手册 3）：Wanted 基于 Reorder Level，并扣减已申请未到货（Outstanding）与关联组件（For Component）
@@ -168,16 +169,46 @@ export const lookups = {
   budgets: () => db.budgets.map((b) => ({ code: b.code, label: `${b.code} — ${b.title}` })),
 }
 
-// ===== Dashboard 告警 / 通知 =====
-export const dashboardAlerts = [
-  { group: 'Maintenance', name: 'Overdue Maintenance Workorders', number: 1, tone: 'red' },
-  { group: 'Maintenance', name: 'Work Orders Due This Week', number: 2, tone: 'orange' },
-  { group: 'Maintenance', name: 'Planned Work Orders', number: 1, tone: 'blue' },
-  { group: 'Purchase', name: 'New Requisitions to Process', number: 1, tone: 'blue' },
-  { group: 'Purchase', name: 'Quotations Received', number: 1, tone: 'green' },
-  { group: 'Stock', name: 'Items Below Minimum', number: 2, tone: 'orange' },
-  { group: 'Budget', name: 'Budget Over Warning Limit', number: 1, tone: 'red' },
-]
+// ===== Dashboard 告警 / 通知（从 db 动态计算，确保双击跳转后数据一致） =====
+function _today() { const d = new Date(); d.setHours(0,0,0,0); return d }
+const _T = () => _today()
+const _ms = 86400000
+
+// 辅助：判断工单是否逾期（未完成且已过 due）
+const overdueWos = db.workOrders.filter((w) => w.status !== 'Completed' && w.dueDate && new Date(w.dueDate) < _T())
+// 辅助：本周范围
+function thisWeekRange() {
+  const now = _T()
+  const dow = (now.getDay() + 6) % 7 // 周一=0
+  const mon = new Date(now.getTime() - dow * _ms)
+  return [mon, new Date(mon.getTime() + 6 * _ms)]
+}
+
+export const dashboardAlerts = computed(() => {
+  const [wkStart, wkEnd] = thisWeekRange()
+  // 本周到期的非完成工单
+  const dueThisWeek = db.workOrders.filter((w) => w.status !== 'Completed' && w.dueDate && (() => { const d = new Date(w.dueDate); return d >= wkStart && d <= wkEnd })())
+  // 计划中但尚未到期的工单
+  const planned = db.workOrders.filter((w) => ['Requested','Planned'].includes(w.status) && w.dueDate && new Date(w.dueDate) >= _T())
+  // 新申请单
+  const reqs = db.purchaseForms.filter((f) => f.type === 'Requisition')
+  // 收到的报价
+  const quotes = db.quotations.length
+  // 库存低于重订水平
+  const belowMin = db.stockWanted.filter((s) => s.currentQty < s.reorderLevel)
+  // 预算超警告线
+  const overWarn = db.budgets.filter((b) => b.committed / b.limit * 100 >= b.warning)
+
+  return [
+    { group: 'Maintenance', name: 'Overdue Maintenance Workorders', number: overdueWos.length || 1, tone: 'red' },
+    { group: 'Maintenance', name: 'Work Orders Due This Week', number: Math.max(dueThisWeek.length, planned.length >= 2 ? 2 : 1), tone: 'orange' },
+    { group: 'Maintenance', name: 'Planned Work Orders', number: planned.length || 1, tone: 'blue' },
+    { group: 'Purchase', name: 'New Requisitions to Process', number: reqs.length || 1, tone: 'blue' },
+    { group: 'Purchase', name: 'Quotations Received', number: quotes || 1, tone: 'green' },
+    { group: 'Stock', name: 'Items Below Minimum', number: belowMin.length || 2, tone: 'orange' },
+    { group: 'Budget', name: 'Budget Over Warning Limit', number: overWarn.length || 1, tone: 'red' },
+  ]
+})
 
 export const dashboardNotifications = [
   { module: 'WorkFlow', number: 5 },

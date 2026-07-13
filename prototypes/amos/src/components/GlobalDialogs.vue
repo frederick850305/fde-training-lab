@@ -112,6 +112,11 @@ function close() {
   closeDialog()
 }
 function apply() {
+  // 手册 P20 步骤 4：切换前应关闭所有窗口
+  if (store.openTabs.length) {
+    showToast('请先关闭所有窗口后再切换 Department（或点 Close Windows 按钮）', 'warn')
+    return
+  }
   store.installation = inst.value
   store.department = dept.value
   closeDialog()
