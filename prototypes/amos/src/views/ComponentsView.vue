@@ -9,7 +9,13 @@
         <button class="amos-btn sm primary" @click="doNew">New</button>
         <button class="amos-btn sm" @click="doSave" :disabled="!selected">Save</button>
         <button class="amos-btn sm danger" @click="doDelete" :disabled="!selected">Delete</button>
-        <button class="amos-btn sm" @click="register">Register as Component</button>
+        <div class="bw-options">
+          <button class="amos-btn sm" @click="optionsOpen = !optionsOpen">Options ▾</button>
+          <div v-if="optionsOpen" class="bw-options-menu" @mouseleave="optionsOpen = false">
+            <button @click="copyComponent">Copy</button>
+            <button @click="changeStatus">Change Status</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -62,18 +68,7 @@
               </tbody>
             </table>
           </template>
-          <!-- 手册 2.2(17)：Counters 标签页 -->
-          <template #extra-counters>
-            <table class="amos-grid sub">
-              <thead><tr><th>Counter</th><th>Start</th><th>Zeroed</th><th class="num">Current</th><th class="num">Average/日</th></tr></thead>
-              <tbody>
-                <tr v-for="r in relCounters" :key="r.id">
-                  <td>{{ r.counter }}</td><td>{{ selected.installDate || '—' }}</td><td>—</td><td class="num">{{ r.currentValue }} {{ r.unit }}</td><td class="num">{{ avg(r) }} {{ r.unit }}/d</td>
-                </tr>
-                <tr v-if="!relCounters.length"><td colspan="5" class="muted">无计数器。</td></tr>
-              </tbody>
-            </table>
-          </template>
+          <!-- 手册 2.2(17)：Counters 标签页（已改为 subgrid 可编辑，见 tabs 配置） -->
           <!-- 手册 2.2(19)：Work Order 标签页 -->
           <template #extra-workorder>
             <table class="amos-grid sub">
@@ -177,7 +172,31 @@ const tabs = [
   ] },
   { id: 'jobs', label: 'Jobs', fields: [] },
   { id: 'parts', label: 'Parts', fields: [] },
-  { id: 'counters', label: 'Counters', fields: [] },
+  // 手册 2 / P44：Counters 标签（New/Delete、继承自组件类型、含 Depends On）
+  {
+    id: 'counters', label: 'Counters', type: 'subgrid',
+    subKey: 'componentCounters',
+    columns: [
+      { key: 'code', label: 'Counter Code', width: '120px', default: '' },
+      { key: 'description', label: 'Description', default: '' },
+      { key: 'unit', label: 'Unit', width: '70px', default: '' },
+      { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件' },
+      { key: 'startValue', label: 'Start', width: '70px', default: 0, type: 'number' },
+      { key: 'currentValue', label: 'Current', width: '80px', default: 0, type: 'number' },
+    ],
+  },
+  // 手册 2 / P45：Measure Points 独立标签（New/Delete、继承自组件类型）
+  {
+    id: 'measurePoints', label: 'Measure Points', type: 'subgrid',
+    subKey: 'componentMeasurePoints',
+    columns: [
+      { key: 'code', label: 'Point Code', width: '120px', default: '' },
+      { key: 'description', label: 'Description', default: '' },
+      { key: 'trend', label: 'Trend', type: 'select', width: '90px', options: ['Up', 'Down', 'Stable'], default: 'Stable' },
+      { key: 'value', label: 'Value', width: '80px', default: '', type: 'number' },
+      { key: 'lastReadDate', label: 'Last Read', type: 'date', width: '110px', default: '' },
+    ],
+  },
   { id: 'workorder', label: 'Work Order', fields: [] },
   { id: 'attachments', label: 'Attachments', fields: [] },
   { id: 'history', label: 'History', fields: [] },
@@ -188,6 +207,8 @@ const all = computed(() => db.components)
 const viewRows = ref([])
 const showFilter = ref(false)
 const selected = ref(null)
+// Options 菜单状态（手册 P42-43：Copy / ChangeStatus）
+const optionsOpen = ref(false)
 // 手册 P21-23：Global Search 状态
 const globalMode = ref(false)
 const globalDepts = ref([])
@@ -243,7 +264,18 @@ function applyFilter(c) {
   }))
 }
 function reopenFilter() { selected.value = null; showFilter.value = true }
-function onSelect(r) { selected.value = r }
+function onSelect(r) {
+  selected.value = r
+  // 手册 2 / P44-45：Counters / Measure Points 继承自组件类型（首次选择时从类型拷贝）
+  const ct = db.componentTypes.find((c) => c.typeNumber === r.typeNumber)
+  if (!r.componentCounters && ct?.counters?.length) {
+    r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
+  }
+  if (!r.componentMeasurePoints && ct?.measurePoints) {
+    // measurePoints 在类型中是数字，这里转为子表
+    r.componentMeasurePoints = Array(ct.measurePoints || 0).fill(null).map(() => ({ code: '', description: '', trend: 'Stable', value: '', lastReadDate: '' }))
+  }
+}
 function onOpen(r) { selected.value = r }
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
@@ -262,6 +294,34 @@ function doDelete() {
   showToast('已删除', 'warn')
 }
 function register() { showToast('Register as Component：选择 Installation / Department 后生成组件（原型演示）', 'info') }
+// 手册 2 / P43：Options > Copy 复制组件（选条目 + 新编号 + Save）
+function copyComponent() {
+  optionsOpen.value = false
+  const t = selected.value
+  if (!t) { showToast('请先选择要复制的组件', 'warn'); return }
+  const base = { ...t }
+  delete base.id
+  const m = /^(.*?)(\d+)(\D*)$/.exec(base.number || '')
+  base.number = m ? `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, '0')}${m[3]}` : `${base.number || 'C'}_COPY`
+  base.name = `${base.name || ''} (Copy)`
+  base.status = 'Available'
+  base.id = 'new_' + Date.now()
+  // 深拷贝子表
+  base.componentCounters = (t.componentCounters || []).map((x) => ({ ...x }))
+  base.componentMeasurePoints = (t.componentMeasurePoints || []).map((x) => ({ ...x }))
+  all.value.push(base)
+  viewRows.value = [...viewRows.value, base]
+  selected.value = base
+  showToast('已复制组件：请修改 Number 后 Save（手册 P43：Options > Copy）', 'ok')
+}
+// 手册 2 / P43：Options > ChangeStatus
+function changeStatus() {
+  optionsOpen.value = false
+  const s = selected.value
+  if (!s) { showToast('请先选择组件', 'warn'); return }
+  const next = { 'In Use': 'Available', 'Available': 'In Use', 'Transferred': 'Scrapped', 'Scrapped': 'In Use' }[s.status]
+  if (next) { s.status = next; showToast(`状态已改为 ${next}（手册 P43）`, 'ok') }
+}
 // Open Record
 function doOpen() {
   if (showFilter.value) return
@@ -304,6 +364,11 @@ function statusClass(v) {
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--amos-border); }
 .sub { margin-top: 8px; }
 .sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
+/* Options 菜单 */
+.bw-options { position: relative; }
+.bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 180px; padding: 4px; }
+.bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
+.bw-options-menu button:hover { background: var(--amos-blue-soft); }
 @media (max-width: 980px) { .bw-body { grid-template-columns: 1fr; } .bw-list { border-right: none; border-bottom: 1px solid var(--amos-border); } }
 /* Open Record 对话框 */
 .open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
