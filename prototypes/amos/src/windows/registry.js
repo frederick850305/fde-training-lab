@@ -35,6 +35,7 @@ export const windowRegistry = {
           { key: 'name', label: 'Name' },
           { key: 'maker', label: 'Maker' },
           { key: 'model', label: 'Model' },
+          { key: 'type', label: 'Type' },
           { key: 'classCode', label: 'Component Class' },
           { key: 'preferredVendor', label: 'Preferred Vendor', type: 'select', options: ['', ...lookups.vendors()] },
           { key: 'parentTypeNumber', label: 'Parent Component Type', type: 'lookup', lookupKey: 'componentTypes' },
@@ -61,15 +62,24 @@ export const windowRegistry = {
           { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
         ],
       },
-      // 手册 2 / P44 / P39：Counters / Measure Points 标签（New/Delete 按钮添加/删除；注册组件时继承）
+      // 手册 2 / P39 / P44：Counters 标签（定义该类型组件的计数器模板，注册为组件时继承）
       {
-        id: 'counters_measure', label: 'Counters / Measure Points', type: 'subgrid', subKey: 'counters',
+        id: 'counters', label: 'Counters', type: 'subgrid', subKey: 'counters',
         columns: [
           { key: 'code', label: 'Counter Code', width: '120px', default: '' },
           { key: 'description', label: 'Description', default: '' },
-          { key: 'type', label: 'Type', type: 'select', width: '110px', options: ['Counter', 'Measure Point'], default: 'Counter' },
           { key: 'unit', label: 'Unit', width: '70px', default: '' },
           { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件的计数器' },
+        ],
+      },
+      // 手册 2 / P39 / P45：Measure Points 标签（定义测点模板；注册组件时继承为可编辑子表）
+      {
+        id: 'measure_points', label: 'Measure Points', type: 'subgrid', subKey: 'measurePointDefs',
+        columns: [
+          { key: 'code', label: 'Point Code', width: '120px', default: '' },
+          { key: 'description', label: 'Description', default: '' },
+          { key: 'trend', label: 'Trend', type: 'select', width: '90px', options: ['Up', 'Down', 'Stable'], default: 'Stable' },
+          { key: 'unit', label: 'Unit', width: '70px', default: '' },
         ],
       },
       // 手册 2 / P39：Related tab 关联组件类型（创建组件时相关类型及其备件会被继承）
@@ -83,6 +93,8 @@ export const windowRegistry = {
     ],
     options: [
       { label: 'Register as Component', action: 'register-component' },
+      { label: 'View Job', action: 'view-job' },
+      { label: 'Add Part', action: 'add-part' },
       { label: 'Copy', action: 'copy-type' },
       { label: 'Copy List', action: 'copy-list' },
       { label: 'Use Component Types', action: 'toggle-use-types' },

@@ -178,6 +178,13 @@ function applyFilter(criteria) {
     if (c.planning && config.value?.dataKey === 'workOrders' && !matchPlanning(row, c.planning)) return false
     return true
   })
+  // 手册 2：Component Types 列表的 Jobs 列显示该类型实际关联的作业数（动态计算，非硬编码）
+  if (config.value?.dataKey === 'componentTypes') {
+    viewRows.value = viewRows.value.map((r) => ({
+      ...r,
+      jobs: db.jobs.filter((j) => j.targetType === 'ComponentType' && j.targetId === r.typeNumber).length,
+    }))
+  }
 }
 
 function reopenFilter() {
@@ -270,11 +277,32 @@ function runOption(o) {
   optionsOpen.value = false
   // 手册 2 / P30：从部件类型窗口把类型注册为实际部件
   if (o.action === 'register-component') { openRegister(); return }
+  // 手册 2 / P37：Options > View Job 打开 Component Type Jobs（预过滤到当前选中类型）
+  if (o.action === 'view-job') { viewTypeJobs(); return }
+  // 手册 2 / P38：Options > Add Part 快速添加备件到类型的 Parts 列表
+  if (o.action === 'add-part') { addPart(); return }
   // 手册 2 / P37：Options > Copy 复制组件类型（选条目 + 新编号 + Save）
   if (o.action === 'copy-type') { copyComponentType(); return }
   // 手册 2 / P36 脚注：系统参数 Use Component Types 开关
   if (o.action === 'toggle-use-types') { store.useComponentTypes = !store.useComponentTypes; showToast(`Use Component Types = ${store.useComponentTypes ? 'TRUE' : 'FALSE'}（系统参数）`, 'info'); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
+}
+
+// 手册 2 / P37：Options > View Job 打开 Component Type Jobs 并预过滤到当前选中类型
+function viewTypeJobs() {
+  const t = selected.value
+  if (!t) { showToast('请先在列表中选择一个部件类型', 'warn'); return }
+  setPresetFilter({ targetType: 'ComponentType', targetId: t.typeNumber })
+  openWindow('component-type-jobs')
+}
+
+// 手册 2 / P38：Options > Add Part 快速添加备件行到当前类型的 Parts 子表
+function addPart() {
+  const t = selected.value
+  if (!t) { showToast('请先在列表中选择一个部件类型', 'warn'); return }
+  if (!t.parts) t.parts = []
+  t.parts.push({ stockTypeNo: '', alternativeNo: '' })
+  showToast('已添加备件行，请选择 Stock Type（手册 P38：Options > Add Part）', 'ok')
 }
 
 // 手册 2 / P37：复制组件类型
