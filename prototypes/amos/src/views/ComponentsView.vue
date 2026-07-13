@@ -241,6 +241,11 @@ watch(() => store.department, () => { selected.value = null; applyPreset() })
 function applyPreset() {
   if (store.presetFilter) { applyFilter(store.presetFilter); setPresetFilter(null) }
   else viewRows.value = scopeRows(all.value)
+  // 手册 2 / P30：从 Component Types 的 Components 标签 View 跳入时，
+  // 预设过滤命中单条组件则自动选中并加载继承的 Counters / Measure Points
+  if (selected.value === null && viewRows.value.length === 1) {
+    onSelect(viewRows.value[0])
+  }
 }
 
 // 手册 P21-23：Global 模式下按选中的 Dept 过滤（跨 Dept）；普通模式用 scopeByDepartment
