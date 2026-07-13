@@ -107,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from './FilterDialog.vue'
 import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
@@ -166,13 +166,7 @@ const statusClass = computed(() => {
   return 'gray'
 })
 
-function reset() {
-  showFilter.value = false
-  selected.value = null
-  optionsOpen.value = false
-  viewRows.value = dbRows.value.slice()
-}
-watch(() => store.activeKey, () => { reset(); applyPreset() })
+// 不再于 activeKey 变化时硬重置（避免切回窗口丢失选中记录与过滤上下文）；改用 onActivated 仅在存在 presetFilter 时应用
 
 function applyFilter(criteria) {
   showFilter.value = false
@@ -405,6 +399,8 @@ function applyPreset() {
   }
 }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
+// keep-alive 激活时：仅当存在 presetFilter（如 Dashboard 告警带入）才重新应用，否则保留上下文
+onActivated(() => { if (store.presetFilter) applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
 
 watch(showOpenDialog, (v) => {
