@@ -87,7 +87,7 @@
             <table class="amos-grid sub" v-if="regComponentsList.length">
               <thead><tr><th>Number</th><th>Name</th><th>Location</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                <tr v-for="c in regComponentsList" :key="c.id">
+                <tr v-for="c in regComponentsList" :key="c.id" :class="{ 'highlight-row': highlightCompId === c.id }">
                   <td>{{ c.number }}</td><td>{{ c.name }}</td><td>{{ c.location }}</td><td>{{ c.status }}</td>
                   <td><button class="amos-btn xs" @click="viewComponent(c)">View</button></td>
                 </tr>
@@ -333,6 +333,7 @@ const regDialog = ref(false)
 const regSelected = ref([])
 const regAutoStock = ref(false)
 const detailPresetTab = ref('') // 指令性切换 RecordDetail 的 tab（如注册组件后自动跳转 Components）
+const highlightCompId = ref('') // 回跳时高亮 Components 列表中的目标组件行
 const deptGroups = computed(() => {
   const map = {}
   departments.forEach((d) => { (map[d.installation] = map[d.installation] || []).push(d) })
@@ -405,6 +406,9 @@ function confirmRegister() {
 function viewComponent(c) {
   // 手册 P30 第 5 步：编号 + location 双重定位，确保精确命中目标组件
   setPresetFilter({ number: c.number, location: c.location })
+  // 保存回跳上下文：切回 Component Types 时恢复选中类型 + Components tab + 高亮目标行
+  const t = selected.value
+  store.returnContext = { sourceWindow: config.value?.windowKey, typeNumber: t?.typeNumber, targetId: c.id }
   openWindow('components')
 }
 
@@ -433,8 +437,23 @@ function applyPreset() {
   }
 }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
-// keep-alive 激活时：仅当存在 presetFilter（如 Dashboard 告警带入）才重新应用，否则保留上下文
-onActivated(() => { if (store.presetFilter) applyPreset() })
+// keep-alive 激活时：处理 presetFilter（Dashboard 告警带入）和 returnContext（从其他窗口 View 跳回的上下文恢复）
+onActivated(() => {
+  if (store.presetFilter) applyPreset()
+  // 回跳上下文恢复：从 Component Types 的 Components tab View 跳出后，切回时还原选中类型 + 高亮目标组件行
+  if (store.returnContext && store.returnContext.sourceWindow === config.value?.windowKey) {
+    const ctx = store.returnContext
+    store.returnContext = null // 一次性消费，避免重复触发
+    if (ctx.typeNumber) {
+      const row = dbRows.value.find((r) => r.typeNumber === ctx.typeNumber)
+      if (row) selected.value = row
+    }
+    // 切到 Components tab 并标记高亮目标行
+    nextTick(() => { detailPresetTab.value = 'components'; highlightCompId.value = ctx.targetId || '' })
+    // 短暂后清除高亮（避免永久高亮干扰）
+    setTimeout(() => { highlightCompId.value = '' }, 3000)
+  }
+})
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
 
 watch(showOpenDialog, (v) => {
@@ -458,6 +477,9 @@ watch(showOpenDialog, (v) => {
 .bw-options-menu button:hover { background: var(--amos-blue-soft); }
 .bw-options-menu button.checked { font-weight: 700; color: var(--amos-blue); }
 .bw-empty { padding: 30px; text-align: center; }
+/* 回跳高亮：从 Components View 跳出后切回时，目标组件行短暂高亮 */
+.highlight-row { background: #fff3cd !important; animation: hl-pulse 2s ease-out; }
+@keyframes hl-pulse { 0% { background: #ffe066; } 100% { background: #fff3cd; } }
 
 /* Open Record 对话框 */
 .open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
