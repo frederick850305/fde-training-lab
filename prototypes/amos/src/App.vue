@@ -50,9 +50,11 @@
           </div>
           <span v-if="!store.openTabs.length" class="muted" style="padding:8px 12px">未打开任何窗口</span>
         </div>
-        <!-- 活动窗口内容 -->
+        <!-- 活动窗口内容：keep-alive 保留各窗口上下文；:key 区分 activeKey 以避免多窗口共用 BusinessWindow 串台 -->
         <div class="win-content">
-          <component :is="activeComponent" />
+          <keep-alive>
+            <component :is="activeComponent" :key="store.activeKey" />
+          </keep-alive>
         </div>
       </main>
     </div>

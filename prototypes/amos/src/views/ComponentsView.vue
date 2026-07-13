@@ -118,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
@@ -235,7 +235,7 @@ function avg(r) {
   return (r.currentValue / days).toFixed(1)
 }
 
-watch(() => store.activeKey, () => { selected.value = null; applyPreset() })
+// 不再于 activeKey 变化时硬重置；改用 onActivated：仅当存在 presetFilter（View 跳转 / Dashboard 告警带入）时才应用，否则保留窗口上下文
 watch(() => store.department, () => { selected.value = null; applyPreset() })
 
 function applyPreset() {
@@ -344,6 +344,8 @@ function confirmOpen() {
 }
 function onAction(e) { const a = e.detail?.action; if (a === 'filter') reopenFilter(); if (a === 'new') doNew(); if (a === 'open') doOpen() }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
+// keep-alive 激活时：若带 presetFilter（来自 Component Types 的 View 跳转）则应用并自动选中目标组件，否则保留之前选中的上下文
+onActivated(() => { if (store.presetFilter) applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
 watch(showOpenDialog, (v) => { if (v) nextTick(() => openInputRef.value?.focus()) })
 function statusClass(v) {
