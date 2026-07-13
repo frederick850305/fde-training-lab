@@ -7,6 +7,7 @@ const noteTab = (id, label, text) => ({ id, label, fields: [{ key: '_note', labe
 
 export const windowRegistry = {
   'component-types': {
+    windowKey: 'component-types',
     windowTitle: 'Component Types',
     dataKey: 'componentTypes',
     statusField: 'status',

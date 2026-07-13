@@ -69,6 +69,7 @@
           :columns="config.columns"
           :rows="viewRows"
           :row-key="rowKey"
+          :preselect-id="listPreselectId"
           @select="onSelect"
           @open="onOpen"
         />
@@ -334,6 +335,7 @@ const regSelected = ref([])
 const regAutoStock = ref(false)
 const detailPresetTab = ref('') // 指令性切换 RecordDetail 的 tab（如注册组件后自动跳转 Components）
 const highlightCompId = ref('') // 回跳时高亮 Components 列表中的目标组件行
+const listPreselectId = ref('')  // 回跳时预选中左侧列表的某行（同步到 RecordList 内部 selectedId）
 const deptGroups = computed(() => {
   const map = {}
   departments.forEach((d) => { (map[d.installation] = map[d.installation] || []).push(d) })
@@ -446,12 +448,16 @@ onActivated(() => {
     store.returnContext = null // 一次性消费，避免重复触发
     if (ctx.typeNumber) {
       const row = dbRows.value.find((r) => r.typeNumber === ctx.typeNumber)
-      if (row) selected.value = row
+      if (row) {
+        selected.value = row
+        // 同步到 RecordList 内部 selectedId 使左侧列表高亮该行
+        listPreselectId.value = row[rowKey.value] || ''
+      }
     }
     // 切到 Components tab 并标记高亮目标行
     nextTick(() => { detailPresetTab.value = 'components'; highlightCompId.value = ctx.targetId || '' })
-    // 短暂后清除高亮（避免永久高亮干扰）
-    setTimeout(() => { highlightCompId.value = '' }, 3000)
+    // 短暂后清除高亮和预选中（避免永久标记干扰后续操作）
+    setTimeout(() => { highlightCompId.value = ''; listPreselectId.value = '' }, 3000)
   }
 })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))

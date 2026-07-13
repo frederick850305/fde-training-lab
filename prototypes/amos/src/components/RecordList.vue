@@ -64,6 +64,7 @@ const props = defineProps({
   rowKey: { type: String, default: 'id' },
   selectable: { type: Boolean, default: false },
   checked: { type: Array, default: () => [] },
+  preselectId: { type: String, default: '' }, // 外部指令性预选中某行（如回跳上下文恢复时由父组件传入）
 })
 const emit = defineEmits(['select', 'open', 'update:checked'])
 
@@ -74,6 +75,12 @@ const selectedId = ref('')
 const checkedSet = ref(new Set(props.checked))
 
 watch(() => props.checked, (v) => { checkedSet.value = new Set(v) })
+
+// 外部指令性预选中：当父组件传入 preselectId 时同步到内部选中状态（用于回跳上下文恢复等场景）
+import { watch as watchPreselect } from 'vue'
+watchPreselect(() => props.preselectId, (id) => {
+  if (id) selectedId.value = id
+})
 
 const filtered = computed(() => {
   let list = props.rows
