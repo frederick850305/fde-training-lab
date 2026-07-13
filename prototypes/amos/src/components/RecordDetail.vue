@@ -6,7 +6,7 @@
         :key="t.id"
         class="tab"
         :class="{ active: active === t.id }"
-        @click="active = t.id"
+        @click="switchTab(t.id)"
       >{{ t.label }}</div>
     </div>
     <div class="tab-body" style="border-top:none">
@@ -93,7 +93,41 @@ const props = defineProps({
 })
 const emit = defineEmits(['change'])
 
-const active = ref(props.tabs[0]?.id || '')
+// 手册 P30 导航体验优化：每个窗口的详情标签页状态持久化，
+// 切换窗口再切回后保留用户之前所在的 tab（而非总是重置到 General）
+// 使用模块级 Map 按 windowKey 缓存，RecordDetail 组件不感知外部 windowKey
+// 由父组件 BusinessWindow 通过 detailTabKey prop 传入唯一标识
+const _tabCache = new Map()
+
+function getActive(key) {
+  return _tabCache.get(key) || props.tabs[0]?.id || ''
+}
+
+function setActive(key, val) {
+  _tabCache.set(key, val)
+}
+
+const active = ref(getActive('default'))
+
+// 监听 model 变化（选中记录切换时）以决定是否使用缓存或默认
+import { watch, toRef } from 'vue'
+const modelId = computed(() => props.model?.id || props.model?.typeNumber || 'unknown')
+watch(modelId, (newId) => {
+  const cacheKey = newId
+  if (!_tabCache.has(cacheKey)) {
+    // 首次打开该记录 → 默认首 tab
+    active.value = props.tabs[0]?.id || ''
+    _tabCache.set(cacheKey, active.value)
+  } else {
+    // 切回已缓存的记录 → 恢复之前的 tab
+    active.value = getActive(cacheKey)
+  }
+}, { immediate: true })
+
+function switchTab(id) {
+  active.value = id
+  setActive(modelId.value, id)
+}
 const lookupField = ref(null)
 const lookupOptions = ref([])
 

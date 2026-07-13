@@ -354,11 +354,13 @@ function confirmRegister() {
   if (!t) return
   if (!regSelected.value.length) { showToast('请至少选择一个安装地点', 'warn'); return }
   const today = new Date().toISOString().slice(0, 10)
+  // 手册 P30：使用 baseNo + 序号后缀，避免同一毫秒批量注册时编号全部重复
+  const baseNo = String(Date.now() % 1000000)
   let count = 0
-  regSelected.value.forEach((dept) => {
+  regSelected.value.forEach((dept, idx) => {
     const comp = {
       id: uid('co'),
-      number: 'C-' + (Date.now() % 1000000),
+      number: 'C-' + baseNo + '-' + String(idx + 1).padStart(2, '0'),
       typeNumber: t.typeNumber,
       name: t.name,
       maker: t.maker,
@@ -398,7 +400,8 @@ function confirmRegister() {
   showToast(`已注册 ${count} 个组件（来自类型 ${t.typeNumber}）`, 'ok')
 }
 function viewComponent(c) {
-  setPresetFilter({ number: c.number })
+  // 手册 P30 第 5 步：编号 + location 双重定位，确保精确命中目标组件
+  setPresetFilter({ number: c.number, location: c.location })
   openWindow('components')
 }
 
