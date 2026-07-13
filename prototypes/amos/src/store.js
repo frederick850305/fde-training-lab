@@ -20,8 +20,10 @@ export const store = reactive({
     checkInterval: 60,       // General：Mailbox/Dashboard 刷新间隔(秒)
     enableDashboard: true,   // Dashboard：启用仪表盘
     selectedAlerts: [],      // Dashboard：已选 Alerts
-    dashboardUrl: '',        // Dashboard：主页引入 URL
-    dashboardImage: '',      // Dashboard：背景图片
+    showGauge: true,         // Dashboard：显示告警表盘（Gauge）
+    showWorkflowNotification: true, // Dashboard：显示工作流通知区
+    dashboardUrl: '',        // Dashboard：主页引入 URL（右下角网页）
+    dashboardImage: '',      // Dashboard：左上角图片（如 Logo）
     themeEnabled: false,     // Theme：启用主题
     views: [],               // Views：自定义界面（Private）
     defaultView: '',         // Views：默认界面
@@ -80,6 +82,14 @@ export function setInstallation(code) {
 }
 export function setDepartment(code) {
   store.department = code
+}
+
+// 手册 P20（Installations and Departments）：department 是工作范围(scope)。
+// 带 department 标签的记录必须匹配当前 department 才显示；无标签（类型/模板/作业）始终显示。
+export function scopeByDepartment(rows) {
+  const dept = store.department
+  if (!dept) return rows
+  return rows.filter((r) => !r.department || r.department === dept)
 }
 
 // 延迟引入，避免循环依赖

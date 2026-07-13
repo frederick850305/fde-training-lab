@@ -2,6 +2,8 @@
   <div class="biz-win">
     <div class="bw-head">
       <h2>Work Orders</h2>
+      <span v-if="globalMode" class="scope-badge global-badge" title="手册 P21-23：Global 模式 — 跨 Department 搜索">🌐 Global：{{ globalDepts.length }} Dept</span>
+      <span v-else class="scope-badge" title="手册 P20：窗口仅显示当前 Department 范围内的记录">范围：{{ store.department }}</span>
       <div class="row" style="gap:6px">
         <button class="amos-btn sm" @click="reopenFilter">查找 / Filter</button>
         <button class="amos-btn sm" @click="gen">Generate</button>
@@ -12,6 +14,17 @@
     </div>
 
     <FilterDialog :basic="filterBasic" :advanced="filterAdvanced" @ok="applyFilter" @cancel="applyFilter" v-if="showFilter" />
+
+    <!-- Open Record 对话框 -->
+    <div v-if="showOpenDialog" class="open-dialog-overlay">
+      <div class="open-dialog">
+        <h3>Open Record — Work Orders</h3>
+        <p class="muted">输入 WO No. 以定位并打开该工单。</p>
+        <div class="amos-field"><label>WO No.</label><div class="ctrl"><input ref="openInputRef" class="amos-input" v-model="openKeyValue" @keydown.enter="confirmOpen" placeholder="如 WO-2607" /></div></div>
+        <div class="od-actions"><button class="amos-btn" @click="showOpenDialog = false">Cancel</button><button class="amos-btn primary" @click="confirmOpen">OK</button></div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <section class="bw-list">
         <RecordList :columns="columns" :rows="viewRows" row-key="id" :selectable="true" v-model:checked="checkedIds" @select="onSelect" @open="onOpen" />
@@ -68,13 +81,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
-import { db } from '../mock/index.js'
-import { store, showToast, setPresetFilter } from '../store.js'
+import { db, uid } from '../mock/index.js'
+import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 
 const flow = ['Requested', 'Planned', 'Issued', 'Completed']
@@ -89,7 +102,7 @@ const filterBasic = [
   { key: 'planning', label: 'Planning', type: 'select', options: ['Due Now', 'Overdue', 'Due This Week', 'Due Next Week'] },
 ]
 const filterAdvanced = [{ key: 'functionNo', label: 'Function', type: 'text' }]
-const columns = [
+const columnsBase = [
   { key: 'workOrderNo', label: 'WO No.', width: '120px' },
   { key: 'description', label: 'Description' },
   { key: 'status', label: 'Status', width: '100px', tag: true },
@@ -97,6 +110,12 @@ const columns = [
   { key: 'dueDate', label: 'Due', width: '110px' },
   { key: 'functionNo', label: 'Function', width: '110px' },
 ]
+// 手册 P23：Global 模式下新增 Inst/Dept 列
+const columns = computed(() => {
+  const base = [...columnsBase]
+  if (globalMode.value) base.splice(1, 0, { key: '_instDept', label: 'Inst / Dept', width: '130px' })
+  return base
+})
 const tabs = [
   { id: 'general', label: 'General', fields: [
     { key: 'workOrderNo', label: 'WO No.' },
@@ -124,31 +143,56 @@ const checkedIds = ref([])
 const printOpen = ref(false)
 const printFormat = ref('List')
 const printSort = ref('workOrderNo')
+// 手册 P21-23：Global Search 状态
+const globalMode = ref(false)
+const globalDepts = ref([])
+// Open Record 对话框
+const showOpenDialog = ref(false)
+const openKeyValue = ref('')
+const openInputRef = ref(null)
 const printRows = computed(() => {
   const src = checkedIds.value.length ? viewRows.value.filter((r) => checkedIds.value.includes(r.id)) : viewRows.value
   const key = printSort.value
   return [...src].sort((a, b) => (a[key] || '') < (b[key] || '') ? -1 : (a[key] || '') > (b[key] || '') ? 1 : 0)
 })
 watch(() => store.activeKey, () => { if (store.activeKey === 'work-orders') { selected.value = null; checkedIds.value = []; applyPreset() } })
+watch(() => store.department, () => { if (store.activeKey === 'work-orders') { selected.value = null; checkedIds.value = []; applyPreset() } })
 
 function applyPreset() {
   if (store.presetFilter) {
     applyFilter(store.presetFilter)
     setPresetFilter(null)
   } else {
-    viewRows.value = all.value.slice()
+    viewRows.value = scopeRows(all.value)
   }
+}
+
+// 手册 P21-23：Global 模式下按选中的 Dept 过滤（跨 Dept）；普通模式用 scopeByDepartment
+function scopeRows(rows) {
+  if (globalMode.value && globalDepts.value.length) {
+    return rows.filter((r) => !r.department || globalDepts.value.includes(r.department))
+  }
+  return scopeByDepartment(rows)
 }
 
 function applyFilter(c) {
   showFilter.value = false
   const crit = c || {}
-  viewRows.value = all.value.filter((r) => {
-    if (!matchRow(r, filterBasic, crit)) return false
+  // 提取 Global Search 状态
+  globalMode.value = !!crit._globalSearch
+  globalDepts.value = crit._globalDepts || []
+  // 将 planning 从普通字段匹配中排除，由 matchPlanning 单独处理（避免 row 无 planning 字段导致全量被 matchRow 拦截）
+  const plainCrit = { ...crit }
+  delete plainCrit.planning
+  viewRows.value = scopeRows(all.value.filter((r) => {
+    if (!matchRow(r, filterBasic, plainCrit)) return false
     if (crit.discipline && (funcLoc.value[r.functionNo] || '') !== crit.discipline) return false
     if (crit.planning && !matchPlanning(r, crit.planning)) return false
     return true
-  })
+  })).map((r) => ({
+    ...r,
+    _instDept: (r.department || store.department),
+  }))
 }
 function reopenFilter() { selected.value = null; showFilter.value = true }
 function onSelect(r) { selected.value = r }
@@ -163,15 +207,40 @@ function advance() {
 function gen() { showToast('按计划自动生成工单（原型演示）', 'info') }
 function requisition() { showToast('打开 Requisition Work（原型演示）', 'info') }
 function openPrint() { printOpen.value = true }
+// Open Record
+function doOpen() {
+  if (showFilter.value) return
+  openKeyValue.value = ''
+  showOpenDialog.value = true
+}
+function confirmOpen() {
+  const val = openKeyValue.value.trim()
+  if (!val) return showToast('请输入 WO No.', 'warn')
+  const rec = all.value.find((r) => String(r.workOrderNo || '').toLowerCase() === val.toLowerCase())
+  if (!rec) return showToast(`未找到 WO No. 为「${val}」的工单`, 'warn')
+  if (!viewRows.value.find((r) => r.id === rec.id)) viewRows.value = [...viewRows.value, rec]
+  selected.value = rec; showOpenDialog.value = false
+  showToast(`已打开工单：${rec.workOrderNo}`, 'ok')
+}
 function doPrint() {
   if (!printRows.value.length) return showToast('无工单可打印', 'warn')
   printOpen.value = false
   showToast('正在打印 ' + printRows.value.length + ' 张工单（' + printFormat.value + '）', 'ok')
   window.print()
 }
-function onAction(e) { if (e.detail?.action === 'filter') reopenFilter() }
+function doNew() {
+  const rec = { id: uid('wo'), workOrderNo: 'WO-' + Math.floor(Math.random() * 9000 + 1000), description: '', status: 'Requested', priority: 'Medium', dueDate: '', department: store.department, functionNo: '', componentId: '', jobId: '' }
+  all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建工单，填写后点击 Save 或 Issue/Advance 推进状态', 'ok')
+}
+function onAction(e) {
+  const a = e.detail?.action
+  if (a === 'filter') reopenFilter()
+  if (a === 'new') doNew()
+  if (a === 'open') doOpen()
+}
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
+watch(showOpenDialog, (v) => { if (v) nextTick(() => openInputRef.value?.focus()) })
 
 function statusClass(v) {
   const s = String(v).toLowerCase()
@@ -188,6 +257,8 @@ function statusClass(v) {
 .biz-win { display: flex; flex-direction: column; height: 100%; }
 .bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); }
 .bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
+.scope-badge { font-size: 11.5px; color: #1f6fb2; background: #e8f2fb; border: 1px solid #b9d8f0; border-radius: 999px; padding: 2px 10px; }
+.global-badge { color: #0e6a30; background: #e4f7e8; border-color: #95d5a9; }
 .bw-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; min-height: 0; }
 .bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; }
 .bw-list > * { flex: 1; }
@@ -203,6 +274,12 @@ function statusClass(v) {
 .step.current .step-dot { background: var(--amos-blue); color: #fff; box-shadow: 0 0 0 3px rgba(30,111,217,.2); }
 .step.current .step-label { color: var(--amos-blue); font-weight: 700; }
 @media (max-width: 980px) { .bw-body { grid-template-columns: 1fr; } .bw-list { border-right: none; border-bottom: 1px solid var(--amos-border); } }
+/* Open Record 对话框 */
+.open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
+.open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }
+.open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
+.open-dialog .amos-field { margin-top: 12px; }
+.od-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .pp-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--amos-text-soft); }
 .pp-preview { max-height: 320px; overflow: auto; border: 1px solid var(--amos-border); border-radius: 6px; padding: 10px; background: #fbfcfe; }
 .pp-wo { padding: 8px 0; border-bottom: 1px dashed var(--amos-border); }

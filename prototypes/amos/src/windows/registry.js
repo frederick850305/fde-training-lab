@@ -42,7 +42,7 @@ export const windowRegistry = {
       noteTab('counters', 'Counters', '计数器定义（如运行小时）。'),
       noteTab('measure', 'Measure Points', '测点定义。'),
       noteTab('related', 'Related', '关联组件类型。'),
-      noteTab('components', 'Components', '由该类型注册的组件实例。'),
+      { id: 'components', label: 'Components', fields: [] },
     ],
     options: [{ label: 'Register as Component', action: 'register-component' }, { label: 'Copy List', action: 'copy-list' }],
   },

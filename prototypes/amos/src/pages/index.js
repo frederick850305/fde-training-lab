@@ -13,6 +13,7 @@ import BudgetsView from '../views/BudgetsView.vue'
 import VouchersView from '../views/VouchersView.vue'
 import OptionsView from '../views/OptionsView.vue'
 import GlobalSearchView from '../views/GlobalSearchView.vue'
+import WorkflowNotificationsView from '../views/WorkflowNotificationsView.vue'
 import GenericWindowView from '../views/GenericWindowView.vue'
 
 // 专用页面（重点实现）
@@ -31,6 +32,7 @@ const specialized = {
   vouchers: VouchersView,
   options: OptionsView,
   'global-search': GlobalSearchView,
+  'workflow-notifications': WorkflowNotificationsView,
 }
 
 // 其余页面统一走通用业务窗口（Filter + 列表 + 明细标签页）

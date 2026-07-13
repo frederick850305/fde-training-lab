@@ -24,6 +24,43 @@
       @cancel="applyFilter"
     />
 
+    <!-- 手册：Open 按钮弹出的"打开记录"对话框（按编号精确定位单条记录） -->
+    <div v-if="showOpenDialog" class="open-dialog-overlay">
+      <div class="open-dialog">
+        <h3>Open Record — {{ config.windowTitle }}</h3>
+        <p class="muted">输入{{ openKeyLabel }}以定位并打开该记录。</p>
+        <div class="amos-field">
+          <label>{{ openKeyLabel }}</label>
+          <div class="ctrl"><input ref="openInputRef" class="amos-input" v-model="openKeyValue" @keydown.enter="confirmOpen" :placeholder="'如 ' + openKeyExample" /></div>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn" @click="showOpenDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmOpen">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register as Component 对话框（手册 2 / P30） -->
+    <div v-if="regDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Register as Component — {{ selected?.typeNumber }}</h3>
+        <p class="muted">将所选部件类型注册为实际部件，继承全部类型信息（作业 / 计数器 / 测点）。按住 Ctrl 可多选安装地点。</p>
+        <div class="reg-depts">
+          <div v-for="grp in deptGroups" :key="grp.installation" class="reg-grp">
+            <div class="reg-grp-h">{{ grp.installation }}</div>
+            <label v-for="d in grp.items" :key="d.code" class="row" style="gap:6px">
+              <input type="checkbox" :value="d.code" v-model="regSelected" /> {{ d.name }} <span class="muted">({{ d.code }})</span>
+            </label>
+          </div>
+        </div>
+        <label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" v-model="regAutoStock" /> Auto-Register Stock Items（同时登记关联备件）</label>
+        <div class="od-actions">
+          <button class="amos-btn" @click="regDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmRegister">OK</button>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <!-- 左：结果列表 -->
       <section class="bw-list">
@@ -43,7 +80,22 @@
           <strong>{{ selected[detailTitleKey] || config.windowTitle }}</strong>
           <span class="tag" :class="statusClass">{{ selected[config.statusField] || '—' }}</span>
         </div>
-        <RecordDetail :tabs="config.detailTabs" :model="selected" @change="onFieldChange" />
+        <RecordDetail :tabs="config.detailTabs" :model="selected" @change="onFieldChange">
+          <!-- 手册 2 / P30：部件类型窗口的 Components 标签，列出已注册的组件实例 -->
+          <template #extra-components="scope">
+            <p class="muted">由该类型注册的组件实例（手册 2 / P30）。</p>
+            <table class="amos-grid sub" v-if="regComponentsList.length">
+              <thead><tr><th>Number</th><th>Name</th><th>Location</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr v-for="c in regComponentsList" :key="c.id">
+                  <td>{{ c.number }}</td><td>{{ c.name }}</td><td>{{ c.location }}</td><td>{{ c.status }}</td>
+                  <td><button class="amos-btn xs" @click="viewComponent(c)">View</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="muted">尚未注册组件。点击 Options ▾ → Register as Component。</p>
+          </template>
+        </RecordDetail>
       </section>
       <section v-else class="bw-detail empty">
         <p class="muted">双击列表行查看明细，或点击 <b>New</b> 创建记录。</p>
@@ -55,14 +107,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from './FilterDialog.vue'
 import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
-import { store, showToast } from '../store.js'
-import { db } from '../mock/index.js'
+import { store, showToast, openWindow, setPresetFilter } from '../store.js'
+import { db, uid } from '../mock/index.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
+import { departments } from '../data/amosData.js'
 
 const config = computed(() => windowRegistry[store.activeKey] || null)
 const rowKey = computed(() => {
@@ -89,6 +142,11 @@ const showFilter = ref(false)
 const selected = ref(null)
 const optionsOpen = ref(false)
 const listRef = ref(null)
+
+// ===== Open Record 对话框状态 =====
+const showOpenDialog = ref(false)
+const openKeyValue = ref('')
+const openInputRef = ref(null)
 
 const statusClass = computed(() => {
   const v = (selected.value && selected.value[config.value?.statusField]) || ''
@@ -172,9 +230,118 @@ function onFieldChange() {
   /* 内存态自动同步 */
 }
 
+// ===== Open Record 对话框：主键字段标签与示例 =====
+const openKeyLabel = computed(() => {
+  const col = (config.value?.columns || []).find((c) => c.key === detailTitleKey.value)
+  return (col && col.label) || detailTitleKey.value
+})
+const openKeyExample = computed(() => {
+  // 取第一条记录的主键值作为示例（如 CT-1001 / WO-2607）
+  if (!dbRows.value.length) return '…'
+  return String(dbRows.value[0][detailTitleKey.value] || '')
+})
+
+function doOpen() {
+  if (showFilter.value) return
+  openKeyValue.value = ''
+  showOpenDialog.value = true
+}
+function confirmOpen() {
+  const val = openKeyValue.value.trim()
+  if (!val) { showToast('请输入编号', 'warn'); return }
+  const key = detailTitleKey.value
+  const rec = dbRows.value.find((r) => String(r[key] || '').toLowerCase() === val.toLowerCase())
+  if (!rec) {
+    showToast(`未找到 ${openKeyLabel.value} 为「${val}」的记录`, 'warn')
+    return
+  }
+  // 确保该记录在 viewRows 中可见（若当前被过滤掉了则加入）
+  if (!viewRows.value.find((r) => r[key] === rec[key])) {
+    viewRows.value = [...viewRows.value, rec]
+  }
+  selected.value = rec
+  showOpenDialog.value = false
+  showToast(`已打开：${rec[key]}`, 'ok')
+}
+
 function runOption(o) {
   optionsOpen.value = false
+  // 手册 2 / P30：从部件类型窗口把类型注册为实际部件
+  if (o.action === 'register-component') { openRegister(); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
+}
+
+// ===== Register as Component（手册 2 / P30）=====
+const regDialog = ref(false)
+const regSelected = ref([])
+const regAutoStock = ref(false)
+const deptGroups = computed(() => {
+  const map = {}
+  departments.forEach((d) => { (map[d.installation] = map[d.installation] || []).push(d) })
+  return Object.entries(map).map(([installation, items]) => ({ installation, items }))
+})
+// 当前选中类型下已注册的组件实例（用于类型窗口 Components 标签）
+const regComponentsList = computed(() => {
+  const t = selected.value
+  if (!t || !t.regComponents) return []
+  return t.regComponents.map((id) => db.components.find((c) => c.id === id)).filter(Boolean)
+})
+function openRegister() {
+  if (!selected.value) { showToast('请先在列表中选择一个部件类型', 'warn'); return }
+  regSelected.value = [store.department]
+  regAutoStock.value = false
+  regDialog.value = true
+}
+function confirmRegister() {
+  const t = selected.value
+  if (!t) return
+  if (!regSelected.value.length) { showToast('请至少选择一个安装地点', 'warn'); return }
+  const today = new Date().toISOString().slice(0, 10)
+  let count = 0
+  regSelected.value.forEach((dept) => {
+    const comp = {
+      id: uid('co'),
+      number: 'C-' + (Date.now() % 1000000),
+      typeNumber: t.typeNumber,
+      name: t.name,
+      maker: t.maker,
+      model: t.model,
+      type: '',
+      serialNo: '',
+      status: 'In Use',
+      location: dept,
+      functionNo: '',
+      vendor: t.maker,
+      parentComponent: '',
+      installDate: today,
+    }
+    db.components.push(comp)
+    // 关联到类型，便于类型窗口 Components 标签展示（P30 第 5 步）
+    ;(t.regComponents = t.regComponents || []).push(comp.id)
+    count++
+    // Auto-Register Stock Items：把该类型关联的备件一并登记到所选安装地点
+    if (regAutoStock.value && Array.isArray(t.linkedStockTypes)) {
+      t.linkedStockTypes.forEach((stNo) => {
+        const st = db.stockTypes.find((x) => x.stockTypeNo === stNo)
+        if (!st) return
+        const exists = db.stockItems.some((s) => s.stockTypeNo === stNo && s.location === dept)
+        if (!exists) {
+          db.stockItems.push({
+            id: uid('si'), stockItemNo: 'SI-' + (Date.now() % 1000000), stockTypeNo: stNo,
+            description: st.description, makerRef: '', drawingNo: '', stockClass: '',
+            functionNo: '', quantity: 0, location: dept, expiryDate: '', perishable: false,
+            status: 'Active', unitCost: st.bestPrice,
+          })
+        }
+      })
+    }
+  })
+  regDialog.value = false
+  showToast(`已注册 ${count} 个组件（来自类型 ${t.typeNumber}）`, 'ok')
+}
+function viewComponent(c) {
+  setPresetFilter({ number: c.number })
+  openWindow('components')
 }
 
 // ===== 顶部工具栏事件（CustomEvent 解耦） =====
@@ -188,6 +355,7 @@ function onAction(e) {
   else if (a === 'print') window.print()
   else if (a === 'options') optionsOpen.value = !optionsOpen.value
   else if (a === 'filter') reopenFilter()
+  else if (a === 'open') doOpen()
 }
 
 // 双击 Dashboard 告警带入的预过滤
@@ -202,6 +370,10 @@ function applyPreset() {
 }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
+
+watch(showOpenDialog, (v) => {
+  if (v) nextTick(() => openInputRef.value?.focus())
+})
 </script>
 
 <style scoped>
@@ -219,6 +391,19 @@ onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
 .bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
 .bw-options-menu button:hover { background: var(--amos-blue-soft); }
 .bw-empty { padding: 30px; text-align: center; }
+
+/* Open Record 对话框 */
+.open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
+.open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }
+.open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
+.open-dialog .amos-field { margin-top: 12px; }
+.open-dialog.reg { width: 460px; }
+.reg-depts { max-height: 220px; overflow: auto; border: 1px solid var(--amos-border); border-radius: 6px; padding: 8px; margin-top: 8px; }
+.reg-grp { margin-bottom: 6px; }
+.reg-grp-h { font-size: 12px; font-weight: 700; color: var(--amos-text-soft); margin-bottom: 2px; }
+.reg .amos-grid.sub { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+.reg .amos-grid.sub th, .reg .amos-grid.sub td { border: 1px solid var(--amos-border); padding: 4px 6px; text-align: left; }
+.od-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 @media (max-width: 980px) {
   .bw-body { grid-template-columns: 1fr; }
   .bw-list { border-right: none; border-bottom: 1px solid var(--amos-border); }

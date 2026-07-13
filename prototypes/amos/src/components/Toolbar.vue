@@ -9,6 +9,8 @@
 
 <script setup>
 import { openWindow, showDialog, showToast } from '../store.js'
+import { windowRegistry } from '../windows/registry.js'
+import { store } from '../store.js'
 
 const icons = {
   new: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
@@ -45,6 +47,12 @@ function run(action) {
   if (action === 'switch-department') return showDialog('switch-department')
   if (action === 'lock') return showToast('应用已锁定（原型演示）', 'warn')
   if (action === 'view') return window.dispatchEvent(new CustomEvent('amos-action', { detail: { action: 'view' } }))
+  // New / Save / Open 等业务动作需要活动窗口；无窗口时提示用户
+  if (action === 'new' || action === 'save' || action === 'open') {
+    // 兼容两种窗口：通用窗口（windowRegistry）+ 专用视图（openTabs 中任意 tab）
+    const hasBiz = !!windowRegistry[store.activeKey] || store.openTabs.some((t) => t.pageKey === store.activeKey)
+    if (!hasBiz) return showToast(`请先打开一个业务窗口再使用 ${action === 'new' ? 'New' : action === 'save' ? 'Save' : 'Open'}（Maintenance / Stock / Purchase / Budget 菜单）`, 'warn')
+  }
   // 业务动作派发给活动窗口（含 filter）
   window.dispatchEvent(new CustomEvent('amos-action', { detail: { action } }))
 }

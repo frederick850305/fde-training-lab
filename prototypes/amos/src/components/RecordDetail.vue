@@ -12,6 +12,8 @@
     <div class="tab-body" style="border-top:none">
       <div v-for="t in tabs" v-show="active === t.id" :key="t.id">
         <div v-for="f in t.fields" :key="f.key" class="amos-field">
+          <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
+          <template v-else>
           <label>{{ f.label }}</label>
           <div class="ctrl">
             <template v-if="f.type === 'lookup'">
@@ -27,6 +29,7 @@
             <input v-else-if="f.type === 'readonly'" type="text" class="amos-input" :value="model[f.key] !== undefined && model[f.key] !== '' ? model[f.key] : f.value" readonly />
             <input v-else type="text" v-model="model[f.key]" class="amos-input" :readonly="f.readonly" :placeholder="f.placeholder || ''" />
           </div>
+          </template>
         </div>
         <slot :name="'extra-' + t.id" :model="model" />
       </div>
@@ -69,3 +72,13 @@ function onLookupSelect(code) {
   lookupField.value = null
 }
 </script>
+
+<style scoped>
+.record-detail { display: flex; flex-direction: column; height: 100%; min-width: 0; }
+.tab-row { display: flex; flex-wrap: wrap; gap: 2px; }
+.tab { padding: 6px 12px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 12.5px; white-space: nowrap; }
+.tab:hover { background: #fff; }
+.tab.active { background: #fff; color: var(--amos-blue); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amos-blue); }
+.tab-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }
+.rd-note { margin: 0 0 10px; color: var(--amos-text-soft); font-size: 13px; line-height: 1.6; }
+</style>
