@@ -10,10 +10,10 @@ export const uid = (p = 'id') => `${p}_${++_id}`
 
 export const db = reactive({
   componentTypes: [
-    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, parts: 6, counters: 2, measurePoints: 1, linkedStockTypes: ['ST-101'] },
-    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, parts: 8, counters: 1, measurePoints: 3, linkedStockTypes: ['ST-201'] },
-    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, parts: 4, counters: 1, measurePoints: 0, linkedStockTypes: ['ST-301'] },
-    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, parts: 3, counters: 0, measurePoints: 0, linkedStockTypes: ['ST-401'] },
+    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, counters: 2, measurePoints: 1, parts: [{ stockTypeNo: 'ST-101', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, counters: 1, measurePoints: 3, parts: [{ stockTypeNo: 'ST-201', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, counters: 1, measurePoints: 0, parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, counters: 0, measurePoints: 0, parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped
