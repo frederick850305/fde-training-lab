@@ -203,8 +203,10 @@ function openSubLookup(t, c, row) {
 
 <style scoped>
 .record-detail { display: flex; flex-direction: column; height: 100%; min-width: 0; }
-.tab-row { display: flex; flex-wrap: wrap; gap: 2px; }
-.tab { padding: 6px 12px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 12.5px; white-space: nowrap; }
+.tab-row { display: flex; gap: 2px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; -ms-overflow-style: none; }
+.tab-row::-webkit-scrollbar { height: 4px; }
+.tab-row::-webkit-scrollbar-thumb { background: #c0d0e8; border-radius: 2px; }
+.tab { padding: 5px 9px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 11.5px; white-space: nowrap; flex-shrink: 0; }
 .tab:hover { background: #fff; }
 .tab.active { background: #fff; color: var(--amos-blue); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amos-blue); }
 .tab-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }

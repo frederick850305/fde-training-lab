@@ -56,7 +56,7 @@
               <button class="amos-btn xs" @click="newJob">New</button>
               <span class="muted">{{ relJobs.length }} 条作业</span>
             </div>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>Job No.</th><th>Description</th><th>Frequency</th><th>Method</th><th>Due</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="j in relJobs" :key="j.id">
@@ -65,12 +65,12 @@
                 </tr>
                 <tr v-if="!relJobs.length"><td colspan="7" class="muted">该部件无关联作业。点击 New 创建组件级作业。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
           <!-- 手册 2.2(15)：Parts 标签页（View 打开 Stock Items）-->
           <template #extra-parts>
             <p class="muted">关联备件（按所属功能位置匹配）。点击 View 打开 Stock Items 窗口。</p>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>Item No.</th><th>Description</th><th>Stock Class</th><th>Qty</th><th>Location</th><th>Alt. No.</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="s in relParts" :key="s.id">
@@ -79,7 +79,7 @@
                 </tr>
                 <tr v-if="!relParts.length"><td colspan="7" class="muted">无关联备件。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
           <!-- 手册 2.2(17)：Counters 标签页（已改为 subgrid 可编辑，见 tabs 配置） -->
           <!-- 手册 2.2(19)：Work Order 标签页 -->
@@ -88,7 +88,7 @@
               <button class="amos-btn xs" @click="newWO">Requisition Work</button>
               <span class="muted">{{ relWO.length }} 条工单</span>
             </div>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>WO No.</th><th>Title</th><th>Resp. Discipline</th><th>Due</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="w in relWO" :key="w.id">
@@ -97,7 +97,7 @@
                 </tr>
                 <tr v-if="!relWO.length"><td colspan="6" class="muted">该部件无关联工单。点击 Requisition Work 创建工单。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
           <!-- 手册 2.2(18)：Attachments -->
           <template #extra-attachments>
@@ -105,7 +105,7 @@
               <button class="amos-btn xs" @click="addAttachment">New</button>
               <span class="muted">{{ relAttachments.length }} 个附件</span>
             </div>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="(a, i) in relAttachments" :key="i">
@@ -117,17 +117,17 @@
                 </tr>
                 <tr v-if="!relAttachments.length"><td colspan="5" class="muted">暂无附件。图纸、Word 或 PDF 等文件可点击 New 添加。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
           <!-- 手册 2.2(20)：History -->
           <template #extra-history>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>WO No.</th><th>Description</th><th>Completed Due</th><th>Status</th></tr></thead>
               <tbody>
                 <tr v-for="w in relHistory" :key="w.id"><td>{{ w.workOrderNo }}</td><td>{{ w.description }}</td><td>{{ w.dueDate }}</td><td>{{ w.status }}</td></tr>
                 <tr v-if="!relHistory.length"><td colspan="4" class="muted">暂无历史记录。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
           <!-- 手册 2.2(21)：Maintenance Log（独立日志条目，非复用 WO） -->
           <template #extra-maintlog>
@@ -135,7 +135,7 @@
               <button class="amos-btn xs" @click="addLog">New</button>
               <span class="muted">{{ relLog.length }} 条日志</span>
             </div>
-            <table class="amos-grid sub">
+            <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>Date</th><th>WO No.</th><th>Log Text</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="(l, i) in relLog" :key="i">
@@ -144,7 +144,7 @@
                 </tr>
                 <tr v-if="!relLog.length"><td colspan="5" class="muted">暂无维护日志。点击 New 添加维护记录。</td></tr>
               </tbody>
-            </table>
+            </table></div>
           </template>
         </RecordDetail>
       </section>
@@ -450,7 +450,8 @@ function statusClass(v) {
 .bw-detail { padding: 10px; overflow: auto; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--amos-border); }
-.sub { margin-top: 8px; }
+.sub { margin-top: 8px; overflow-x: auto; }
+.sub .table-wrap { min-width: max-content; }
 .sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
 /* slot 内按钮栏与继承信息框（scoped 不继承 RecordDetail 样式，需本组件定义） */
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
