@@ -276,9 +276,9 @@ function onSelect(r) {
   if (!r.componentCounters && ct?.counters?.length) {
     r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
   }
-  if (!r.componentMeasurePoints && ct?.measurePoints) {
-    // measurePoints 在类型中是数字，这里转为子表
-    r.componentMeasurePoints = Array(ct.measurePoints || 0).fill(null).map(() => ({ code: '', description: '', trend: 'Stable', value: '', lastReadDate: '' }))
+  if (!r.componentMeasurePoints && ct?.measurePointDefs?.length) {
+    // 从组件类型的 Measure Points 标签定义继承为组件级可编辑子表
+    r.componentMeasurePoints = ct.measurePointDefs.map((m) => ({ ...m, value: '', lastReadDate: '' }))
   }
 }
 function onOpen(r) { selected.value = r }

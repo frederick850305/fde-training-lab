@@ -24,12 +24,14 @@ const icons = {
   dashboard: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg>',
   lock: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
   switch: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  delete: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
 }
 
 const buttons = [
   { action: 'new', title: 'New', icon: 'new' },
   { action: 'open', title: 'Open', icon: 'open' },
   { action: 'save', title: 'Save', icon: 'save' },
+  { action: 'delete', title: 'Delete', icon: 'delete' },
   { action: 'refresh', title: 'Refresh', icon: 'refresh' },
   { action: 'print', title: 'Print', icon: 'print' },
   { action: 'filter', title: 'Filter', icon: 'search' },
@@ -47,11 +49,11 @@ function run(action) {
   if (action === 'switch-department') return showDialog('switch-department')
   if (action === 'lock') return showToast('应用已锁定（原型演示）', 'warn')
   if (action === 'view') return window.dispatchEvent(new CustomEvent('amos-action', { detail: { action: 'view' } }))
-  // New / Save / Open 等业务动作需要活动窗口；无窗口时提示用户
-  if (action === 'new' || action === 'save' || action === 'open') {
+  // New / Save / Delete / Open 等业务动作需要活动窗口；无窗口时提示用户
+  if (action === 'new' || action === 'save' || action === 'delete' || action === 'open') {
     // 兼容两种窗口：通用窗口（windowRegistry）+ 专用视图（openTabs 中任意 tab）
     const hasBiz = !!windowRegistry[store.activeKey] || store.openTabs.some((t) => t.pageKey === store.activeKey)
-    if (!hasBiz) return showToast(`请先打开一个业务窗口再使用 ${action === 'new' ? 'New' : action === 'save' ? 'Save' : 'Open'}（Maintenance / Stock / Purchase / Budget 菜单）`, 'warn')
+    if (!hasBiz) return showToast(`请先打开一个业务窗口再使用 ${action === 'new' ? 'New' : action === 'save' ? 'Save' : action === 'delete' ? 'Delete' : 'Open'}（Maintenance / Stock / Purchase / Budget 菜单）`, 'warn')
   }
   // 业务动作派发给活动窗口（含 filter）
   window.dispatchEvent(new CustomEvent('amos-action', { detail: { action } }))
