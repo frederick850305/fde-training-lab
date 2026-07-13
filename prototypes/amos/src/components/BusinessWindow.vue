@@ -354,11 +354,14 @@ function confirmRegister() {
   if (!t) return
   if (!regSelected.value.length) { showToast('请至少选择一个安装地点', 'warn'); return }
   const today = new Date().toISOString().slice(0, 10)
+  const baseNo = String(Date.now() % 1000000)
   let count = 0
-  regSelected.value.forEach((dept) => {
+  regSelected.value.forEach((dept, idx) => {
+    // 手册 P30：每个安装地点注册一条独立组件实例，编号必须唯一
+    // 使用 baseNo + 序号后缀避免同一毫秒批量注册时编号重复
     const comp = {
       id: uid('co'),
-      number: 'C-' + (Date.now() % 1000000),
+      number: 'C-' + baseNo + '-' + String(idx + 1).padStart(2, '0'),
       typeNumber: t.typeNumber,
       name: t.name,
       maker: t.maker,
@@ -398,7 +401,8 @@ function confirmRegister() {
   showToast(`已注册 ${count} 个组件（来自类型 ${t.typeNumber}）`, 'ok')
 }
 function viewComponent(c) {
-  setPresetFilter({ number: c.number })
+  // 手册 P30 第 5 步：从类型窗口的 Components 标签 View 跳转时，精确预过滤到目标组件
+  setPresetFilter({ number: c.number, location: c.location })
   openWindow('components')
 }
 
