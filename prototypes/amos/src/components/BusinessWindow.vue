@@ -80,7 +80,7 @@
           <strong>{{ selected[detailTitleKey] || config.windowTitle }}</strong>
           <span class="tag" :class="statusClass">{{ selected[config.statusField] || '—' }}</span>
         </div>
-        <RecordDetail :tabs="config.detailTabs" :model="selected" @change="onFieldChange">
+        <RecordDetail :tabs="config.detailTabs" :model="selected" :preset-tab-id="detailPresetTab" @change="onFieldChange">
           <!-- 手册 2 / P30：部件类型窗口的 Components 标签，列出已注册的组件实例 -->
           <template #extra-components="scope">
             <p class="muted">由该类型注册的组件实例（手册 2 / P30）。</p>
@@ -332,6 +332,7 @@ function copyComponentType() {
 const regDialog = ref(false)
 const regSelected = ref([])
 const regAutoStock = ref(false)
+const detailPresetTab = ref('') // 指令性切换 RecordDetail 的 tab（如注册组件后自动跳转 Components）
 const deptGroups = computed(() => {
   const map = {}
   departments.forEach((d) => { (map[d.installation] = map[d.installation] || []).push(d) })
@@ -397,6 +398,8 @@ function confirmRegister() {
     }
   })
   regDialog.value = false
+  // 注册成功后自动切换到 Components tab，让用户立即看到刚注册的组件实例
+  nextTick(() => { detailPresetTab.value = 'components' })
   showToast(`已注册 ${count} 个组件（来自类型 ${t.typeNumber}）`, 'ok')
 }
 function viewComponent(c) {

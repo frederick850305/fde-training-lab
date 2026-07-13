@@ -90,6 +90,7 @@ import { db, lookups } from '../mock/index.js'
 const props = defineProps({
   tabs: { type: Array, required: true },
   model: { type: Object, required: true },
+  presetTabId: { type: String, default: '' }, // 外部指令：强制切换到指定 tab（如注册组件后跳转 Components）
 })
 const emit = defineEmits(['change'])
 
@@ -123,6 +124,14 @@ watch(modelId, (newId) => {
     active.value = getActive(cacheKey)
   }
 }, { immediate: true })
+
+// 监听 presetTabId：外部指令性切换 tab（如 Register as Component 后自动跳转 Components）
+import { watch as watchPreset } from 'vue'
+watchPreset(() => props.presetTabId, (id) => {
+  if (id && props.tabs.some((t) => t.id === id)) {
+    switchTab(id)
+  }
+})
 
 function switchTab(id) {
   active.value = id
