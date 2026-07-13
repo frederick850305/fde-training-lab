@@ -41,16 +41,29 @@
           <span class="tag" :class="statusClass(selected.status)">{{ selected.status }}</span>
         </div>
         <RecordDetail :tabs="tabs" :model="selected">
+          <!-- 手册 2.2：Type Details 继承只读信息（来自 Component Type） -->
+          <template #extra-type>
+            <div class="inherited-box" v-if="inheritedType">
+              <p class="muted">以下信息继承自 Component Type（只读参考）：</p>
+              <div class="amos-field"><label>Type Name</label><div class="ctrl"><input class="amos-input" :value="inheritedType.name" readonly /></div></div>
+              <div class="amos-field"><label>Class Code</label><div class="ctrl"><input class="amos-input" :value="inheritedType.classCode || '—'" readonly /></div></div>
+              <div class="amos-field"><label>Preferred Vendor</label><div class="ctrl"><input class="amos-input" :value="inheritedType.preferredVendor || '—'" readonly /></div></div>
+            </div>
+          </template>
           <!-- 手册 2.2(13)：Jobs 标签页 -->
           <template #extra-jobs>
+            <div class="subgrid-bar" style="margin-bottom:8px">
+              <button class="amos-btn xs" @click="newJob">New</button>
+              <span class="muted">{{ relJobs.length }} 条作业</span>
+            </div>
             <table class="amos-grid sub">
-              <thead><tr><th>Job No.</th><th>Description</th><th>Frequency</th><th>Method</th><th>Due</th><th></th></tr></thead>
+              <thead><tr><th>Job No.</th><th>Description</th><th>Frequency</th><th>Method</th><th>Due</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="j in relJobs" :key="j.id">
-                  <td>{{ j.jobNo }}</td><td>{{ j.description }}</td><td>{{ j.frequency }}</td><td>{{ j.planningMethod }}</td><td>{{ j.dueDate }}</td>
+                  <td>{{ j.jobNo }}</td><td>{{ j.description }}</td><td>{{ j.frequency }}</td><td>{{ j.planningMethod }}</td><td>{{ j.dueDate }}</td><td>{{ j.status }}</td>
                   <td><button class="amos-btn xs" @click="viewJob(j)">View</button></td>
                 </tr>
-                <tr v-if="!relJobs.length"><td colspan="6" class="muted">该部件无关联作业。</td></tr>
+                <tr v-if="!relJobs.length"><td colspan="7" class="muted">该部件无关联作业。点击 New 创建组件级作业。</td></tr>
               </tbody>
             </table>
           </template>
@@ -58,19 +71,23 @@
           <template #extra-parts>
             <p class="muted">关联备件（按所属功能位置匹配）。点击 View 打开 Stock Items 窗口。</p>
             <table class="amos-grid sub">
-              <thead><tr><th>Item No.</th><th>Description</th><th>Stock Class</th><th>Qty</th><th>Location</th><th></th></tr></thead>
+              <thead><tr><th>Item No.</th><th>Description</th><th>Stock Class</th><th>Qty</th><th>Location</th><th>Alt. No.</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="s in relParts" :key="s.id">
-                  <td>{{ s.stockItemNo }}</td><td>{{ s.description }}</td><td>{{ s.stockClass }}</td><td class="num">{{ s.quantity }}</td><td>{{ s.location }}</td>
+                  <td>{{ s.stockItemNo }}</td><td>{{ s.description }}</td><td>{{ s.stockClass }}</td><td class="num">{{ s.quantity }}</td><td>{{ s.location }}</td><td>{{ s.alternativeNo || '—' }}</td>
                   <td><button class="amos-btn xs" @click="viewStock(s)">View</button></td>
                 </tr>
-                <tr v-if="!relParts.length"><td colspan="6" class="muted">无关联备件。</td></tr>
+                <tr v-if="!relParts.length"><td colspan="7" class="muted">无关联备件。</td></tr>
               </tbody>
             </table>
           </template>
           <!-- 手册 2.2(17)：Counters 标签页（已改为 subgrid 可编辑，见 tabs 配置） -->
           <!-- 手册 2.2(19)：Work Order 标签页 -->
           <template #extra-workorder>
+            <div class="subgrid-bar" style="margin-bottom:8px">
+              <button class="amos-btn xs" @click="newWO">Requisition Work</button>
+              <span class="muted">{{ relWO.length }} 条工单</span>
+            </div>
             <table class="amos-grid sub">
               <thead><tr><th>WO No.</th><th>Title</th><th>Resp. Discipline</th><th>Due</th><th>Status</th><th></th></tr></thead>
               <tbody>
@@ -78,17 +95,29 @@
                   <td>{{ w.workOrderNo }}</td><td>{{ w.description }}</td><td>{{ w.functionNo || '—' }}</td><td>{{ w.dueDate }}</td><td>{{ w.status }}</td>
                   <td><button class="amos-btn xs" @click="viewWO(w)">View</button></td>
                 </tr>
-                <tr v-if="!relWO.length"><td colspan="6" class="muted">该部件无关联工单。</td></tr>
+                <tr v-if="!relWO.length"><td colspan="6" class="muted">该部件无关联工单。点击 Requisition Work 创建工单。</td></tr>
               </tbody>
             </table>
           </template>
           <!-- 手册 2.2(18)：Attachments -->
           <template #extra-attachments>
-            <div class="row" style="gap:6px;margin-bottom:8px">
-              <button class="amos-btn sm" @click="showToast('已新建附件（原型演示）', 'ok')">New</button>
-              <button class="amos-btn sm" @click="showToast('查看附件（原型演示）', 'info')">View</button>
+            <div class="subgrid-bar" style="margin-bottom:8px">
+              <button class="amos-btn xs" @click="addAttachment">New</button>
+              <span class="muted">{{ relAttachments.length }} 个附件</span>
             </div>
-            <p class="muted">附件可为图纸、Word 或 PDF 等文件。</p>
+            <table class="amos-grid sub">
+              <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+              <tbody>
+                <tr v-for="(a, i) in relAttachments" :key="i">
+                  <td>{{ a.name }}</td><td>{{ a.type }}</td><td>{{ a.size }}</td><td>{{ a.date }}</td>
+                  <td>
+                    <button class="amos-btn xs" @click="viewAttachment(a)">View</button>
+                    <button class="amos-btn xs danger" @click="delAttachment(i)">Del</button>
+                  </td>
+                </tr>
+                <tr v-if="!relAttachments.length"><td colspan="5" class="muted">暂无附件。图纸、Word 或 PDF 等文件可点击 New 添加。</td></tr>
+              </tbody>
+            </table>
           </template>
           <!-- 手册 2.2(20)：History -->
           <template #extra-history>
@@ -100,13 +129,20 @@
               </tbody>
             </table>
           </template>
-          <!-- 手册 2.2(21)：Maintenance Log -->
+          <!-- 手册 2.2(21)：Maintenance Log（独立日志条目，非复用 WO） -->
           <template #extra-maintlog>
+            <div class="subgrid-bar" style="margin-bottom:8px">
+              <button class="amos-btn xs" @click="addLog">New</button>
+              <span class="muted">{{ relLog.length }} 条日志</span>
+            </div>
             <table class="amos-grid sub">
-              <thead><tr><th>Date</th><th>WO No.</th><th>Description</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>WO No.</th><th>Log Text</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                <tr v-for="(l, i) in relLog" :key="i"><td>{{ l.date }}</td><td>{{ l.wo }}</td><td>{{ l.desc }}</td><td>{{ l.status }}</td></tr>
-                <tr v-if="!relLog.length"><td colspan="4" class="muted">暂无维护记录。</td></tr>
+                <tr v-for="(l, i) in relLog" :key="i">
+                  <td>{{ l.date }}</td><td>{{ l.wo }}</td><td>{{ l.desc }}</td><td>{{ l.status }}</td>
+                  <td><button class="amos-btn xs danger" @click="delLog(i)">Del</button></td>
+                </tr>
+                <tr v-if="!relLog.length"><td colspan="5" class="muted">暂无维护日志。点击 New 添加维护记录。</td></tr>
               </tbody>
             </table>
           </template>
@@ -169,6 +205,7 @@ const tabs = [
     { key: 'location', label: 'Location' },
     { key: 'parentComponent', label: 'Parent Component' },
     { key: 'installDate', label: 'Install Date', type: 'date' },
+    { key: 'componentTypeModel', label: 'Component Type Model' },
   ] },
   { id: 'jobs', label: 'Jobs', fields: [] },
   { id: 'parts', label: 'Parts', fields: [] },
@@ -183,6 +220,7 @@ const tabs = [
       { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件' },
       { key: 'startValue', label: 'Start', width: '70px', default: 0, type: 'number' },
       { key: 'currentValue', label: 'Current', width: '80px', default: 0, type: 'number' },
+      { key: 'readingDate', label: 'Reading Date', type: 'date', width: '120px', default: '' },
     ],
   },
   // 手册 2 / P45：Measure Points 独立标签（New/Delete、继承自组件类型）
@@ -192,6 +230,7 @@ const tabs = [
     columns: [
       { key: 'code', label: 'Point Code', width: '120px', default: '' },
       { key: 'description', label: 'Description', default: '' },
+      { key: 'unit', label: 'Unit', width: '70px', default: '' },
       { key: 'trend', label: 'Trend', type: 'select', width: '90px', options: ['Up', 'Down', 'Stable'], default: 'Stable' },
       { key: 'value', label: 'Value', width: '80px', default: '', type: 'number' },
       { key: 'lastReadDate', label: 'Last Read', type: 'date', width: '110px', default: '' },
@@ -226,7 +265,13 @@ const relParts = computed(() => !selected.value ? [] : db.stockItems.filter((s) 
 const relCounters = computed(() => !selected.value ? [] : db.counterLogs.filter((r) => r.component === selected.value.number))
 const relWO = computed(() => !selected.value ? [] : db.workOrders.filter((w) => w.componentId === selected.value.number))
 const relHistory = computed(() => relWO.value.filter((w) => w.status === 'Completed'))
-const relLog = computed(() => relWO.value.map((w) => ({ date: w.dueDate, wo: w.workOrderNo, desc: w.description, status: w.status })))
+const relLog = computed(() => selected.value?.maintenanceLog || [])
+const relAttachments = computed(() => selected.value?.attachments || [])
+// 手册 2.2：Type Details 继承自 Component Type 的只读参考信息
+const inheritedType = computed(() => {
+  if (!selected.value?.typeNumber) return null
+  return db.componentTypes.find((c) => c.typeNumber === selected.value.typeNumber) || null
+})
 
 function avg(r) {
   const base = selected.value?.installDate || r.readingDate
@@ -285,6 +330,42 @@ function onOpen(r) { selected.value = r }
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
+// 手册 2.2(13)：从 Components 窗口创建组件级作业
+function newJob() {
+  const t = selected.value
+  if (!t) return showToast('请先选择组件', 'warn')
+  const job = { id: 'new_' + Date.now(), jobNo: 'J-' + Math.floor(Math.random()*90000+10000), description: (t.name || t.number) + ' — 维护作业', frequency: 'Monthly', planningMethod: 'Time', dueDate: new Date(Date.now()+30*86400000).toISOString().slice(0,10), status: 'Planned', targetType: 'Component', targetId: t.number }
+  db.jobs.push(job)
+  showToast('已创建组件级作业：' + job.jobNo + '（原型模拟）', 'ok')
+}
+// 手册 2.2(18)：附件管理——模拟新增 / 查看 / 删除
+function addAttachment() {
+  const t = selected.value
+  if (!t) return showToast('请先选择组件', 'warn')
+  const f = ['Pump_Drawing.dwg', 'Manual_v2.pdf', 'Inspection.docx', 'Photo.jpg'][Math.floor(Math.random()*4)]
+  if (!t.attachments) t.attachments = []
+  t.attachments.push({ name: f, type: f.split('.').pop().toUpperCase(), size: (Math.random()*5+0.5).toFixed(1)+' MB', date: new Date().toISOString().slice(0,10) })
+  showToast('已添加附件（原型模拟）：' + f, 'ok')
+}
+function viewAttachment(a) { showToast('查看附件：' + a.name + '（原型演示）', 'info') }
+function delAttachment(i) { selected.value.attachments.splice(i, 1); showToast('已删除附件', 'warn') }
+// 手册 2.2(21)：Maintenance Log 独立日志条目（非复用 WO）
+function addLog() {
+  const t = selected.value
+  if (!t) return showToast('请先选择组件', 'warn')
+  if (!t.maintenanceLog) t.maintenanceLog = []
+  t.maintenanceLog.push({ date: new Date().toISOString().slice(0,10), wo: 'WO-' + Math.floor(Math.random()*90000+10000), desc: '维护记录：' + (t.name || t.number), status: 'Completed' })
+  showToast('已添加维护日志（原型模拟）', 'ok')
+}
+function delLog(i) { selected.value.maintenanceLog.splice(i, 1); showToast('已删除日志', 'warn') }
+// 手册 2.2(19)：从 Components 窗口手工创建工单
+function newWO() {
+  const t = selected.value
+  if (!t) return showToast('请先选择组件', 'warn')
+  const wo = { id: 'new_' + Date.now(), workOrderNo: 'WO-' + Math.floor(Math.random()*90000+10000), description: '维修工单：' + (t.name || t.number), functionNo: t.functionNo || '—', dueDate: new Date(Date.now()+14*86400000).toISOString().slice(0,10), status: 'Issued', componentId: t.number }
+  db.workOrders.push(wo)
+  showToast('已创建工单：' + wo.workOrderNo + '（原型模拟）', 'ok')
+}
 function doNew() {
   const rec = { id: 'new_' + Date.now(), number: 'C-' + Math.floor(Math.random() * 90000 + 10000), name: '', typeNumber: '', status: 'In Use', maker: '', type: '', serialNo: '', location: '', department: store.department, functionNo: '', vendor: '', parentComponent: '', installDate: '' }
   all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec
@@ -371,6 +452,10 @@ function statusClass(v) {
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--amos-border); }
 .sub { margin-top: 8px; }
 .sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
+/* slot 内按钮栏与继承信息框（scoped 不继承 RecordDetail 样式，需本组件定义） */
+.subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.inherited-box { border: 1px dashed var(--amos-border); border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #fafcff; }
+.inherited-box .amos-field { margin-top: 6px; }
 /* Options 菜单 */
 .bw-options { position: relative; }
 .bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 180px; padding: 4px; }
