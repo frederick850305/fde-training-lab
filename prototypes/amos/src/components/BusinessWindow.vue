@@ -302,7 +302,7 @@ function addPart() {
   if (!t) { showToast('请先在列表中选择一个部件类型', 'warn'); return }
   if (!t.parts) t.parts = []
   t.parts.push({ stockTypeNo: '', alternativeNo: '' })
-  showToast('已添加备件行，请选择 Stock Type（手册 P38：Options > Add Part）', 'ok')
+  showToast('Part row added. Please select a Stock Type.', 'ok')
 }
 
 // 手册 2 / P37：复制组件类型
