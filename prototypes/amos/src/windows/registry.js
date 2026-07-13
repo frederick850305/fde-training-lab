@@ -1,6 +1,8 @@
 // 通用业务窗口配置注册表（驱动 BusinessWindow.vue）
 // 非专用页面均通过此配置渲染 Filter + 列表 + 明细标签页。
 
+import { lookups } from '../mock/index.js'
+
 const noteTab = (id, label, text) => ({ id, label, fields: [{ key: '_note', label: '说明', type: 'readonly', value: text }] })
 
 export const windowRegistry = {
@@ -34,17 +36,47 @@ export const windowRegistry = {
           { key: 'maker', label: 'Maker' },
           { key: 'model', label: 'Model' },
           { key: 'classCode', label: 'Component Class' },
+          { key: 'preferredVendor', label: 'Preferred Vendor', type: 'select', options: ['', ...lookups.vendors()] },
+          { key: 'parentTypeNumber', label: 'Parent Component Type', type: 'lookup', lookupKey: 'componentTypes' },
           { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Obsolete', 'Blocked'] },
         ],
       },
-      noteTab('jobs', 'Jobs', '默认作业列表（周期 / 备件 / 工种），完整系统中可逐条维护。'),
-      noteTab('parts', 'Parts', '继承的备件清单，可在组件级覆盖。'),
-      noteTab('counters', 'Counters', '计数器定义（如运行小时）。'),
-      noteTab('measure', 'Measure Points', '测点定义。'),
-      noteTab('related', 'Related', '关联组件类型。'),
+      // 手册 2 / P37：Jobs tab 的 New/View 打开 Component Type Jobs（这里直接维护指向该类型的作业）
+      {
+        id: 'jobs', label: 'Jobs', type: 'subgrid',
+        subSource: { dbKey: 'jobs', filterKey: 'targetId', filterModelKey: 'typeNumber' },
+        newDefaults: { targetType: 'ComponentType', jobNo: '', description: '', frequency: '', planningMethod: 'Periodic', dueDate: '', status: 'Open', requiredDisciplines: [], requiredParts: [] },
+        columns: [
+          { key: 'jobNo', label: 'Job No.', width: '100px', default: '' },
+          { key: 'description', label: 'Description', default: '' },
+          { key: 'frequency', label: 'Frequency', width: '90px', default: '' },
+          { key: 'planningMethod', label: 'Method', type: 'select', width: '100px', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'], default: 'Periodic' },
+        ],
+      },
+      // 手册 2 / P38：Parts 为继承的备件清单；可互换件填 Alternative No.
+      {
+        id: 'parts', label: 'Parts', type: 'subgrid', subKey: 'parts',
+        columns: [
+          { key: 'stockTypeNo', label: 'Stock Type', type: 'lookup', lookupKey: 'stockTypes', width: '120px', default: '' },
+          { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
+        ],
+      },
+      noteTab('counters_measure', 'Counters / Measure Points', '计数器与测点定义（如运行小时）。点击 New 链接到组件类型，可被组件继承（手册 P39：Counters/Measure Points tab）。'),
+      // 手册 2 / P39：Related tab 关联组件类型（创建组件时相关类型及其备件会被继承）
+      {
+        id: 'related', label: 'Related', type: 'subgrid', subKey: 'relatedTypes',
+        columns: [
+          { key: 'typeNumber', label: 'Related Component Type', type: 'lookup', lookupKey: 'componentTypes', width: '170px', default: '' },
+        ],
+      },
       { id: 'components', label: 'Components', fields: [] },
     ],
-    options: [{ label: 'Register as Component', action: 'register-component' }, { label: 'Copy List', action: 'copy-list' }],
+    options: [
+      { label: 'Register as Component', action: 'register-component' },
+      { label: 'Copy', action: 'copy-type' },
+      { label: 'Copy List', action: 'copy-list' },
+      { label: 'Use Component Types', action: 'toggle-use-types' },
+    ],
   },
 
   functions: {

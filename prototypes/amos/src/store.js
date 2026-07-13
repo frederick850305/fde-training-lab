@@ -32,6 +32,8 @@ export const store = reactive({
     predefinedFilters: [],   // Predefined Filter：自定义过滤
   },
   presetFilter: null,    // 双击 Dashboard 告警时设定的预过滤
+  // 手册 2 / P36 脚注：系统参数 Use Component Types（默认 TRUE，启用 Component Type 功能）
+  useComponentTypes: true,
 })
 
 let toastTimer = null

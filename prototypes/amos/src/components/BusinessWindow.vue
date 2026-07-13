@@ -9,7 +9,7 @@
         <div class="bw-options">
           <button class="amos-btn sm" @click="optionsOpen = !optionsOpen" :disabled="!config.options?.length">Options ▾</button>
           <div v-if="optionsOpen" class="bw-options-menu" @mouseleave="optionsOpen = false">
-            <button v-for="o in config.options" :key="o.action" @click="runOption(o)">{{ o.label }}</button>
+            <button v-for="o in optionItems" :key="o.action" @click="runOption(o)" :class="{ checked: o.checked }">{{ o.label }}</button>
           </div>
         </div>
       </div>
@@ -118,6 +118,14 @@ import { matchRow, matchPlanning } from '../utils/filter.js'
 import { departments } from '../data/amosData.js'
 
 const config = computed(() => windowRegistry[store.activeKey] || null)
+
+// Options 菜单项：对系统参数类开关（toggle）附上当前状态（✓）
+const optionItems = computed(() => (config.value?.options || []).map((o) => {
+  if (o.action === 'toggle-use-types') {
+    return { ...o, checked: store.useComponentTypes, label: (store.useComponentTypes ? '✓ ' : '    ') + o.label }
+  }
+  return o
+}))
 const rowKey = computed(() => {
   const d = config.value?.dataKey
   if (d === 'jobs') return 'jobNo'
@@ -268,7 +276,33 @@ function runOption(o) {
   optionsOpen.value = false
   // 手册 2 / P30：从部件类型窗口把类型注册为实际部件
   if (o.action === 'register-component') { openRegister(); return }
+  // 手册 2 / P37：Options > Copy 复制组件类型（选条目 + 新编号 + Save）
+  if (o.action === 'copy-type') { copyComponentType(); return }
+  // 手册 2 / P36 脚注：系统参数 Use Component Types 开关
+  if (o.action === 'toggle-use-types') { store.useComponentTypes = !store.useComponentTypes; showToast(`Use Component Types = ${store.useComponentTypes ? 'TRUE' : 'FALSE'}（系统参数）`, 'info'); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
+}
+
+// 手册 2 / P37：复制组件类型
+function copyComponentType() {
+  const t = selected.value
+  if (!t) { showToast('请先在列表中选择要复制的部件类型', 'warn'); return }
+  const base = { ...t }
+  delete base.id
+  delete base.regComponents
+  // 深拷贝可编辑子表，避免复制后修改污染原类型
+  base.parts = (t.parts || []).map((x) => ({ ...x }))
+  base.relatedTypes = (t.relatedTypes || []).map((x) => ({ ...x }))
+  // 手册要求输入新的 Component Type 编号；此处自动递增末位数字作为建议值
+  const m = /^(.*?)(\d+)(\D*)$/.exec(base.typeNumber || '')
+  base.typeNumber = m ? `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, '0')}${m[3]}` : `${base.typeNumber || 'CT'}_COPY`
+  base.name = `${base.name || ''} (Copy)`
+  base.status = 'Active'
+  base.id = 'new_' + Date.now()
+  db.componentTypes.push(base)
+  viewRows.value = [...viewRows.value, base]
+  selected.value = base
+  showToast('已复制部件类型：请修改编号 / 名称后 Save（手册 P37：Options > Copy）', 'ok')
 }
 
 // ===== Register as Component（手册 2 / P30）=====
@@ -320,8 +354,9 @@ function confirmRegister() {
     ;(t.regComponents = t.regComponents || []).push(comp.id)
     count++
     // Auto-Register Stock Items：把该类型关联的备件一并登记到所选安装地点
-    if (regAutoStock.value && Array.isArray(t.linkedStockTypes)) {
-      t.linkedStockTypes.forEach((stNo) => {
+    if (regAutoStock.value && Array.isArray(t.parts)) {
+      t.parts.forEach((p) => {
+        const stNo = p.stockTypeNo
         const st = db.stockTypes.find((x) => x.stockTypeNo === stNo)
         if (!st) return
         const exists = db.stockItems.some((s) => s.stockTypeNo === stNo && s.location === dept)
@@ -390,6 +425,7 @@ watch(showOpenDialog, (v) => {
 .bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 200px; padding: 4px; }
 .bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
 .bw-options-menu button:hover { background: var(--amos-blue-soft); }
+.bw-options-menu button.checked { font-weight: 700; color: var(--amos-blue); }
 .bw-empty { padding: 30px; text-align: center; }
 
 /* Open Record 对话框 */
