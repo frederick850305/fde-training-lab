@@ -291,6 +291,7 @@ function copyComponentType() {
   delete base.id
   delete base.regComponents
   // 深拷贝可编辑子表，避免复制后修改污染原类型
+  base.counters = (t.counters || []).map((x) => ({ ...x }))
   base.parts = (t.parts || []).map((x) => ({ ...x }))
   base.relatedTypes = (t.relatedTypes || []).map((x) => ({ ...x }))
   // 手册要求输入新的 Component Type 编号；此处自动递增末位数字作为建议值

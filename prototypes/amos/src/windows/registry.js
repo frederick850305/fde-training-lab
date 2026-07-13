@@ -61,7 +61,17 @@ export const windowRegistry = {
           { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
         ],
       },
-      noteTab('counters_measure', 'Counters / Measure Points', '计数器与测点定义（如运行小时）。点击 New 链接到组件类型，可被组件继承（手册 P39：Counters/Measure Points tab）。'),
+      // 手册 2 / P44 / P39：Counters / Measure Points 标签（New/Delete 按钮添加/删除；注册组件时继承）
+      {
+        id: 'counters_measure', label: 'Counters / Measure Points', type: 'subgrid', subKey: 'counters',
+        columns: [
+          { key: 'code', label: 'Counter Code', width: '120px', default: '' },
+          { key: 'description', label: 'Description', default: '' },
+          { key: 'type', label: 'Type', type: 'select', width: '110px', options: ['Counter', 'Measure Point'], default: 'Counter' },
+          { key: 'unit', label: 'Unit', width: '70px', default: '' },
+          { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件的计数器' },
+        ],
+      },
       // 手册 2 / P39：Related tab 关联组件类型（创建组件时相关类型及其备件会被继承）
       {
         id: 'related', label: 'Related', type: 'subgrid', subKey: 'relatedTypes',

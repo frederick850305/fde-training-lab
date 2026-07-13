@@ -10,10 +10,17 @@ export const uid = (p = 'id') => `${p}_${++_id}`
 
 export const db = reactive({
   componentTypes: [
-    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, counters: 2, measurePoints: 1, parts: [{ stockTypeNo: 'ST-101', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
-    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, counters: 1, measurePoints: 3, parts: [{ stockTypeNo: 'ST-201', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
-    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, counters: 1, measurePoints: 0, parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
-    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, counters: 0, measurePoints: 0, parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', classCode: 'ENG', status: 'Active', jobs: 4, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', type: 'Counter', unit: 'hrs', dependsOn: '' },
+        { code: 'CYCLES', description: 'Start Cycles', type: 'Counter', unit: 'cycles', dependsOn: '' },
+      ], measurePoints: 1, parts: [{ stockTypeNo: 'ST-101', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', classCode: 'BOI', status: 'Active', jobs: 5, counters: [
+        { code: 'FIRE-HRS', description: 'Fired Hours', type: 'Counter', unit: 'hrs', dependsOn: '' },
+      ], measurePoints: 3, parts: [{ stockTypeNo: 'ST-201', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', classCode: 'PMP', status: 'Active', jobs: 3, counters: [
+        { code: 'PUMP-HRS', description: 'Pump Running Hours', type: 'Counter', unit: 'hrs', dependsOn: '' },
+      ], measurePoints: 0, parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', classCode: 'VAL', status: 'Obsolete', jobs: 2, counters: [], measurePoints: 0, parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped
