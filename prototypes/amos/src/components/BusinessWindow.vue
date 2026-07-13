@@ -195,9 +195,12 @@ function reopenFilter() {
 
 function onSelect(row) {
   selected.value = row
+  // 用户手动切换记录时，清除回跳高亮（避免残留旧组件行淡黄背景）
+  highlightCompId.value = ''
 }
 function onOpen(row) {
   selected.value = row
+  highlightCompId.value = ''
 }
 
 function blankRecord() {
@@ -454,10 +457,8 @@ onActivated(() => {
         listPreselectId.value = row[rowKey.value] || ''
       }
     }
-    // 切到 Components tab 并标记高亮目标行
+    // 切到 Components tab 并标记高亮目标行（淡黄色背景，持久保持直到用户切换记录）
     nextTick(() => { detailPresetTab.value = 'components'; highlightCompId.value = ctx.targetId || '' })
-    // 短暂后清除高亮和预选中（避免永久标记干扰后续操作）
-    setTimeout(() => { highlightCompId.value = ''; listPreselectId.value = '' }, 3000)
   }
 })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
