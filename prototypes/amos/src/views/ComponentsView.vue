@@ -254,6 +254,46 @@
               </tbody>
             </table></div>
           </template>
+          <!-- 手册 P44-45 截图右下角齿轮按钮：Counter Setup —— 为组件实例从组件类型计数器定义中增删计数器 -->
+          <template #extra-counters>
+            <div class="counter-setup-bar">
+              <button class="amos-btn xs" @click="openCounterSetup" title="手册 P44：Counter Setup — 为组件配置计数器">
+                <span class="gear">⚙</span> Counter Setup
+              </button>
+            </div>
+            <Teleport to="body">
+              <div v-if="showCounterSetup" class="cs-mask" @click.self="showCounterSetup = false">
+                <div class="cs-modal">
+                  <div class="cs-head">
+                    <strong>Counter Setup — {{ selected.number }}（{{ selected.name }}）</strong>
+                    <button class="amos-btn xs" @click="showCounterSetup = false">✕</button>
+                  </div>
+                  <div class="cs-body">
+                    <p class="muted">从组件类型 <b>{{ selected.typeNumber }}</b> 的计数器定义中选择，添加到本组件实例。已添加的计数器在 Counters 标签中可见并可编辑。</p>
+                    <div class="table-wrap"><table class="amos-grid sub">
+                      <thead><tr><th>Counter Code</th><th>Description</th><th>Unit</th><th>Depends On</th><th></th></tr></thead>
+                      <tbody>
+                        <tr v-for="d in counterDefs" :key="d.code">
+                          <td>{{ d.code }}</td>
+                          <td>{{ d.description }}</td>
+                          <td>{{ d.unit || '—' }}</td>
+                          <td>{{ d.dependsOn || '—' }}</td>
+                          <td class="cs-action">
+                            <button v-if="!isCounterAdded(d.code)" class="amos-btn xs primary" @click="addCounter(d)">Add</button>
+                            <span v-else class="added-tag">已添加 <button class="amos-btn xs danger" @click="removeCounter(d.code)">移除</button></span>
+                          </td>
+                        </tr>
+                        <tr v-if="!counterDefs.length"><td colspan="5" class="muted">该组件类型未定义计数器模板（可在 Component Types 中维护）。</td></tr>
+                      </tbody>
+                    </table></div>
+                  </div>
+                  <div class="cs-foot">
+                    <button class="amos-btn sm" @click="showCounterSetup = false">关闭</button>
+                  </div>
+                </div>
+              </div>
+            </Teleport>
+          </template>
         </RecordDetail>
       </section>
       <section v-else class="bw-detail empty"><p class="muted">双击列表行查看明细，或点击 New 创建组件。</p></section>
@@ -420,6 +460,38 @@ const inheritedType = computed(() => {
   if (!selected.value?.typeNumber) return null
   return componentService.getComponentType(selected.value.typeNumber)
 })
+// 手册 P44-45 截图右下角齿轮按钮：Counter Setup —— 为组件实例从组件类型计数器定义中增删计数器
+const showCounterSetup = ref(false)
+const counterDefs = computed(() => inheritedType.value?.counters || [])
+function isCounterAdded(code) {
+  return (selected.value?.componentCounters || []).some((c) => c.code === code)
+}
+function openCounterSetup() {
+  if (!selected.value) { showToast('请先选择组件', 'warn'); return }
+  showCounterSetup.value = true
+}
+function addCounter(d) {
+  if (!selected.value) return
+  if (!selected.value.componentCounters) selected.value.componentCounters = []
+  selected.value.componentCounters.push({
+    code: d.code,
+    description: d.description,
+    unit: d.unit || '',
+    startValue: 0,
+    currentValue: 0,
+    latestZeroedDate: '',
+    average: 0,
+    calculate: 'No',
+    dependsOn: d.dependsOn || '',
+  })
+  onDetailChange()
+  showToast(`已添加计数器 ${d.code}`, 'ok')
+}
+function removeCounter(code) {
+  const arr = selected.value?.componentCounters || []
+  const i = arr.findIndex((c) => c.code === code)
+  if (i >= 0) { arr.splice(i, 1); onDetailChange(); showToast(`已移除计数器 ${code}`, 'warn') }
+}
 
 // 不再于 activeKey 变化时硬重置；改用 onActivated：仅当存在 presetFilter（View 跳转 / Dashboard 告警带入）时才应用，否则保留窗口上下文
 watch(() => store.department, () => { selected.value = null; applyPreset() })
@@ -706,4 +778,17 @@ function statusClass(v) {
 .open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
 .open-dialog .amos-field { margin-top: 12px; }
 .od-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+/* 手册 P44-45 截图右下角：Counter Setup 齿轮按钮（置于 Counters 标签底部右侧） */
+.counter-setup-bar { display: flex; justify-content: flex-end; margin-top: 10px; }
+.counter-setup-bar .gear { font-size: 13px; margin-right: 2px; }
+/* Counter Setup 弹窗（Teleport 到 body，需全局样式覆盖 scoped 限制） */
+:global(.cs-mask) { position: fixed; inset: 0; background: rgba(0,0,0,.32); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+:global(.cs-modal) { background: #fff; border-radius: 10px; box-shadow: 0 10px 36px rgba(0,0,0,.28); width: 560px; max-width: 92vw; max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
+:global(.cs-head) { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--amos-border); background: #f3f6fa; }
+:global(.cs-head strong) { font-size: 13.5px; color: #2c486a; }
+:global(.cs-body) { padding: 12px 14px; overflow: auto; }
+:global(.cs-body .muted) { font-size: 12px; margin: 0 0 10px; }
+:global(.cs-foot) { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--amos-border); background: #fafcff; }
+:global(.cs-action) { white-space: nowrap; }
+:global(.added-tag) { color: #0e6a30; font-size: 12px; }
 </style>
