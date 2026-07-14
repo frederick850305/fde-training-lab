@@ -110,7 +110,12 @@
 
     <div v-else class="bw-body">
       <section class="bw-list">
-        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen" />
+        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen">
+          <!-- 手册 P23：Global 模式下 Co 列显示组件原属部门（_instDept） -->
+          <template #cell-department="{ row }">
+            {{ globalMode ? (row._instDept || row.department) : row.department }}
+          </template>
+        </RecordList>
       </section>
       <section class="bw-detail" v-if="selected">
         <div class="bd-head">
@@ -281,21 +286,16 @@ const filterAdvanced = [
   { key: 'typeNumber', label: 'Component Type', type: 'text' },
   { key: 'functionNo', label: 'Function Performing', type: 'text' },
 ]
+// 手册 P44-45 截图：Components 列表列对齐为 Number / Name / Type / Serial No. / Co
 const columnsBase = [
-  { key: 'number', label: 'Number', width: '110px' },
+  { key: 'number', label: 'Number', width: '120px' },
   { key: 'name', label: 'Name' },
-  { key: 'typeNumber', label: 'Type No.', width: '110px' },
-  { key: 'status', label: 'Status', width: '100px', tag: true },
-  { key: 'maker', label: 'Maker', width: '100px' },
-  { key: 'location', label: 'Location', width: '110px' },
-  { key: 'functionNo', label: 'Function', width: '110px' },
+  { key: 'type', label: 'Type', width: '100px' },
+  { key: 'serialNo', label: 'Serial No.', width: '110px' },
+  { key: 'department', label: 'Co', width: '110px' },
 ]
-// 手册 P23：Global 模式下列表新增 Inst/Dept 列
-const columns = computed(() => {
-  const base = [...columnsBase]
-  if (globalMode.value) base.splice(1, 0, { key: '_instDept', label: 'Inst / Dept', width: '130px' })
-  return base
-})
+// 手册 P23：Global 模式下，Co 列改显示组件原属部门（_instDept），标识记录来源
+const columns = computed(() => [...columnsBase])
 const statusOptions = COMPONENT_STATUSES
 const tabs = [
   { id: 'general', label: 'General', fields: [
