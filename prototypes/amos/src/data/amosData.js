@@ -99,7 +99,6 @@ export const menu = [
   {
     label: 'File',
     items: [
-      { label: 'Dashboard', page: 'dashboard' },
       { label: 'Print', action: 'print' },
       { label: 'Filter…', action: 'filter' },
       { label: 'Switch Department', action: 'switch-department' },
@@ -112,7 +111,6 @@ export const menu = [
   {
     label: 'Maintenance',
     items: [
-      { label: 'Dashboard Alerts', page: 'dashboard' },
       { label: 'Component Types', page: 'component-types' },
       { label: 'Components', page: 'components' },
       { label: 'Components Hierarchy', page: 'components-hierarchy' },
