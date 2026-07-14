@@ -9,12 +9,14 @@
         <button class="amos-btn sm primary" @click="doNew">New</button>
         <button class="amos-btn sm" @click="doSave" :disabled="!selected">Save</button>
         <button class="amos-btn sm danger" @click="doDelete" :disabled="!selected">Delete</button>
-        <div class="bw-options">
-          <button class="amos-btn sm" @click="optionsOpen = !optionsOpen">Options ▾</button>
-          <div v-if="optionsOpen" class="bw-options-menu" @mouseleave="optionsOpen = false">
-            <button @click="copyComponent">Copy</button>
-            <button @click="changeStatus">Change Status</button>
-          </div>
+        <div class="bw-options" ref="optionsRef">
+          <button class="amos-btn sm" @click="toggleOptions">Options ▾</button>
+          <Teleport to="body">
+            <div v-if="optionsOpen && optionsRect" class="bw-options-popup" :style="optionsPopupStyle" @mouseleave="optionsOpen = false">
+              <button @click="copyComponent">Copy</button>
+              <button @click="changeStatus">Change Status</button>
+            </div>
+          </Teleport>
         </div>
       </div>
     </div>
@@ -248,6 +250,21 @@ const showFilter = ref(false)
 const selected = ref(null)
 // Options 菜单状态（手册 P42-43：Copy / ChangeStatus）
 const optionsOpen = ref(false)
+const optionsRef = ref(null)
+const optionsRect = ref(null)
+
+function toggleOptions() {
+  if (!optionsOpen.value && optionsRef.value) {
+    const rect = optionsRef.value.getBoundingClientRect()
+    optionsRect.value = { top: rect.bottom, left: rect.right }
+  }
+  optionsOpen.value = !optionsOpen.value
+}
+
+const optionsPopupStyle = computed(() => {
+  if (!optionsRect.value) return {}
+  return { position: 'fixed', top: optionsRect.value.top + 'px', left: (optionsRect.value.left - 180) + 'px' }
+})
 // 手册 P21-23：Global Search 状态
 const globalMode = ref(false)
 const globalDepts = ref([])
@@ -467,11 +484,11 @@ function statusClass(v) {
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .inherited-box { border: 1px dashed var(--amos-border); border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #fafcff; }
 .inherited-box .amos-field { margin-top: 6px; }
-/* Options 菜单 */
+/* Options 菜单（浮层 popup） */
 .bw-options { position: relative; }
-.bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 180px; padding: 4px; }
-.bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
-.bw-options-menu button:hover { background: var(--amos-blue-soft); }
+.bw-options-popup { background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.18); z-index: 9999; min-width: 180px; padding: 4px; }
+.bw-options-popup button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
+.bw-options-popup button:hover { background: var(--amos-blue-soft); }
 /* 上下布局，无需响应式切换 */
 /* Open Record 对话框 */
 .open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
