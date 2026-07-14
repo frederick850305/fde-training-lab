@@ -28,13 +28,13 @@
         <tbody>
           <tr
             v-for="row in filtered"
-            :key="row[rowKey]"
-            :class="{ selected: row[rowKey] === selectedId }"
+            :key="rowId(row)"
+            :class="{ selected: rowId(row) === selectedId }"
             @click="select(row)"
             @dblclick="$emit('open', row)"
           >
             <td v-if="selectable" class="col-check" @click.stop>
-              <input type="checkbox" :checked="checkedSet.has(row[rowKey])" @change="toggle(row)" />
+              <input type="checkbox" :checked="checkedSet.has(rowId(row))" @change="toggle(row)" />
             </td>
             <td
               v-for="c in columns"
@@ -66,9 +66,14 @@ const props = defineProps({
   rowKey: { type: String, default: 'id' },
   selectable: { type: Boolean, default: false },
   checked: { type: Array, default: () => [] },
-  preselectId: { type: String, default: '' }, // 外部指令性预选中某行（如回跳上下文恢复时由父组件传入）
+  preselectId: { type: String, default: '' },
 })
 const emit = defineEmits(['select', 'open', 'update:checked'])
+
+// 业务主键可能为空（如 New 产生的临时记录 jobNo=''），此时退回到 row.id 保证 key 唯一，避免 v-for 渲染异常
+function rowId(row) {
+  return String(row[props.rowKey] || row.id)
+}
 
 const q = ref('')
 const sortKey = ref('')
@@ -138,12 +143,12 @@ const filtered = computed(() => {
   return list
 })
 
-const checkedList = computed(() => props.rows.filter((r) => checkedSet.value.has(r[props.rowKey])))
-const allChecked = computed(() => filtered.value.length > 0 && filtered.value.every((r) => checkedSet.value.has(r[props.rowKey])))
+const checkedList = computed(() => props.rows.filter((r) => checkedSet.value.has(rowId(r))))
+const allChecked = computed(() => filtered.value.length > 0 && filtered.value.every((r) => checkedSet.value.has(rowId(r))))
 
 function emitChecked() { emit('update:checked', [...checkedSet.value]) }
 function toggle(row) {
-  const k = row[props.rowKey]
+  const k = rowId(row)
   if (checkedSet.value.has(k)) checkedSet.value.delete(k)
   else checkedSet.value.add(k)
   checkedSet.value = new Set(checkedSet.value)
@@ -151,7 +156,7 @@ function toggle(row) {
 }
 function toggleAll(e) {
   const on = e.target.checked
-  filtered.value.forEach((r) => { const k = r[props.rowKey]; if (on) checkedSet.value.add(k); else checkedSet.value.delete(k) })
+  filtered.value.forEach((r) => { const k = rowId(r); if (on) checkedSet.value.add(k); else checkedSet.value.delete(k) })
   checkedSet.value = new Set(checkedSet.value)
   emitChecked()
 }
@@ -164,7 +169,7 @@ function sortBy(key) {
   }
 }
 function select(row) {
-  selectedId.value = row[props.rowKey]
+  selectedId.value = rowId(row)
   emit('select', row)
 }
 function tagClass(val) {
