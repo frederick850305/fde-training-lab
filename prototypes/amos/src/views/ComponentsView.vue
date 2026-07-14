@@ -524,12 +524,23 @@ function openChangeStatus() {
   transferredItems.value = []
   statusDialog.value = true
 }
+// 视图层同步：viewRows 在 applyFilter 时可能被浅拷贝，需把 db 中的最新值反写回列表和当前选中行
+function syncRowsFromDb(ids) {
+  ids.forEach((id) => {
+    const dbComp = db.components.find((c) => c.id === id)
+    if (!dbComp) return
+    const row = viewRows.value.find((r) => r.id === id)
+    if (row) Object.assign(row, dbComp)
+    if (selected.value && selected.value.id === id) Object.assign(selected.value, dbComp)
+  })
+}
 async function confirmChangeStatus() {
   const s = selected.value
   if (!s) return
   const res = await componentService.changeStatus(s.id, statusTarget.value, { cascadeSubComponents: statusCascade.value })
   if (!res.ok) { showToast('状态修改失败', 'warn'); return }
   statusDialog.value = false
+  syncRowsFromDb(res.updatedIds || [s.id])
   // 改为 Transferred 且 Stock Wanted 存在引用 → 二次确认
   if (res.affectedWanted && res.affectedWanted.length) {
     transferredItems.value = res.affectedWanted

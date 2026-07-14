@@ -93,9 +93,10 @@ export const componentService = {
 
   // ---- 修改状态（Options > Change Status） ----
   // cascadeSubComponents: 是否级联修改 parentComponent === 该组件编号 的子组件。
-  // 返回 { ok, affectedWanted }：
+  // 返回 { ok, affectedWanted, updatedIds }：
   //   affectedWanted 非空表示新状态为 'Transferred' 且 Stock Wanted 中存在对该组件的引用，
-  //   需要 UI 二次确认（保留数量 / 清空数量并移除引用）。
+  //     需要 UI 二次确认（保留数量 / 清空数量并移除引用）。
+  //   updatedIds 包含所有被修改的组件 id，便于视图层同步列表中的浅拷贝行。
   async changeStatus(id, newStatus, { cascadeSubComponents = false } = {}) {
     const comp = db.components.find((c) => c.id === id)
     if (!comp) return { ok: false }
@@ -104,6 +105,7 @@ export const componentService = {
     const old = comp.status
     comp.status = newStatus
     logStatus(comp, old, newStatus)
+    const updatedIds = [id]
 
     if (cascadeSubComponents) {
       db.components
@@ -112,6 +114,7 @@ export const componentService = {
           const co = ch.status
           ch.status = newStatus
           logStatus(ch, co, newStatus, `Cascade from ${comp.number}`)
+          updatedIds.push(ch.id)
         })
     }
 
@@ -121,7 +124,7 @@ export const componentService = {
         (w) => w.forComponent && (w.forComponent === comp.number || w.forComponent === comp.functionNo),
       )
     }
-    return { ok: true, affectedWanted }
+    return { ok: true, affectedWanted, updatedIds }
   },
 
   // ---- 组件 Transferred 时处理 Stock Wanted 引用 ----
