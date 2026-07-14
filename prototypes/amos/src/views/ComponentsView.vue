@@ -555,6 +555,10 @@ async function onDetailChange(e) {
     if (!selected.value.componentCounters && ct.counters?.length) {
       selected.value.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }))
     }
+    // 手册 P45：切换类型时，若组件尚无 Measure Points，则继承类型的测点模板（仅作用于当前组件）
+    if (!selected.value.componentMeasurePoints && ct.measurePointDefs?.length) {
+      selected.value.componentMeasurePoints = ct.measurePointDefs.map((m) => ({ ...m, value: '', lastReadDate: '' }))
+    }
   } else if (e.key === 'functionNo') {
     await componentService.setFunction(selected.value.id, e.value)
     showToast(`功能位置变更：状态自动推导为 ${selected.value.status}`, 'info')
