@@ -17,7 +17,7 @@
             <button class="amos-btn xs" @click="addSubRow(t)">New</button>
             <span class="muted">{{ subRows(t).length }} 条记录</span>
           </div>
-          <table class="amos-grid sub">
+          <div class="table-wrap"><table class="amos-grid sub">
             <thead><tr>
               <th v-for="c in t.columns" :key="c.key" :style="{ width: c.width }">{{ c.label }}</th>
               <th class="sub-actions"></th>
@@ -44,7 +44,7 @@
                 <td :colspan="t.columns.length + 1" class="muted" style="text-align:center;padding:10px">（空）点击 New 添加</td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
         </template>
         <template v-else>
           <div v-for="f in t.fields" :key="f.key" class="amos-field">
@@ -202,14 +202,26 @@ function openSubLookup(t, c, row) {
 </script>
 
 <style scoped>
-.record-detail { display: flex; flex-direction: column; height: 100%; min-width: 0; }
-.tab-row { display: flex; flex-wrap: wrap; gap: 2px; }
-.tab { padding: 6px 12px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 12.5px; white-space: nowrap; }
+.record-detail { display: flex; flex-direction: column; height: 100%; }
+.tab-row { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.tab-row::-webkit-scrollbar { height: 4px; }
+.tab-row::-webkit-scrollbar-thumb { background: #c0d0e8; border-radius: 2px; }
+.tab { padding: 5px 9px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 11.5px; white-space: nowrap; flex-shrink: 0; }
 .tab:hover { background: #fff; }
 .tab.active { background: #fff; color: var(--amos-blue); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amos-blue); }
-.tab-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }
+/* 核心：tab-body 是唯一的内容滚动容器 */
+.tab-body { flex: 1; min-height: 0; min-width: 0; overflow-x: auto; overflow-y: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }
+/* 横向滚动条美化 */
+.tab-body::-webkit-scrollbar { width: 8px; height: 8px; }
+.tab-body::-webkit-scrollbar-track { background: transparent; }
+.tab-body::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
+.tab-body::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
+/* 每个 tab 面板保留内容最小宽度，空间不足时触发 .tab-body 横向滚动 */
+.tab-body > div { min-width: 520px; }
 .rd-note { margin: 0 0 10px; color: var(--amos-text-soft); font-size: 13px; line-height: 1.6; }
-.amos-grid.sub { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+/* 子表格包裹层：不限制宽度，让表格自然展开 */
+.table-wrap { }
+.amos-grid.sub { border-collapse: collapse; font-size: 12.5px; table-layout: fixed; width: max-content; }
 .amos-grid.sub th, .amos-grid.sub td { border: 1px solid var(--amos-border); padding: 4px 6px; text-align: left; vertical-align: middle; }
 .amos-grid.sub th { background: #f3f6fa; font-weight: 600; color: var(--amos-text-soft); }
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
