@@ -135,6 +135,7 @@ import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { stockTypeService } from '../services/stockTypeService.js'
 import { functionService } from '../services/functionService.js'
+import { counterService } from '../services/counterService.js'
 import { collectionService } from '../services/collectionService.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
@@ -246,6 +247,12 @@ function doNew() {
 }
 function doSave() {
   if (!selected.value) return showToast('请先选择或新建记录', 'warn')
+  // 手册 3（Update Counters）：保存时把读数回写到组件计数器，并级联依赖组件
+  if (config.value?.dataKey === 'counterLogs') {
+    counterService.recordReading(selected.value)
+    showToast('已记录读数并回写组件计数器（含依赖联动）', 'ok')
+    return
+  }
   showToast('已保存（原型：内存态）', 'ok')
 }
 function doDelete() {

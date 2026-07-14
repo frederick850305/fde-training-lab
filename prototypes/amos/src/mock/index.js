@@ -208,6 +208,16 @@ export const lookups = {
   vendors: () => ['Wärtsilä Marine', 'Alfa Laval', 'Grundfos', 'Shell Marine', 'Tyco'],
   contracts: () => db.contracts.map((c) => ({ code: c.contractNo, label: `${c.contractNo} — ${c.title}` })),
   budgets: () => db.budgets.map((b) => ({ code: b.code, label: `${b.code} — ${b.title}` })),
+  // 手册 P44：Component Jobs 中，Counter Code 下拉仅列出该组件自身已登记的计数器
+  componentJobCounters: (model) => {
+    const c = db.components.find((x) => x.number === (model && model.targetId))
+    return (c?.componentCounters || []).map((cc) => ({ code: cc.code, label: `${cc.code} — ${cc.description}` }))
+  },
+  // 手册 P44：Component Type Jobs 中，Counter Code 下拉仅列出该类型自身已定义的计数器模板
+  componentTypeJobCounters: (model) => {
+    const ct = db.componentTypes.find((x) => x.typeNumber === (model && model.targetId))
+    return (ct?.counters || []).map((cc) => ({ code: cc.code, label: `${cc.code} — ${cc.description}` }))
+  },
 }
 
 // ===== Dashboard 告警 / 通知（从 db 动态计算，确保双击跳转后数据一致） =====

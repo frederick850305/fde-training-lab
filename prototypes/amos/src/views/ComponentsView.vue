@@ -480,6 +480,10 @@ async function onDetailChange(e) {
     selected.value.maker = ct.maker || ''
     selected.value.type = ct.type || ''
     if (!selected.value.name) selected.value.name = ct.name || ''
+    // 手册 P44：切换类型时，若组件尚无 Counters，则继承类型的计数器模板（仅作用于当前组件）
+    if (!selected.value.componentCounters && ct.counters?.length) {
+      selected.value.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
+    }
   } else if (e.key === 'functionNo') {
     await componentService.setFunction(selected.value.id, e.value)
     showToast(`功能位置变更：状态自动推导为 ${selected.value.status}`, 'info')

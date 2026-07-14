@@ -37,22 +37,24 @@
           <tr>
             <th>Component</th>
             <th>Function</th>
-            <th>Counter Type</th>
+            <th>Counter</th>
+            <th>Depends On</th>
             <th class="num">Current Value</th>
             <th class="num">Average（日均）</th>
             <th>Last Reading</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in rows" :key="r.id">
+          <tr v-for="r in rows" :key="r.component + r.counter">
             <td>{{ r.component }}</td>
             <td>{{ r.function }}</td>
-            <td>{{ r.counter }}</td>
+            <td>{{ r.counter }} <span class="muted">({{ r.description }})</span></td>
+            <td>{{ r.dependsOn || '—' }}</td>
             <td class="num">{{ r.currentValue }} {{ r.unit }}</td>
             <td class="num">{{ r.average }} {{ r.unit }}/d</td>
             <td>{{ r.readingDate }}</td>
           </tr>
-          <tr v-if="!rows.length"><td colspan="6" class="muted" style="text-align:center;padding:18px">无计数器读数，调整查找条件。</td></tr>
+          <tr v-if="!rows.length"><td colspan="7" class="muted" style="text-align:center;padding:18px">无计数器读数，调整查找条件。</td></tr>
         </tbody>
       </table>
     </div>
@@ -63,14 +65,12 @@
 import { ref, computed } from 'vue'
 import Modal from '../components/Modal.vue'
 import { componentService } from '../services/componentService.js'
-import { functionService } from '../services/functionService.js'
 import { counterService } from '../services/counterService.js'
 
 const showFind = ref(true)
 const crit = ref({ component: '', function: '', inherits: '', includeChildren: true })
 
 const compByNo = computed(() => componentService.byNo())
-const funcByNo = computed(() => functionService.byNo())
 
 // Average = 当前读数 / 自安装（或读数日往前 365 天基准）的天数
 function averageOf(rec) {
@@ -86,12 +86,11 @@ function averageOf(rec) {
 
 const rows = computed(() => {
   const c = crit.value
-  return counterService.list()
+  return counterService.allCounters()
     .filter((r) => {
       if (c.component && r.component !== c.component) return false
       if (c.function && r.function !== c.function) return false
       if (c.inherits) {
-        const parent = compByNo.value[c.inherits]
         const childOf = (no) => {
           let cur = compByNo.value[no]
           while (cur && cur.parentComponent) {
@@ -100,11 +99,16 @@ const rows = computed(() => {
           }
           return false
         }
-        if (r.component !== c.inherits && !(c.includeChildren && childOf(r.component))) return false
+        // 手册 P44：Inherits from component 同时按父子关系与计数器依赖（dependsOn）匹配
+        const matchInherits =
+          r.component === c.inherits ||
+          (c.includeChildren && childOf(r.component)) ||
+          r.dependsOn === c.inherits
+        if (!matchInherits) return false
       }
       return true
     })
-    .map((r) => ({ ...r, counter: funcByNo.value[r.function]?.counter || r.counter, average: averageOf(r) }))
+    .map((r) => ({ ...r, average: averageOf(r) }))
 })
 
 function applyFind() { showFind.value = false }

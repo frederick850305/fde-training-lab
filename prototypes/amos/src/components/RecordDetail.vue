@@ -47,7 +47,7 @@
           </table></div>
         </template>
         <template v-else>
-          <div v-for="f in t.fields" :key="f.key" class="amos-field">
+          <div v-for="f in visibleFields(t)" :key="f.key" class="amos-field">
             <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
             <template v-else>
             <label>{{ f.label }}</label>
@@ -138,12 +138,17 @@ function switchTab(id) {
   active.value = id
   setActive(modelId.value, id)
 }
+// 手册 P44：字段支持 showIf 条件显示（如 Jobs 中 Counter Code 仅当 Planning Method = Counter 出现）
+function visibleFields(t) {
+  return (t.fields || []).filter((f) => !f.showIf || props.model[f.showIf.key] === f.showIf.value)
+}
 const lookupField = ref(null)
 const lookupOptions = ref([])
 
 function openLookup(f) {
   lookupField.value = f
-  lookupOptions.value = (lookups[f.lookupKey] && lookups[f.lookupKey]()) || []
+  const fn = lookups[f.lookupKey]
+  lookupOptions.value = (fn ? fn(props.model) : []) || []
 }
 function onLookupSelect(code) {
   if (lookupField.value) {
@@ -196,7 +201,8 @@ function delSubRow(t, row) {
 }
 function openSubLookup(t, c, row) {
   lookupField.value = { ...c, _row: row }
-  lookupOptions.value = (lookups[c.lookupKey] && lookups[c.lookupKey]()) || []
+  const fn = lookups[c.lookupKey]
+  lookupOptions.value = (fn ? fn(props.model) : []) || []
 }
 
 // ===== 子表格列宽拖拽调整 =====
