@@ -8,6 +8,32 @@ import { reactive, computed } from 'vue'
 let _id = 1000
 export const uid = (p = 'id') => `${p}_${++_id}`
 
+// 手册 P44-45：主发动机 + 10 个活塞的计数器依赖示例。
+// 活塞的 RUN-HRS 计数器 dependsOn = C-10001（主机），更新主机读数后级联同步到全部活塞。
+// 预置主机当前读数 78200，活塞继承同一读数，开箱即可看到依赖关系。
+const pistonComponents = Array.from({ length: 10 }, (_, i) => {
+  const n = String(i + 1).padStart(3, '0')
+  return {
+    id: uid('co'),
+    number: `PIS.001.${n}`,
+    typeNumber: 'CT-1003',
+    name: 'Piston & rod for ME',
+    status: 'In Use',
+    maker: 'Wärtsilä',
+    type: 'Piston',
+    serialNo: `10000${45 + i}`,
+    location: 'Engine Room',
+    department: 'Engine Room',
+    parentComponent: 'C-10001',
+    vendor: 'Wärtsilä Marine',
+    functionNo: '',
+    installDate: '2023-04-12',
+    componentCounters: [
+      { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', startValue: 0, currentValue: 78200, latestZeroedDate: '2023-04-12', average: 0, calculate: 'No', dependsOn: 'C-10001' },
+    ],
+  }
+})
+
 export const db = reactive({
   componentTypes: [
     { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', type: 'Liner', classCode: 'ENG', status: 'Active', jobs: 4, counters: [
@@ -27,16 +53,27 @@ export const db = reactive({
         { code: 'PUMP-HRS', description: 'Pump Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
     { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', type: 'Valve', classCode: 'VAL', status: 'Obsolete', jobs: 2, counters: [], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    // 手册 P44-45：活塞组件类型，其 RUN-HRS 计数器默认 dependsOn 主机 C-10001
+    { id: uid('ct'), typeNumber: 'CT-1003', name: 'Main Engine Piston & Rod', maker: 'Wärtsilä', model: 'S26MC', type: 'Piston', classCode: 'PIS', status: 'Active', jobs: 2, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: 'C-10001' },
+      ], measurePointDefs: [], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped
   // department：手册 P20 范围标签，组件归属于当前 Department
   components: [
-    { id: uid('co'), number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12' },
+    { id: uid('co'), number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12',
+      // 手册 P44-45：主机预置 RUN-HRS 读数，作为活塞计数器的依赖源
+      componentCounters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', startValue: 0, currentValue: 78200, latestZeroedDate: '2023-04-12', average: 0, calculate: 'No', dependsOn: '' },
+        { code: 'CYCLES', description: 'Start Cycles', unit: 'cycles', startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No', dependsOn: '' },
+      ] },
     { id: uid('co'), number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' },
     { id: uid('co'), number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engineering', parentComponent: '', vendor: 'Grundfos', functionNo: '', installDate: '' },
     { id: uid('co'), number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', department: 'Deck', parentComponent: '', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' },
     { id: uid('co'), number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' },
+    // 手册 P44-45：10 个主发动机活塞（依赖主机 C-10001 的 RUN-HRS 计数器）
+    ...pistonComponents,
   ],
 
   // 指南（手册 2.2 / Component Status）：组件状态变更日志。
