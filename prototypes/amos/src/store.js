@@ -30,10 +30,15 @@ export const store = reactive({
     startupWithView: false,  // Views：启动时进入 View
     predefinedFields: [],    // Predefined Fields：自定义字段
     predefinedFilters: [],   // Predefined Filter：自定义过滤
+    // 手册 Component Archives：组件从其他部门转入时，是否生成 archive 档案
+    createComponentArchiveOnTransferIn: true,
   },
   presetFilter: null,    // 双击 Dashboard 告警时设定的预过滤
   // 回跳上下文：从某窗口 View 跳出后，切回时用于恢复选中状态与 tab 定位
   returnContext: null,    // { sourceWindow, typeNumber?, targetId? }
+  // 手册 Component Archives：Options > Archive 打开的档案视图上下文
+  archiveComponentNo: '',
+  archiveKind: '',
   // 手册 2 / P36 脚注：系统参数 Use Component Types（默认 TRUE，启用 Component Type 功能）
   useComponentTypes: true,
 })

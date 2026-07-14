@@ -56,6 +56,25 @@ export const db = reactive({
     { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours' },
   ],
 
+  // 指南（手册 Component Locations）：组件安装 / 拆卸历史，Functions Performed 标签页数据源。
+  // 每次 setFunction（安装 / 拆卸）都会在此留痕，供 Components 窗口 Functions Performed 标签查看。
+  componentFunctionHistory: [
+    { id: uid('cfh'), componentId: 'co_1001', componentNo: 'C-10001', functionNo: 'FN-ENG-01', functionDescription: 'Main Engine', location: 'Engine Room', action: 'Installed', performedBy: 'A. Admin', performedAt: '2023-04-12' },
+    { id: uid('cfh'), componentId: 'co_1002', componentNo: 'C-10002', functionNo: 'FN-ENG-02', functionDescription: 'Auxiliary Boiler A', location: 'Engine Room', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' },
+    { id: uid('cfh'), componentId: 'co_1003', componentNo: 'C-10003', functionNo: 'FN-ENG-03', functionDescription: 'Auxiliary Boiler B', location: 'Engine Room', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' },
+  ],
+
+  // 指南（手册 Component Archives）：从其他部门转入的组件，其先前所属部门的历史数据。
+  // 三种 archive kind：'component'（组件档案）/ 'transfer'（转移档案）/ 'status'（状态档案）。
+  // 仅当系统参数 Create Component Archive on Transfer In = TRUE 时，transferIn 流程会写入此处。
+  componentArchives: [
+    { id: uid('ca'), componentNo: 'C-10001', kind: 'component', fromDepartment: 'Deck', toDepartment: 'Engine Room', archiveDate: '2023-04-10', data: 'Previous serial WS-77412; installed on Deck Crane FN-DECK-01 until 2023-04-10' },
+    { id: uid('ca'), componentNo: 'C-10001', kind: 'transfer', fromDepartment: 'Deck', toDepartment: 'Engine Room', archiveDate: '2023-04-10', data: 'Transferred in via TD-0999; condition: serviceable' },
+    { id: uid('ca'), componentNo: 'C-10001', kind: 'status', fromDepartment: 'Deck', toDepartment: 'Engine Room', archiveDate: '2023-04-10', data: 'Prior status: In Use (Deck Crane); no open work orders' },
+    { id: uid('ca'), componentNo: 'C-20001', kind: 'component', fromDepartment: 'Cargo', toDepartment: 'Engineering', archiveDate: '2024-01-15', data: 'Previous serial GR-55120; installed on Cargo Pump FN-CARGO-01' },
+    { id: uid('ca'), componentNo: 'C-20001', kind: 'transfer', fromDepartment: 'Cargo', toDepartment: 'Engineering', archiveDate: '2024-01-15', data: 'Transferred in via TD-0888' },
+  ],
+
   jobs: [
     { id: uid('jb'), jobNo: 'J-5001', description: 'Overhaul ME Cylinder Liner', targetType: 'ComponentType', targetId: 'CT-1001', frequency: '8000 hrs', planningMethod: 'Counter', dueDate: '2026-07-12', requiredDisciplines: ['Fitter', 'Engineer'], requiredParts: ['P-101', 'P-102'], status: 'Due' },
     { id: uid('jb'), jobNo: 'J-5002', description: 'Boiler Annual Survey', targetType: 'ComponentType', targetId: 'CT-1002', frequency: '12 months', planningMethod: 'Periodic', dueDate: '2026-08-01', requiredDisciplines: ['Welder', 'Surveyor'], requiredParts: ['P-201'], status: 'Planned' },

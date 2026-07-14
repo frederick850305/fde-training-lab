@@ -16,6 +16,12 @@
               <button @click="copyComponent">Copy</button>
               <button @click="openChangeStatus">Change Status</button>
               <button @click="openStatusLog">Component Status Log</button>
+              <button @click="archiveSubOpen = !archiveSubOpen">Archive ▸</button>
+              <template v-if="archiveSubOpen">
+                <button @click="openArchive('component')">Component Archive</button>
+                <button @click="openArchive('transfer')">Component Transfer Archive</button>
+                <button @click="openArchive('status')">Component Status Archive</button>
+              </template>
             </div>
           </Teleport>
         </div>
@@ -119,6 +125,32 @@
               <div class="amos-field"><label>Type Name</label><div class="ctrl"><input class="amos-input" :value="inheritedType.name" readonly /></div></div>
               <div class="amos-field"><label>Class Code</label><div class="ctrl"><input class="amos-input" :value="inheritedType.classCode || '—'" readonly /></div></div>
               <div class="amos-field"><label>Preferred Vendor</label><div class="ctrl"><input class="amos-input" :value="inheritedType.preferredVendor || '—'" readonly /></div></div>
+            </div>
+          </template>
+          <!-- 手册 Component Locations：Functions Performed 标签页 -->
+          <template #extra-functions-performed>
+            <p class="muted">组件安装 / 拆卸历史（手册 Component Locations）。</p>
+            <div class="table-wrap"><table class="amos-grid sub">
+              <thead><tr><th>Function</th><th>Description</th><th>Location</th><th>Action</th><th>Date</th><th>By</th></tr></thead>
+              <tbody>
+                <tr v-for="h in relFunctionHistory" :key="h.id">
+                  <td>{{ h.functionNo }}</td><td>{{ h.functionDescription }}</td><td>{{ h.location }}</td><td>{{ h.action }}</td><td>{{ h.performedAt }}</td><td>{{ h.performedBy }}</td>
+                </tr>
+                <tr v-if="!relFunctionHistory.length"><td colspan="6" class="muted">暂无安装 / 拆卸记录。</td></tr>
+              </tbody>
+            </table></div>
+          </template>
+          <!-- 手册 Component Locations：Function Performing 标签页（只读） -->
+          <template #extra-function-performing>
+            <p class="muted" v-if="!currentFunction">该组件当前未安装到任何功能位置。</p>
+            <div v-else class="inherited-box">
+              <p class="muted">当前安装功能位置字段（只读，手册 Component Locations）：</p>
+              <div class="amos-field"><label>Function No.</label><div class="ctrl"><input class="amos-input" :value="currentFunction.functionNo" readonly /></div></div>
+              <div class="amos-field"><label>Description</label><div class="ctrl"><input class="amos-input" :value="currentFunction.description" readonly /></div></div>
+              <div class="amos-field"><label>Location</label><div class="ctrl"><input class="amos-input" :value="currentFunction.location" readonly /></div></div>
+              <div class="amos-field"><label>Department</label><div class="ctrl"><input class="amos-input" :value="currentFunction.department" readonly /></div></div>
+              <div class="amos-field"><label>Criticality</label><div class="ctrl"><input class="amos-input" :value="currentFunction.criticality" readonly /></div></div>
+              <div class="amos-field"><label>Status</label><div class="ctrl"><input class="amos-input" :value="currentFunction.status" readonly /></div></div>
             </div>
           </template>
           <!-- 手册 2.2(13)：Jobs 标签页 -->
@@ -234,6 +266,7 @@ import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { counterService } from '../services/counterService.js'
 import { workOrderService } from '../services/workOrderService.js'
+import { functionService } from '../services/functionService.js'
 import { store, openWindow, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -283,6 +316,10 @@ const tabs = [
     { key: 'installDate', label: 'Install Date', type: 'date' },
     { key: 'componentTypeModel', label: 'Component Type Model' },
   ] },
+  // 手册 Component Locations：Functions Performed —— 组件安装 / 拆卸历史
+  { id: 'functions-performed', label: 'Functions Performed', fields: [] },
+  // 手册 Component Locations：Function Performing —— 当前安装 function 的只读字段详情
+  { id: 'function-performing', label: 'Function Performing', fields: [] },
   { id: 'jobs', label: 'Jobs', fields: [] },
   { id: 'parts', label: 'Parts', fields: [] },
   // 手册 2 / P44：Counters 标签（New/Delete、继承自组件类型、含 Depends On）
@@ -339,6 +376,17 @@ const optionsPopupStyle = computed(() => {
   if (!optionsRect.value) return {}
   return { position: 'fixed', top: optionsRect.value.top + 'px', left: (optionsRect.value.left - 180) + 'px' }
 })
+// 手册 Component Archives：Options > Archive > 三种档案窗口
+const archiveSubOpen = ref(false)
+function openArchive(kind) {
+  optionsOpen.value = false
+  archiveSubOpen.value = false
+  const s = selected.value
+  if (!s) { showToast('请先选择组件', 'warn'); return }
+  store.archiveComponentNo = s.number
+  store.archiveKind = kind
+  openWindow('component-archive')
+}
 // 手册 P21-23：Global Search 状态
 const globalMode = ref(false)
 const globalDepts = ref([])
@@ -357,6 +405,10 @@ const relWO = computed(() => !selected.value ? [] : workOrderService.byComponent
 const relHistory = computed(() => relWO.value.filter((w) => w.status === 'Completed'))
 const relLog = computed(() => selected.value?.maintenanceLog || [])
 const relAttachments = computed(() => selected.value?.attachments || [])
+// 手册 Component Locations：Functions Performed 历史（安装 / 拆卸记录）
+const relFunctionHistory = computed(() => !selected.value ? [] : componentService.getFunctionHistory(selected.value.id))
+// 手册 Component Locations：Function Performing —— 当前安装 function 的只读字段
+const currentFunction = computed(() => selected.value?.functionNo ? functionService.get(selected.value.functionNo) : null)
 // 手册 2.2：Type Details 继承自 Component Type 的只读参考信息
 const inheritedType = computed(() => {
   if (!selected.value?.typeNumber) return null
@@ -407,7 +459,7 @@ function reopenFilter() { selected.value = null; showFilter.value = true }
 function onSelect(r) {
   selected.value = r
   // 手册 2 / P44-45：Counters / Measure Points 继承自组件类型（首次选择时从类型拷贝）
-  const ct = db.componentTypes.find((c) => c.typeNumber === r.typeNumber)
+  const ct = componentService.getComponentType(r.typeNumber)
   if (!r.componentCounters && ct?.counters?.length) {
     r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
   }
@@ -423,7 +475,7 @@ function onOpen(r) { selected.value = r }
 async function onDetailChange(e) {
   if (!e || !selected.value) return
   if (e.key === 'typeNumber') {
-    const ct = db.componentTypes.find((c) => c.typeNumber === e.value)
+    const ct = componentService.getComponentType(e.value)
     if (!ct) return
     selected.value.maker = ct.maker || ''
     selected.value.type = ct.type || ''
