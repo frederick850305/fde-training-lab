@@ -19,12 +19,12 @@
           </div>
           <div class="table-wrap"><table class="amos-grid sub">
             <thead><tr>
-              <th v-for="c in t.columns" :key="c.key" :style="{ width: c.width }">{{ c.label }}</th>
+              <th v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ c.label }}<span class="col-resize" @mousedown.stop.prevent="startSubResize($event, t, c.key)"></span></th>
               <th class="sub-actions"></th>
             </tr></thead>
             <tbody>
               <tr v-for="(row, ri) in subRows(t)" :key="rowKeyOf(row, ri)">
-                <td v-for="c in t.columns" :key="c.key">
+                <td v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">
                   <template v-if="c.type === 'lookup'">
                     <span class="cell-lookup">
                       <input class="amos-input sm" :value="row[c.key]" readonly :placeholder="'选择…'" />
@@ -199,6 +199,43 @@ function openSubLookup(t, c, row) {
   lookupField.value = { ...c, _row: row }
   lookupOptions.value = (lookups[c.lookupKey] && lookups[c.lookupKey]()) || []
 }
+
+// ===== 子表格列宽拖拽调整 =====
+const subColWidths = ref({})
+const subResizing = ref(null)
+
+function _subWkey(t, key) { return t.id + '::' + key }
+
+function subColStyle(t, c) {
+  const w = subColWidths.value[_subWkey(t, c.key)] || c.width
+  return w ? { width: w } : null
+}
+
+function startSubResize(e, t, key) {
+  const th = e.target.parentElement
+  const rect = th.getBoundingClientRect()
+  subResizing.value = { t, key, startX: e.clientX, startW: rect.width }
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  document.addEventListener('mousemove', onSubResizeMove)
+  document.addEventListener('mouseup', onSubResizeEnd)
+}
+
+function onSubResizeMove(e) {
+  const r = subResizing.value
+  if (!r) return
+  const diff = e.clientX - r.startX
+  const newW = Math.max(60, r.startW + diff)
+  subColWidths.value[_subWkey(r.t, r.key)] = newW + 'px'
+}
+
+function onSubResizeEnd() {
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  document.removeEventListener('mousemove', onSubResizeMove)
+  document.removeEventListener('mouseup', onSubResizeEnd)
+  subResizing.value = null
+}
 </script>
 
 <style scoped>
@@ -210,21 +247,23 @@ function openSubLookup(t, c, row) {
 .tab:hover { background: #fff; }
 .tab.active { background: #fff; color: var(--amos-blue); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amos-blue); }
 /* 核心：tab-body 是唯一的内容滚动容器 */
-.tab-body { flex: 1; min-height: 0; min-width: 0; overflow-x: auto; overflow-y: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }
-/* 横向滚动条美化 */
+.tab-body { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 12px; border: 1px solid var(--amos-border); border-radius: 0 0 6px 6px; }
 .tab-body::-webkit-scrollbar { width: 8px; height: 8px; }
-.tab-body::-webkit-scrollbar-track { background: transparent; }
+.tab-body::-webkit-scrollbar-track { background: #f5f7fa; }
 .tab-body::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
 .tab-body::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
-/* 每个 tab 面板保留内容最小宽度，空间不足时触发 .tab-body 横向滚动 */
-.tab-body > div { min-width: 520px; }
 .rd-note { margin: 0 0 10px; color: var(--amos-text-soft); font-size: 13px; line-height: 1.6; }
-/* 子表格包裹层：不限制宽度，让表格自然展开 */
-.table-wrap { }
-.amos-grid.sub { border-collapse: collapse; font-size: 12.5px; table-layout: fixed; width: max-content; }
+/* 子表格包裹层 */
+.table-wrap { overflow-x: auto; margin-top: 8px; }
+.amos-grid.sub { border-collapse: collapse; font-size: 12.5px; width: 100%; }
 .amos-grid.sub th, .amos-grid.sub td { border: 1px solid var(--amos-border); padding: 4px 6px; text-align: left; vertical-align: middle; }
 .amos-grid.sub th { background: #f3f6fa; font-weight: 600; color: var(--amos-text-soft); }
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+/* 列宽调整手柄 */
+.amos-grid.sub th { position: relative; }
+.amos-grid.sub th .col-resize { position: absolute; right: 0; top: 4px; bottom: 4px; width: 5px; cursor: col-resize; }
+.amos-grid.sub th .col-resize::after { content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px; background: var(--amos-border); opacity: 0; transition: opacity .15s; }
+.amos-grid.sub th .col-resize:hover::after { opacity: 1; background: var(--amos-blue); }
 .sub-actions { text-align: center; width: 46px; }
 .cell-lookup { display: flex; gap: 4px; align-items: center; }
 .cell-lookup .amos-input { flex: 1; min-width: 0; }

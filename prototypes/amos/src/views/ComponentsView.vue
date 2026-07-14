@@ -31,17 +31,16 @@
       </div>
     </div>
 
-    <div v-else class="bw-body" ref="bodyRef">
-      <section class="bw-list" :style="{ width: leftWidth + 'px' }">
+    <div v-else class="bw-body">
+      <section class="bw-list">
         <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen" />
       </section>
-      <div class="splitter" :class="{ active: dragging }" @mousedown="startDrag" title="拖动调整左右宽度"></div>
       <section class="bw-detail" v-if="selected">
         <div class="bd-head">
           <strong>{{ selected.number }} — {{ selected.name }}</strong>
           <span class="tag" :class="statusClass(selected.status)">{{ selected.status }}</span>
         </div>
-        <RecordDetail :tabs="tabs" :model="selected">
+        <RecordDetail :tabs="tabs" :model="selected" @change="onDetailChange">
           <!-- 手册 2.2：Type Details 继承只读信息（来自 Component Type） -->
           <template #extra-type>
             <div class="inherited-box" v-if="inheritedType">
@@ -247,34 +246,6 @@ const all = computed(() => db.components)
 const viewRows = ref([])
 const showFilter = ref(false)
 const selected = ref(null)
-// 手册交互：左右两栏可拖动分隔条调整宽度
-const bodyRef = ref(null)
-const leftWidth = ref(440)
-const dragging = ref(false)
-function startDrag() {
-  dragging.value = true
-  document.body.style.cursor = 'col-resize'
-  document.body.style.userSelect = 'none'
-  document.addEventListener('mousemove', onDrag)
-  document.addEventListener('mouseup', stopDrag)
-}
-function onDrag(e) {
-  if (!dragging.value || !bodyRef.value) return
-  const rect = bodyRef.value.getBoundingClientRect()
-  let w = e.clientX - rect.left
-  const min = 260
-  const max = rect.width - 340
-  if (w < min) w = min
-  if (w > max) w = max
-  leftWidth.value = w
-}
-function stopDrag() {
-  dragging.value = false
-  document.body.style.cursor = ''
-  document.body.style.userSelect = ''
-  document.removeEventListener('mousemove', onDrag)
-  document.removeEventListener('mouseup', stopDrag)
-}
 // Options 菜单状态（手册 P42-43：Copy / ChangeStatus）
 const optionsOpen = ref(false)
 // 手册 P21-23：Global Search 状态
@@ -356,6 +327,16 @@ function onSelect(r) {
   }
 }
 function onOpen(r) { selected.value = r }
+// 手册 2 / P42-43：General 选择 Type Number 后，自动从 Component Type 带出
+// Maker / Type / Name 等基础信息并填充到 General 单元格（继承类型默认值的级联）
+function onDetailChange(e) {
+  if (!e || e.key !== 'typeNumber' || !selected.value) return
+  const ct = db.componentTypes.find((c) => c.typeNumber === e.value)
+  if (!ct) return
+  selected.value.maker = ct.maker || ''
+  selected.value.type = ct.type || ''
+  if (!selected.value.name) selected.value.name = ct.name || ''
+}
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
@@ -477,29 +458,11 @@ function statusClass(v) {
 .bw-head .row::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 2px; }
 .scope-badge { font-size: 11.5px; color: #1f6fb2; background: #e8f2fb; border: 1px solid #b9d8f0; border-radius: 999px; padding: 2px 10px; }
 .global-badge { color: #0e6a30; background: #e4f7e8; border-color: #95d5a9; }
-.bw-body { flex: 1; display: flex; min-height: 0; }
-.bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; flex: 0 0 auto; overflow: hidden; }
-.bw-list > * { flex: 1; min-width: 0; }
-.bw-detail { padding: 10px; overflow-x: auto; overflow-y: hidden; flex: 1; min-width: 0; scrollbar-width: thin; scrollbar-color: #9bb6d8 #edf2f8; }
-.bw-detail::-webkit-scrollbar { width: 8px; height: 10px; }
-.bw-detail::-webkit-scrollbar-track { background: #edf2f8; }
-.bw-detail::-webkit-scrollbar-thumb { background: #9bb6d8; border: 2px solid #edf2f8; border-radius: 6px; }
-.bw-detail::-webkit-scrollbar-thumb:hover { background: #789bc8; }
+.bw-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.bw-list { border-bottom: 1px solid var(--amos-border); padding: 8px; min-height: 0; max-height: 40%; overflow: hidden; }
+.bw-list > * { height: 100%; min-height: 0; }
+.bw-detail { padding: 10px; overflow-y: auto; flex: 1; min-height: 0; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
-/* 可拖动分隔条 */
-.splitter { flex: 0 0 auto; width: 6px; cursor: col-resize; background: var(--amos-border); position: relative; transition: background .15s; }
-.splitter:hover, .splitter.active { background: var(--amos-blue); }
-.splitter::after { content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 2px; height: 30px; border-radius: 2px; background: rgba(255,255,255,.75); }
-.bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--amos-border); }
-.table-wrap { max-width: 100%; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #c2d2e8 transparent; }
-/* slot 内子表格：禁止自动收缩，按内容自然宽度展开 */
-.table-wrap > .amos-grid.sub { width: max-content; min-width: 100%; table-layout: auto; margin-top: 8px; }
-.amos-grid.sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
-/* 表格横向滚动条美化（细、圆角、半透明） */
-.table-wrap::-webkit-scrollbar { height: 8px; }
-.table-wrap::-webkit-scrollbar-track { background: transparent; }
-.table-wrap::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
-.table-wrap::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
 /* slot 内按钮栏与继承信息框（scoped 不继承 RecordDetail 样式，需本组件定义） */
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .inherited-box { border: 1px dashed var(--amos-border); border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #fafcff; }
@@ -509,7 +472,7 @@ function statusClass(v) {
 .bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 180px; padding: 4px; }
 .bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
 .bw-options-menu button:hover { background: var(--amos-blue-soft); }
-@media (max-width: 980px) { .bw-body { flex-direction: column; } .splitter { display: none; } .bw-list { width: auto !important; border-right: none; border-bottom: 1px solid var(--amos-border); } }
+/* 上下布局，无需响应式切换 */
 /* Open Record 对话框 */
 .open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
 .open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }

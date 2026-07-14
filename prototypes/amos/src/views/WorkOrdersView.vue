@@ -175,9 +175,11 @@ function scopeRows(rows) {
   return scopeByDepartment(rows)
 }
 
+let lastCrit = {}
 function applyFilter(c) {
   showFilter.value = false
   const crit = c || {}
+  lastCrit = crit
   // 提取 Global Search 状态
   globalMode.value = !!crit._globalSearch
   globalDepts.value = crit._globalDepts || []
@@ -237,6 +239,32 @@ function onAction(e) {
   if (a === 'filter') reopenFilter()
   if (a === 'new') doNew()
   if (a === 'open') doOpen()
+  if (a === 'delete') doDelete()
+}
+// 手册 4：Work Orders 删除限制 — 仅初始状态(Requested)可物理删除；
+// Planned / Issued / Completed 等已进入流程或具审计价值的工单不允许删除，应走 Cancel 流程
+const DELETABLE_STATUSES = ['Requested']
+function doDelete() {
+  // 优先使用勾选集合，否则针对当前选中记录
+  const targets = checkedIds.value.length
+    ? viewRows.value.filter((r) => checkedIds.value.includes(r.id))
+    : (selected.value ? [selected.value] : [])
+  if (!targets.length) return showToast('请先选择要删除的工单', 'warn')
+
+  const blocked = targets.filter((r) => !DELETABLE_STATUSES.includes(r.status))
+  if (blocked.length) {
+    const nums = blocked.map((r) => r.workOrderNo).join('、')
+    return showToast(`工单 ${nums} 状态为「${blocked[0].status}」，不可删除。请改用 Cancel 流程取消该工单。`, 'warn')
+  }
+  // 全部为可删状态，执行删除
+  targets.forEach((r) => {
+    const i = all.value.findIndex((x) => x.id === r.id)
+    if (i >= 0) all.value.splice(i, 1)
+  })
+  checkedIds.value = []
+  selected.value = null
+  applyFilter(lastCrit) // 保留当前筛选 / Global 状态刷新列表
+  showToast(`已删除 ${targets.length} 张工单`, 'warn')
 }
 onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))

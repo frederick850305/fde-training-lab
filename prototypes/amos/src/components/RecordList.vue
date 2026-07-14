@@ -16,11 +16,12 @@
             <th
               v-for="c in columns"
               :key="c.key"
-              :style="c.width ? { width: c.width } : null"
+              :style="colStyle(c)"
               @click="sortBy(c.key)"
             >
               {{ c.label }}
               <span v-if="sortKey === c.key" class="sort-caret">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+              <span class="col-resize" @mousedown.stop.prevent="startResize($event, c.key)"></span>
             </th>
           </tr>
         </thead>
@@ -38,6 +39,7 @@
             <td
               v-for="c in columns"
               :key="c.key"
+              :style="colStyle(c)"
               :class="{ num: c.align === 'right' }"
             >
               <slot :name="'cell-' + c.key" :row="row" :value="row[c.key]">
@@ -73,6 +75,41 @@ const sortKey = ref('')
 const sortDir = ref('asc')
 const selectedId = ref('')
 const checkedSet = ref(new Set(props.checked))
+
+// ===== 列宽拖拽调整 =====
+const colWidths = ref({})
+const resizing = ref(null) // { key, startX, startW }
+
+function colStyle(c) {
+  const w = colWidths.value[c.key] || c.width
+  return w ? { width: w } : null
+}
+
+function startResize(e, key) {
+  const th = e.target.parentElement
+  const rect = th.getBoundingClientRect()
+  resizing.value = { key, startX: e.clientX, startW: rect.width }
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeEnd)
+}
+
+function onResizeMove(e) {
+  const r = resizing.value
+  if (!r) return
+  const diff = e.clientX - r.startX
+  const newW = Math.max(60, r.startW + diff)
+  colWidths.value[r.key] = newW + 'px'
+}
+
+function onResizeEnd() {
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+  resizing.value = null
+}
 
 watch(() => props.checked, (v) => { checkedSet.value = new Set(v) })
 
@@ -151,4 +188,9 @@ defineExpose({ clearSelection, selectedId })
 .rl-scroll { flex: 1; overflow: auto; border: 1px solid var(--amos-border); border-radius: 6px; background: #fff; }
 .col-check { width: 34px; text-align: center; }
 .sort-caret { font-size: 9px; color: var(--amos-blue); margin-left: 3px; }
+/* 列宽调整手柄 */
+.col-resize { position: absolute; right: 0; top: 4px; bottom: 4px; width: 5px; cursor: col-resize; }
+.col-resize::after { content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px; background: var(--amos-border); opacity: 0; transition: opacity .15s; }
+.col-resize:hover::after, .col-resize.active::after { opacity: 1; background: var(--amos-blue); }
+.amos-grid thead th { position: relative; }
 </style>
