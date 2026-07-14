@@ -41,7 +41,7 @@
             <th>Depends On</th>
             <th class="num">Current Value</th>
             <th class="num">Average（日均）</th>
-            <th>Last Reading</th>
+            <th>Latest Zeroed Date</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@
             <td>{{ r.dependsOn || '—' }}</td>
             <td class="num">{{ r.currentValue }} {{ r.unit }}</td>
             <td class="num">{{ r.average }} {{ r.unit }}/d</td>
-            <td>{{ r.readingDate }}</td>
+            <td>{{ r.latestZeroedDate }}</td>
           </tr>
           <tr v-if="!rows.length"><td colspan="7" class="muted" style="text-align:center;padding:18px">无计数器读数，调整查找条件。</td></tr>
         </tbody>
@@ -75,10 +75,10 @@ const compByNo = computed(() => componentService.byNo())
 // Average = 当前读数 / 自安装（或读数日往前 365 天基准）的天数
 function averageOf(rec) {
   const comp = compByNo.value[rec.component]
-  const base = comp?.installDate || rec.readingDate
+  const base = comp?.installDate || rec.latestZeroedDate
   let days = 365
   if (base) {
-    const d = (new Date(rec.readingDate) - new Date(base)) / 86400000
+    const d = (new Date(rec.latestZeroedDate) - new Date(base)) / 86400000
     if (d > 0) days = d
   }
   return (rec.currentValue / days).toFixed(1)

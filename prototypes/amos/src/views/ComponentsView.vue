@@ -117,7 +117,7 @@
           <strong>{{ selected.number }} — {{ selected.name }}</strong>
           <span class="tag" :class="statusClass(selected.status)">{{ selected.status }}</span>
         </div>
-        <RecordDetail :tabs="tabs" :model="selected" @change="onDetailChange">
+        <RecordDetail :tabs="tabs" :model="selected" @change="onDetailChange" @subaction="onSubAction">
           <!-- 手册 2.2：Type Details 继承只读信息（来自 Component Type） -->
           <template #extra-type>
             <div class="inherited-box" v-if="inheritedType">
@@ -323,17 +323,23 @@ const tabs = [
   { id: 'jobs', label: 'Jobs', fields: [] },
   { id: 'parts', label: 'Parts', fields: [] },
   // 手册 2 / P44：Counters 标签（New/Delete、继承自组件类型、含 Depends On）
+  // 字段集对照手册截图：Counter Code / Latest Zeroed Date / Total at Zeroed / Total Running / Average / Calculate / Depends On
+  // 底部按钮：New / Delete（每行 Del）/ Update / Set Start（tab.subActions）
   {
     id: 'counters', label: 'Counters', type: 'subgrid',
     subKey: 'componentCounters',
+    subActions: [
+      { id: 'update', label: 'Update' },
+      { id: 'setStart', label: 'Set Start' },
+    ],
     columns: [
       { key: 'code', label: 'Counter Code', width: '120px', default: '' },
-      { key: 'description', label: 'Description', default: '' },
-      { key: 'unit', label: 'Unit', width: '70px', default: '' },
+      { key: 'latestZeroedDate', label: 'Latest Zeroed Date', type: 'date', width: '130px', default: '' },
+      { key: 'startValue', label: 'Total at Zeroed', type: 'number', width: '110px', default: 0 },
+      { key: 'currentValue', label: 'Total Running', type: 'number', width: '110px', default: 0 },
+      { key: 'average', label: 'Average', type: 'number', width: '90px', default: 0, readonly: true },
+      { key: 'calculate', label: 'Calculate', type: 'select', options: ['Yes', 'No'], width: '90px', default: 'No' },
       { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件' },
-      { key: 'startValue', label: 'Start', width: '70px', default: 0, type: 'number' },
-      { key: 'currentValue', label: 'Current', width: '80px', default: 0, type: 'number' },
-      { key: 'readingDate', label: 'Reading Date', type: 'date', width: '120px', default: '' },
     ],
   },
   // 手册 2 / P45：Measure Points 独立标签（New/Delete、继承自组件类型）
@@ -415,13 +421,6 @@ const inheritedType = computed(() => {
   return componentService.getComponentType(selected.value.typeNumber)
 })
 
-function avg(r) {
-  const base = selected.value?.installDate || r.readingDate
-  let days = 365
-  if (base) { const d = (new Date(r.readingDate) - new Date(base)) / 86400000; if (d > 0) days = d }
-  return (r.currentValue / days).toFixed(1)
-}
-
 // 不再于 activeKey 变化时硬重置；改用 onActivated：仅当存在 presetFilter（View 跳转 / Dashboard 告警带入）时才应用，否则保留窗口上下文
 watch(() => store.department, () => { selected.value = null; applyPreset() })
 
@@ -461,7 +460,7 @@ function onSelect(r) {
   // 手册 2 / P44-45：Counters / Measure Points 继承自组件类型（首次选择时从类型拷贝）
   const ct = componentService.getComponentType(r.typeNumber)
   if (!r.componentCounters && ct?.counters?.length) {
-    r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
+    r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }))
   }
   if (!r.componentMeasurePoints && ct?.measurePointDefs?.length) {
     // 从组件类型的 Measure Points 标签定义继承为组件级可编辑子表
@@ -482,11 +481,27 @@ async function onDetailChange(e) {
     if (!selected.value.name) selected.value.name = ct.name || ''
     // 手册 P44：切换类型时，若组件尚无 Counters，则继承类型的计数器模板（仅作用于当前组件）
     if (!selected.value.componentCounters && ct.counters?.length) {
-      selected.value.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
+      selected.value.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }))
     }
   } else if (e.key === 'functionNo') {
     await componentService.setFunction(selected.value.id, e.value)
     showToast(`功能位置变更：状态自动推导为 ${selected.value.status}`, 'info')
+  }
+}
+// 手册 P44：Counters 标签 Update / Set Start 按钮（RecordDetail 子表 subActions 触发）
+function onSubAction(e) {
+  const { action, tabId, row } = e
+  const comp = selected.value
+  if (!comp) return showToast('请先选择组件', 'warn')
+  if (tabId !== 'counters') return
+  if (!row) return showToast('请先在 Counters 标签选中一行计数器', 'warn')
+  if (action === 'setStart') {
+    counterService.setStart(comp.number, row.code)
+    showToast(`已设置起点（归零）：${row.code} 的 Total at Zeroed = ${row.currentValue}`, 'ok')
+  } else if (action === 'update') {
+    // 手册 P44：Update 按钮 → 打开 Update Counters 并预填当前组件
+    store.presetCounterComponent = comp.number
+    openWindow('update-counters')
   }
 }
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }

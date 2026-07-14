@@ -520,7 +520,27 @@ function applyPreset() {
     viewRows.value = dbRows.value.slice()
   }
 }
-onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
+onMounted(() => {
+  window.addEventListener('amos-action', onAction)
+  applyPreset()
+  // 手册 P44：Components 窗口 Counters 标签 Update 按钮 → 预填当前组件并定位到 General
+  if (config.value?.dataKey === 'counterLogs' && store.presetCounterComponent) {
+    const compNo = store.presetCounterComponent
+    store.presetCounterComponent = ''
+    const comp = componentService.listSync().find((c) => c.number === compNo)
+    selected.value = {
+      id: 'new_' + Date.now(),
+      component: compNo,
+      function: comp?.functionNo || '',
+      counter: '',
+      currentValue: 0,
+      newValue: 0,
+      unit: '',
+      readingDate: new Date().toISOString().slice(0, 10),
+    }
+    detailPresetTab.value = 'general'
+  }
+})
 // keep-alive 激活时：处理 presetFilter（Dashboard 告警带入）和 returnContext（从其他窗口 View 跳回的上下文恢复）
 onActivated(() => {
   if (store.presetFilter) applyPreset()

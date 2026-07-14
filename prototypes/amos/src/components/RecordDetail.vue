@@ -15,6 +15,7 @@
         <template v-if="t.type === 'subgrid'">
           <div class="subgrid-bar">
             <button class="amos-btn xs" @click="addSubRow(t)">New</button>
+            <button v-for="a in (t.subActions || [])" :key="a.id" class="amos-btn xs" @click="runSubAction(t, a)">{{ a.label }}</button>
             <span class="muted">{{ subRows(t).length }} 条记录</span>
           </div>
           <div class="table-wrap"><table class="amos-grid sub">
@@ -23,9 +24,10 @@
               <th class="sub-actions"></th>
             </tr></thead>
             <tbody>
-              <tr v-for="(row, ri) in subRows(t)" :key="rowKeyOf(row, ri)">
+              <tr v-for="(row, ri) in subRows(t)" :key="rowKeyOf(row, ri)" :class="{ 'sub-sel': isSubSelected(row) }" @click="selectSubRow(row)">
                 <td v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">
-                  <template v-if="c.type === 'lookup'">
+                  <span v-if="c.readonly" class="cell-ro">{{ row[c.key] }}</span>
+                  <template v-else-if="c.type === 'lookup'">
                     <span class="cell-lookup">
                       <input class="amos-input sm" :value="row[c.key]" readonly :placeholder="'选择…'" />
                       <button class="lookup-btn" type="button" @click="openSubLookup(t, c, row)">…</button>
@@ -93,7 +95,7 @@ const props = defineProps({
   model: { type: Object, required: true },
   presetTabId: { type: String, default: '' }, // 外部指令：强制切换到指定 tab（如注册组件后跳转 Components）
 })
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'subaction'])
 
 // 手册 P30 导航体验优化：每个窗口的详情标签页状态持久化，
 // 切换窗口再切回后保留用户之前所在的 tab（而非总是重置到 General）
@@ -205,6 +207,14 @@ function openSubLookup(t, c, row) {
   lookupOptions.value = (fn ? fn(props.model) : []) || []
 }
 
+// 子表行选中（供 Update / Set Start 等 subActions 操作指定行）
+const selectedSub = ref(null)
+function selectSubRow(row) { selectedSub.value = row }
+function isSubSelected(row) { return selectedSub.value === row }
+function runSubAction(t, a) {
+  emit('subaction', { action: a.id, tabId: t.id, row: selectedSub.value })
+}
+
 // ===== 子表格列宽拖拽调整 =====
 const subColWidths = ref({})
 const subResizing = ref(null)
@@ -271,6 +281,10 @@ function onSubResizeEnd() {
 .amos-grid.sub th .col-resize:hover::after { opacity: 1; background: var(--amos-blue); }
 .sub-actions { text-align: center; width: 46px; }
 .cell-lookup { display: flex; gap: 4px; align-items: center; }
+/* 子表行选中高亮（Update / Set Start 操作指定行） */
+.amos-grid.sub tbody tr { cursor: pointer; }
+.amos-grid.sub tbody tr.sub-sel { background: #e8f2fb !important; }
+.cell-ro { display: inline-block; padding: 2px 4px; color: var(--amos-text-soft); }
 .cell-lookup .amos-input { flex: 1; min-width: 0; }
 .amos-input.sm, .amos-select.sm { width: 100%; min-width: 60px; padding: 3px 5px; font-size: 12px; }
 .amos-btn.xs { padding: 3px 8px; font-size: 11.5px; }

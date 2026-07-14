@@ -9,6 +9,22 @@
 
 import { db, uid } from '../mock/index.js'
 
+// 手册 P44：Average = 当前累计 / 自安装（或上次归零）至今的天数
+function calcAverage(totalRunning, baseDate, readingDate) {
+  const base = baseDate || readingDate
+  let days = 365
+  if (base && readingDate) {
+    const d = (new Date(readingDate) - new Date(base)) / 86400000
+    if (d > 0) days = d
+  }
+  return (totalRunning / days).toFixed(1)
+}
+
+// 组件计数器行从类型继承时的默认字段（手册 P44：Counters 标签字段集）
+function blankCounter(c) {
+  return { ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }
+}
+
 export const counterService = {
   // ---- 读取 ----
   list() {
@@ -20,12 +36,13 @@ export const counterService = {
   },
 
   // 手册 P44：依赖联动 —— 被依赖组件更新后，级联同步所有 dependsOn 指向它的同 code 计数器
-  _syncDependents(targetComponentNo, code, value) {
+  _syncDependents(targetComponentNo, code, value, latestZeroedDate) {
     db.components.forEach((c) => {
       ;(c.componentCounters || []).forEach((cc) => {
         if (cc.dependsOn === targetComponentNo && cc.code === code) {
           cc.currentValue = value
-          cc.readingDate = new Date().toISOString().slice(0, 10)
+          cc.latestZeroedDate = latestZeroedDate || new Date().toISOString().slice(0, 10)
+          cc.average = calcAverage(value, c.installDate, cc.latestZeroedDate)
         }
       })
     })
@@ -38,14 +55,15 @@ export const counterService = {
     // 若该组件尚未从类型继承 counters，则惰性初始化
     if (!comp.componentCounters) {
       const ct = db.componentTypes.find((t) => t.typeNumber === comp.typeNumber)
-      comp.componentCounters = (ct?.counters || []).map((x) => ({ ...x, startValue: 0, currentValue: 0, readingDate: comp.installDate || '' }))
+      comp.componentCounters = (ct?.counters || []).map(blankCounter)
     }
     const cc = (comp.componentCounters || []).find((c) => c.description === rec.counter)
     if (cc) {
       cc.currentValue = rec.newValue != null ? rec.newValue : rec.currentValue
-      cc.readingDate = rec.readingDate
+      cc.latestZeroedDate = rec.readingDate || cc.latestZeroedDate
+      cc.average = calcAverage(cc.currentValue, comp.installDate, cc.latestZeroedDate)
       // 同步所有依赖本组件该计数器的其它组件（手册 P44：Counters Dependent on Other Components' Counters）
-      this._syncDependents(rec.component, cc.code, cc.currentValue)
+      this._syncDependents(rec.component, cc.code, cc.currentValue, cc.latestZeroedDate)
     }
     // 追加一条只读历史日志
     db.counterLogs.push({
@@ -61,6 +79,18 @@ export const counterService = {
     return cc
   },
 
+  // 手册 P44：Counters 标签 Set Start —— 将当前累计值快照为归零点，重置平均基准
+  setStart(componentNo, code) {
+    const comp = db.components.find((c) => c.number === componentNo)
+    if (!comp?.componentCounters) return null
+    const cc = comp.componentCounters.find((c) => c.code === code)
+    if (!cc) return null
+    cc.startValue = cc.currentValue
+    cc.latestZeroedDate = new Date().toISOString().slice(0, 10)
+    cc.average = calcAverage(cc.currentValue, comp.installDate, cc.latestZeroedDate)
+    return cc
+  },
+
   // 手册 3.1（Counters Overview）：聚合所有组件当前计数器读数（惰性从类型初始化）
   allCounters() {
     const arr = []
@@ -68,7 +98,7 @@ export const counterService = {
       let counters = c.componentCounters
       if (!counters) {
         const ct = db.componentTypes.find((t) => t.typeNumber === c.typeNumber)
-        counters = (ct?.counters || []).map((x) => ({ ...x, startValue: 0, currentValue: 0, readingDate: c.installDate || '' }))
+        counters = (ct?.counters || []).map(blankCounter)
       }
       ;(counters || []).forEach((cc) => {
         arr.push({
@@ -78,8 +108,10 @@ export const counterService = {
           description: cc.description,
           currentValue: cc.currentValue,
           unit: cc.unit,
-          readingDate: cc.readingDate,
+          latestZeroedDate: cc.latestZeroedDate || '',
+          average: cc.average || calcAverage(cc.currentValue, c.installDate, cc.latestZeroedDate),
           dependsOn: cc.dependsOn || '',
+          calculate: cc.calculate || 'No',
         })
       })
     })
