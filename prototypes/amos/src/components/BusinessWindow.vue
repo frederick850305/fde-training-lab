@@ -88,7 +88,7 @@
             <table class="amos-grid sub" v-if="regComponentsList.length">
               <thead><tr><th>Number</th><th>Name</th><th>Location</th><th>Status</th><th></th></tr></thead>
               <tbody>
-                <tr v-for="c in regComponentsList" :key="c.id" :class="{ 'highlight-row': highlightCompId === c.id }">
+                <tr v-for="c in regComponentsList" :key="c.id" :class="{ 'highlight-row': highlightCompId.has(c.id) }">
                   <td>{{ c.number }}</td><td>{{ c.name }}</td><td>{{ c.location }}</td><td>{{ c.status }}</td>
                   <td><button class="amos-btn xs" @click="viewComponent(c)">View</button></td>
                 </tr>
@@ -196,11 +196,11 @@ function reopenFilter() {
 function onSelect(row) {
   selected.value = row
   // 用户手动切换记录时，清除回跳高亮（避免残留旧组件行淡黄背景）
-  highlightCompId.value = ''
+  highlightCompId.value.clear()
 }
 function onOpen(row) {
   selected.value = row
-  highlightCompId.value = ''
+  highlightCompId.value.clear()
 }
 
 function blankRecord() {
@@ -337,7 +337,7 @@ const regDialog = ref(false)
 const regSelected = ref([])
 const regAutoStock = ref(false)
 const detailPresetTab = ref('') // 指令性切换 RecordDetail 的 tab（如注册组件后自动跳转 Components）
-const highlightCompId = ref('') // 回跳时高亮 Components 列表中的目标组件行
+const highlightCompId = ref(new Set()) // 高亮 Components 列表中的目标组件行（Set 支持多选）
 const listPreselectId = ref('')  // 回跳时预选中左侧列表的某行（同步到 RecordList 内部 selectedId）
 const deptGroups = computed(() => {
   const map = {}
@@ -364,6 +364,7 @@ function confirmRegister() {
   // 手册 P30：使用 baseNo + 序号后缀，避免同一毫秒批量注册时编号全部重复
   const baseNo = String(Date.now() % 1000000)
   let count = 0
+  const newIds = []
   regSelected.value.forEach((dept, idx) => {
     const comp = {
       id: uid('co'),
@@ -384,6 +385,7 @@ function confirmRegister() {
     db.components.push(comp)
     // 关联到类型，便于类型窗口 Components 标签展示（P30 第 5 步）
     ;(t.regComponents = t.regComponents || []).push(comp.id)
+    newIds.push(comp.id)
     count++
     // Auto-Register Stock Items：把该类型关联的备件一并登记到所选安装地点
     if (regAutoStock.value && Array.isArray(t.parts)) {
@@ -404,7 +406,9 @@ function confirmRegister() {
     }
   })
   regDialog.value = false
-  // 注册成功后自动切换到 Components tab，让用户立即看到刚注册的组件实例
+  // 注册成功后自动切换到 Components tab，并高亮所有新注册的组件实例
+  highlightCompId.value = new Set(newIds)
+  detailPresetTab.value = ''
   nextTick(() => { detailPresetTab.value = 'components' })
   showToast(`已注册 ${count} 个组件（来自类型 ${t.typeNumber}）`, 'ok')
 }
@@ -458,7 +462,11 @@ onActivated(() => {
       }
     }
     // 切到 Components tab 并标记高亮目标行（淡黄色背景，持久保持直到用户切换记录）
-    nextTick(() => { detailPresetTab.value = 'components'; highlightCompId.value = ctx.targetId || '' })
+    nextTick(() => {
+      detailPresetTab.value = ''
+      highlightCompId.value = ctx.targetId ? new Set([ctx.targetId]) : new Set()
+      nextTick(() => { detailPresetTab.value = 'components' })
+    })
   }
 })
 onBeforeUnmount(() => window.removeEventListener('amos-action', onAction))
