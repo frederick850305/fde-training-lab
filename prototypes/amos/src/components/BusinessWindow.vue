@@ -114,6 +114,7 @@ import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
 import { store, showToast, openWindow, setPresetFilter } from '../store.js'
 import { db, uid } from '../mock/index.js'
+import { componentService } from '../services/componentService.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 import { departments } from '../data/amosData.js'
@@ -356,7 +357,7 @@ function openRegister() {
   regAutoStock.value = false
   regDialog.value = true
 }
-function confirmRegister() {
+async function confirmRegister() {
   const t = selected.value
   if (!t) return
   if (!regSelected.value.length) { showToast('请至少选择一个安装地点', 'warn'); return }
@@ -365,24 +366,20 @@ function confirmRegister() {
   const baseNo = String(Date.now() % 1000000)
   let count = 0
   const newIds = []
-  regSelected.value.forEach((dept, idx) => {
-    const comp = {
-      id: uid('co'),
-      number: 'C-' + baseNo + '-' + String(idx + 1).padStart(2, '0'),
+  for (let idx = 0; idx < regSelected.value.length; idx++) {
+    const dept = regSelected.value[idx]
+    // 注册逻辑统一交由 componentService：状态按手册自动推导（未安装 → Available）
+    const comp = await componentService.register({
       typeNumber: t.typeNumber,
       name: t.name,
       maker: t.maker,
       model: t.model,
-      type: '',
-      serialNo: '',
-      status: 'In Use',
       location: dept,
-      functionNo: '',
-      vendor: t.maker,
-      parentComponent: '',
+      department: store.department,
       installDate: today,
-    }
-    db.components.push(comp)
+    })
+    // 注册到同一类型下的编号后缀，便于类型窗口 Components 标签区分
+    comp.number = 'C-' + baseNo + '-' + String(idx + 1).padStart(2, '0')
     // 关联到类型，便于类型窗口 Components 标签展示（P30 第 5 步）
     ;(t.regComponents = t.regComponents || []).push(comp.id)
     newIds.push(comp.id)
@@ -404,7 +401,7 @@ function confirmRegister() {
         }
       })
     }
-  })
+  }
   regDialog.value = false
   // 注册成功后自动切换到 Components tab，并高亮所有新注册的组件实例
   highlightCompId.value = new Set(newIds)

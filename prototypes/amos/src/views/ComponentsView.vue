@@ -14,7 +14,8 @@
           <Teleport to="body">
             <div v-if="optionsOpen && optionsRect" class="bw-options-popup" :style="optionsPopupStyle" @mouseleave="optionsOpen = false">
               <button @click="copyComponent">Copy</button>
-              <button @click="changeStatus">Change Status</button>
+              <button @click="openChangeStatus">Change Status</button>
+              <button @click="openStatusLog">Component Status Log</button>
             </div>
           </Teleport>
         </div>
@@ -30,6 +31,74 @@
         <p class="muted">输入 Number（编码）以定位并打开该组件。</p>
         <div class="amos-field"><label>Number</label><div class="ctrl"><input ref="openInputRef" class="amos-input" v-model="openKeyValue" @keydown.enter="confirmOpen" placeholder="如 C-10001" /></div></div>
         <div class="od-actions"><button class="amos-btn" @click="showOpenDialog = false">Cancel</button><button class="amos-btn primary" @click="confirmOpen">OK</button></div>
+      </div>
+    </div>
+
+    <!-- Change Status 对话框（手册 Component Status：Options > Change Status） -->
+    <div v-if="statusDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Change Status — {{ selected?.number }}</h3>
+        <p class="muted">当前状态：<b>{{ selected?.status }}</b></p>
+        <div class="amos-field">
+          <label>New Status</label>
+          <div class="ctrl">
+            <select class="amos-select" v-model="statusTarget">
+              <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+        <label class="row" style="gap:6px;margin-top:8px">
+          <input type="checkbox" v-model="statusCascade" />
+          Change status of sub-components also（级联修改 parentComponent = 本组件的子组件）
+        </label>
+        <div class="od-actions">
+          <button class="amos-btn" @click="statusDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmChangeStatus">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transferred → Stock Wanted 交互对话框（手册：改为 Transferred 且 Stock Wanted 存在引用时） -->
+    <div v-if="transferredDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Component Transferred — Stock Wanted</h3>
+        <p class="muted">该组件在 Stock Wanted 中仍被以下条目引用。请选择处理方式：</p>
+        <table class="amos-grid sub" style="margin:8px 0">
+          <thead><tr><th>Stock Type</th><th>Description</th><th class="num">Wanted Qty</th><th>Reference</th></tr></thead>
+          <tbody>
+            <tr v-for="w in transferredItems" :key="w.id">
+              <td>{{ w.stockTypeNo }}</td><td>{{ w.description }}</td><td class="num">{{ w.wantedQty }}</td><td>{{ w.forComponent }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <label class="row" style="gap:6px;margin-top:4px">
+          <input type="checkbox" v-model="transferredClear" />
+          Clear required quantity（清空需求数量；不勾选则保留数量，仅移除引用）
+        </label>
+        <div class="od-actions">
+          <button class="amos-btn primary" @click="confirmTransferred">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Component Status Log 对话框（手册：Options > Component Status Log） -->
+    <div v-if="statusLogDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Component Status Log — {{ selected?.number }}</h3>
+        <div class="table-wrap" style="max-height:240px;overflow:auto">
+          <table class="amos-grid sub">
+            <thead><tr><th>Date</th><th>Old</th><th>New</th><th>By</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr v-for="l in statusLogRows" :key="l.id">
+                <td>{{ l.changedAt }}</td><td>{{ l.oldStatus }}</td><td>{{ l.newStatus }}</td><td>{{ l.changedBy }}</td><td>{{ l.reason }}</td>
+              </tr>
+              <tr v-if="!statusLogRows.length"><td colspan="5" class="muted">暂无状态变更记录。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn" @click="statusLogDialog = false">Close</button>
+        </div>
       </div>
     </div>
 
@@ -161,6 +230,7 @@ import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import { db } from '../mock/index.js'
+import { componentService, COMPONENT_STATUSES } from '../services/componentService.js'
 import { store, openWindow, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -190,7 +260,7 @@ const columns = computed(() => {
   if (globalMode.value) base.splice(1, 0, { key: '_instDept', label: 'Inst / Dept', width: '130px' })
   return base
 })
-const statuses = ['In Use', 'Available', 'Transferred', 'Scrapped']
+const statusOptions = COMPONENT_STATUSES
 const tabs = [
   { id: 'general', label: 'General', fields: [
     { key: 'number', label: 'Number' },
@@ -200,7 +270,8 @@ const tabs = [
     { key: 'maker', label: 'Maker' },
     { key: 'type', label: 'Type' },
     { key: 'functionNo', label: 'Function', type: 'lookup', lookupKey: 'functions' },
-    { key: 'status', label: 'Status', type: 'select', options: statuses },
+    // 手册（Component Status）：状态在 General tab 仅作指示，修改统一走 Options > Change Status
+    { key: 'status', label: 'Status', type: 'readonly' },
   ] },
   { id: 'type', label: 'Type Details', fields: [
     { key: 'vendor', label: 'Vendor' },
@@ -346,13 +417,19 @@ function onSelect(r) {
 function onOpen(r) { selected.value = r }
 // 手册 2 / P42-43：General 选择 Type Number 后，自动从 Component Type 带出
 // Maker / Type / Name 等基础信息并填充到 General 单元格（继承类型默认值的级联）
-function onDetailChange(e) {
-  if (!e || e.key !== 'typeNumber' || !selected.value) return
-  const ct = db.componentTypes.find((c) => c.typeNumber === e.value)
-  if (!ct) return
-  selected.value.maker = ct.maker || ''
-  selected.value.type = ct.type || ''
-  if (!selected.value.name) selected.value.name = ct.name || ''
+// 选择 Function（安装/拆卸）时，经 componentService.setFunction 自动推导状态并记录日志
+async function onDetailChange(e) {
+  if (!e || !selected.value) return
+  if (e.key === 'typeNumber') {
+    const ct = db.componentTypes.find((c) => c.typeNumber === e.value)
+    if (!ct) return
+    selected.value.maker = ct.maker || ''
+    selected.value.type = ct.type || ''
+    if (!selected.value.name) selected.value.name = ct.name || ''
+  } else if (e.key === 'functionNo') {
+    await componentService.setFunction(selected.value.id, e.value)
+    showToast(`功能位置变更：状态自动推导为 ${selected.value.status}`, 'info')
+  }
 }
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
@@ -394,7 +471,8 @@ function newWO() {
   showToast('已创建工单：' + wo.workOrderNo + '（原型模拟）', 'ok')
 }
 function doNew() {
-  const rec = { id: 'new_' + Date.now(), number: 'C-' + Math.floor(Math.random() * 90000 + 10000), name: '', typeNumber: '', status: 'In Use', maker: '', type: '', serialNo: '', location: '', department: store.department, functionNo: '', vendor: '', parentComponent: '', installDate: '' }
+  // 新建组件尚未安装到 function，状态按手册推导为 Available
+  const rec = { id: 'new_' + Date.now(), number: 'C-' + Math.floor(Math.random() * 90000 + 10000), name: '', typeNumber: '', status: 'Available', maker: '', type: '', serialNo: '', location: '', department: store.department, functionNo: '', vendor: '', parentComponent: '', installDate: '' }
   all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec
   showToast('已新建组件，编辑后 Save', 'ok')
 }
@@ -427,13 +505,63 @@ function copyComponent() {
   selected.value = base
   showToast('已复制组件：请修改 Number 后 Save（手册 P43：Options > Copy）', 'ok')
 }
-// 手册 2 / P43：Options > ChangeStatus
-function changeStatus() {
+// ===== Options > Change Status（手册 Component Status）=====
+const statusDialog = ref(false)
+const statusTarget = ref('')
+const statusCascade = ref(false)
+const transferredDialog = ref(false)
+const transferredItems = ref([])
+const transferredClear = ref(false)
+const statusLogDialog = ref(false)
+const statusLogRows = ref([])
+
+function openChangeStatus() {
   optionsOpen.value = false
   const s = selected.value
   if (!s) { showToast('请先选择组件', 'warn'); return }
-  const next = { 'In Use': 'Available', 'Available': 'In Use', 'Transferred': 'Scrapped', 'Scrapped': 'In Use' }[s.status]
-  if (next) { s.status = next; showToast(`状态已改为 ${next}（手册 P43）`, 'ok') }
+  statusTarget.value = s.status
+  statusCascade.value = false
+  transferredItems.value = []
+  statusDialog.value = true
+}
+// 视图层同步：viewRows 在 applyFilter 时可能被浅拷贝，需把 db 中的最新值反写回列表和当前选中行
+function syncRowsFromDb(ids) {
+  ids.forEach((id) => {
+    const dbComp = db.components.find((c) => c.id === id)
+    if (!dbComp) return
+    const row = viewRows.value.find((r) => r.id === id)
+    if (row) Object.assign(row, dbComp)
+    if (selected.value && selected.value.id === id) Object.assign(selected.value, dbComp)
+  })
+}
+async function confirmChangeStatus() {
+  const s = selected.value
+  if (!s) return
+  const res = await componentService.changeStatus(s.id, statusTarget.value, { cascadeSubComponents: statusCascade.value })
+  if (!res.ok) { showToast('状态修改失败', 'warn'); return }
+  statusDialog.value = false
+  syncRowsFromDb(res.updatedIds || [s.id])
+  // 改为 Transferred 且 Stock Wanted 存在引用 → 二次确认
+  if (res.affectedWanted && res.affectedWanted.length) {
+    transferredItems.value = res.affectedWanted
+    transferredDialog.value = true
+    return
+  }
+  showToast(`状态已改为 ${statusTarget.value}`, 'ok')
+}
+async function confirmTransferred() {
+  const s = selected.value
+  if (!s) return
+  await componentService.resolveTransferredStock(s.id, { clearQuantity: transferredClear.value })
+  transferredDialog.value = false
+  showToast(transferredClear.value ? '已清空需求数量并移除引用' : '已保留数量并移除引用', 'ok')
+}
+async function openStatusLog() {
+  optionsOpen.value = false
+  const s = selected.value
+  if (!s) { showToast('请先选择组件', 'warn'); return }
+  statusLogRows.value = await componentService.getStatusLog(s.id)
+  statusLogDialog.value = true
 }
 // Open Record
 function doOpen() {
