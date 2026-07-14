@@ -132,9 +132,9 @@ refresh()
 .bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); gap: 8px; flex-wrap: wrap; }
 .bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
 .bw-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; min-height: 0; }
-.bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; }
+.bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; min-width: 0; display: flex; }
 .bw-list > * { flex: 1; }
-.bw-detail { padding: 10px; overflow: auto; }
+.bw-detail { padding: 10px; overflow: auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 @media (max-width: 980px) { .bw-body { grid-template-columns: 1fr; } .bw-list { border-right: none; border-bottom: 1px solid var(--amos-border); } }

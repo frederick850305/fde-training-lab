@@ -34,7 +34,6 @@
     <Toolbar />
 
     <div class="work-area">
-      <ShortcutBar v-if="store.options.showShortcut" />
       <main class="workspace">
         <!-- 窗口标签页 -->
         <div class="tab-strip">
@@ -73,7 +72,6 @@
 import { computed, onMounted, onBeforeUnmount } from 'vue'
 import MenuBar from './components/MenuBar.vue'
 import Toolbar from './components/Toolbar.vue'
-import ShortcutBar from './components/ShortcutBar.vue'
 import StatusBar from './components/StatusBar.vue'
 import GlobalDialogs from './components/GlobalDialogs.vue'
 import { store, openWindow, closeTab, showToast } from './store.js'

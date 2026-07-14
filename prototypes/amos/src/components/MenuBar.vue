@@ -1,5 +1,10 @@
 <template>
   <nav class="menu-bar">
+    <div class="menu-home" title="Dashboard" @click="openWindow('dashboard')">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12l2-2 7-7 7 7 2 2M5 10v10h5v-6h4v6h5V10"/></svg>
+      <span>首页</span>
+    </div>
+    <div class="menu-divider"></div>
     <div
       v-for="m in menu"
       :key="m.label"
@@ -60,10 +65,13 @@ function handle(it) {
 </script>
 
 <style scoped>
-.menu-bar { display: flex; background: linear-gradient(180deg, #f4f7fb, #e6ecf4); border-bottom: 1px solid var(--amos-border); padding: 0 6px; height: 28px; }
-.menu-item { position: relative; padding: 0 12px; display: flex; align-items: center; font-size: 12.5px; color: #36506e; cursor: pointer; border-radius: 4px 4px 0 0; }
+.menu-bar { display: flex; align-items: center; background: linear-gradient(180deg, #f4f7fb, #e6ecf4); border-bottom: 1px solid var(--amos-border); padding: 0 6px; height: 28px; }
+.menu-home { display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; height: 22px; margin-right: 2px; border-radius: 4px; cursor: pointer; font-size: 12.5px; color: #36506e; }
+.menu-home:hover { background: #fff; color: var(--amos-blue); box-shadow: 0 1px 2px rgba(36,65,95,.1); }
+.menu-divider { width: 1px; height: 16px; background: var(--amos-border); margin-right: 6px; }
+.menu-item { position: relative; padding: 0 12px; display: flex; align-items: center; font-size: 12.5px; color: #36506e; cursor: pointer; border-radius: 4px 4px 0 0; height: 24px; }
 .menu-item:hover, .menu-item.open { background: #fff; color: var(--amos-blue); }
-.menu-dropdown { position: absolute; top: 28px; left: 0; min-width: 210px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 0 6px 6px 6px; box-shadow: var(--amos-shadow); z-index: 200; padding: 4px; }
+.menu-dropdown { position: absolute; top: 24px; left: 0; min-width: 210px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 0 6px 6px 6px; box-shadow: var(--amos-shadow); z-index: 200; padding: 4px; }
 .menu-leaf { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-size: 12.5px; color: #2b3a4d; }
 .menu-leaf:hover:not(:disabled) { background: var(--amos-blue-soft); color: var(--amos-blue); }
 .menu-leaf:disabled { color: #b3bcc8; cursor: default; }
