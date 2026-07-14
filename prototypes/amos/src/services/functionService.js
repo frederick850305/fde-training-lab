@@ -19,6 +19,19 @@ export const functionService = {
   get(functionNo) {
     return db.functions.find((f) => f.functionNo === functionNo) || null
   },
+  // 手册 Working with Functions：新建功能位置（Functions / Functions Hierarchy 窗口 New）
+  add(fn) {
+    const rec = { status: 'In Use', criticality: 'Medium', functionCounters: [], rotationLog: [], ...fn }
+    db.functions.push(rec)
+    return rec
+  },
+  // 手册：编辑功能位置字段（含 Location 级联、Parent 层级等由 BusinessWindow 处理）
+  update(functionNo, changes) {
+    const fn = this.get(functionNo)
+    if (!fn) return null
+    Object.assign(fn, changes)
+    return fn
+  },
   // functionNo → function 的映射（供 Hierarchy / Counters 快速查找）
   byNo() {
     return Object.fromEntries(db.functions.map((f) => [f.functionNo, f]))
@@ -57,15 +70,23 @@ export const functionService = {
     fn.installedComponentId = componentNumber
     const comp = db.components.find((c) => c.number === componentNumber)
     if (!comp) return null
-    return await componentService.setFunction(comp.id, functionNo)
+    const res = await componentService.setFunction(comp.id, functionNo)
+    // 手册 Working with Functions：Rotation Log 记录组件安装 / 拆卸历史
+    fn.rotationLog = fn.rotationLog || []
+    fn.rotationLog.push({ componentNo: comp.number, action: 'Installed', performedBy: 'A. Admin', performedAt: new Date().toISOString().slice(0, 10) })
+    return res
   },
   // 从 function 拆卸当前组件：清空 installedComponentId 并同步组件的 functionNo。
   async removeComponent(functionNo) {
     const fn = db.functions.find((f) => f.functionNo === functionNo)
     if (!fn || !fn.installedComponentId) return null
     const comp = db.components.find((c) => c.number === fn.installedComponentId)
+    const compNo = comp ? comp.number : ''
     fn.installedComponentId = ''
     if (comp) await componentService.setFunction(comp.id, '')
+    // 手册 Working with Functions：Rotation Log 记录组件安装 / 拆卸历史
+    fn.rotationLog = fn.rotationLog || []
+    fn.rotationLog.push({ componentNo: compNo, action: 'Removed', performedBy: 'A. Admin', performedAt: new Date().toISOString().slice(0, 10) })
     return comp
   },
 }
