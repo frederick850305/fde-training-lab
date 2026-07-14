@@ -41,6 +41,8 @@ export const store = reactive({
   archiveKind: '',
   // 手册 2 / P36 脚注：系统参数 Use Component Types（默认 TRUE，启用 Component Type 功能）
   useComponentTypes: true,
+  // 手册 P44：Components 窗口 Counters 标签 Update 按钮 → 打开 Update Counters 并预填当前组件
+  presetCounterComponent: '',
 })
 
 let toastTimer = null

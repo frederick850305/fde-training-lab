@@ -193,6 +193,8 @@ defineExpose({ clearSelection, selectedId })
 .rl-scroll { flex: 1; overflow: auto; border: 1px solid var(--amos-border); border-radius: 6px; background: #fff; }
 .col-check { width: 34px; text-align: center; }
 .sort-caret { font-size: 9px; color: var(--amos-blue); margin-left: 3px; }
+/* 列表表格按列宽紧凑显示，避免单一列被无限拉伸（默认宽度太长） */
+.amos-grid { width: auto; max-width: 100%; }
 /* 列宽调整手柄 */
 .col-resize { position: absolute; right: 0; top: 4px; bottom: 4px; width: 5px; cursor: col-resize; }
 .col-resize::after { content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px; background: var(--amos-border); opacity: 0; transition: opacity .15s; }

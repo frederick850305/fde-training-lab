@@ -64,13 +64,13 @@ export const windowRegistry = {
         ],
       },
       // 手册 2 / P39 / P44：Counters 标签（定义该类型组件的计数器模板，注册为组件时继承）
+      // 注：Depends On 字段按手册 P44 仅出现在 Components 窗口的 Counters 标签，类型级不设置依赖
       {
         id: 'counters', label: 'Counters', type: 'subgrid', subKey: 'counters',
         columns: [
           { key: 'code', label: 'Counter Code', width: '120px', default: '' },
           { key: 'description', label: 'Description', default: '' },
           { key: 'unit', label: 'Unit', width: '70px', default: '' },
-          { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件的计数器' },
         ],
       },
       // 手册 2 / P39 / P45：Measure Points 标签（定义测点模板；注册组件时继承为可编辑子表）
@@ -162,6 +162,8 @@ export const windowRegistry = {
           { key: 'targetId', label: 'Target', type: 'lookup', lookupKey: 'componentTypes' },
           { key: 'frequency', label: 'Frequency' },
           { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
+          // 手册 P44：Counters 必须先列在 component/type 上，才能在 jobs 中选用；此字段仅当 Planning Method = Counter 时出现
+          { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentTypeJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本类型已列计数器' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
         ],
       },
@@ -195,6 +197,8 @@ export const windowRegistry = {
           { key: 'targetId', label: 'Component', type: 'lookup', lookupKey: 'components' },
           { key: 'frequency', label: 'Frequency' },
           { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
+          // 手册 P44：Counters 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = Counter 时出现
+          { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本组件已列计数器' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
         ],
       },

@@ -110,14 +110,19 @@
 
     <div v-else class="bw-body">
       <section class="bw-list">
-        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen" />
+        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen">
+          <!-- 手册 P23：Global 模式下 Co 列显示组件原属部门（_instDept） -->
+          <template #cell-department="{ row }">
+            {{ globalMode ? (row._instDept || row.department) : row.department }}
+          </template>
+        </RecordList>
       </section>
       <section class="bw-detail" v-if="selected">
         <div class="bd-head">
           <strong>{{ selected.number }} — {{ selected.name }}</strong>
           <span class="tag" :class="statusClass(selected.status)">{{ selected.status }}</span>
         </div>
-        <RecordDetail :tabs="tabs" :model="selected" @change="onDetailChange">
+        <RecordDetail :tabs="tabs" :model="selected" @change="onDetailChange" @subaction="onSubAction">
           <!-- 手册 2.2：Type Details 继承只读信息（来自 Component Type） -->
           <template #extra-type>
             <div class="inherited-box" v-if="inheritedType">
@@ -249,6 +254,46 @@
               </tbody>
             </table></div>
           </template>
+          <!-- 手册 P44-45 截图右下角齿轮按钮：Counter Setup —— 为组件实例从组件类型计数器定义中增删计数器 -->
+          <template #extra-counters>
+            <div class="counter-setup-bar">
+              <button class="amos-btn xs" @click="openCounterSetup" title="手册 P44：Counter Setup — 为组件配置计数器">
+                <span class="gear">⚙</span> Counter Setup
+              </button>
+            </div>
+            <Teleport to="body">
+              <div v-if="showCounterSetup" class="cs-mask" @click.self="showCounterSetup = false">
+                <div class="cs-modal">
+                  <div class="cs-head">
+                    <strong>Counter Setup — {{ selected.number }}（{{ selected.name }}）</strong>
+                    <button class="amos-btn xs" @click="showCounterSetup = false">✕</button>
+                  </div>
+                  <div class="cs-body">
+                    <p class="muted">从组件类型 <b>{{ selected.typeNumber }}</b> 的计数器定义中选择，添加到本组件实例。已添加的计数器在 Counters 标签中可见并可编辑。</p>
+                    <div class="table-wrap"><table class="amos-grid sub">
+                      <thead><tr><th>Counter Code</th><th>Description</th><th>Unit</th><th>Depends On</th><th></th></tr></thead>
+                      <tbody>
+                        <tr v-for="d in counterDefs" :key="d.code">
+                          <td>{{ d.code }}</td>
+                          <td>{{ d.description }}</td>
+                          <td>{{ d.unit || '—' }}</td>
+                          <td>{{ d.dependsOn || '—' }}</td>
+                          <td class="cs-action">
+                            <button v-if="!isCounterAdded(d.code)" class="amos-btn xs primary" @click="addCounter(d)">Add</button>
+                            <span v-else class="added-tag">已添加 <button class="amos-btn xs danger" @click="removeCounter(d.code)">移除</button></span>
+                          </td>
+                        </tr>
+                        <tr v-if="!counterDefs.length"><td colspan="5" class="muted">该组件类型未定义计数器模板（可在 Component Types 中维护）。</td></tr>
+                      </tbody>
+                    </table></div>
+                  </div>
+                  <div class="cs-foot">
+                    <button class="amos-btn sm" @click="showCounterSetup = false">关闭</button>
+                  </div>
+                </div>
+              </div>
+            </Teleport>
+          </template>
         </RecordDetail>
       </section>
       <section v-else class="bw-detail empty"><p class="muted">双击列表行查看明细，或点击 New 创建组件。</p></section>
@@ -281,21 +326,16 @@ const filterAdvanced = [
   { key: 'typeNumber', label: 'Component Type', type: 'text' },
   { key: 'functionNo', label: 'Function Performing', type: 'text' },
 ]
+// 手册 P44-45 截图：Components 列表列对齐为 Number / Name / Type / Serial No. / Co
 const columnsBase = [
-  { key: 'number', label: 'Number', width: '110px' },
-  { key: 'name', label: 'Name' },
-  { key: 'typeNumber', label: 'Type No.', width: '110px' },
-  { key: 'status', label: 'Status', width: '100px', tag: true },
-  { key: 'maker', label: 'Maker', width: '100px' },
-  { key: 'location', label: 'Location', width: '110px' },
-  { key: 'functionNo', label: 'Function', width: '110px' },
+  { key: 'number', label: 'Number', width: '120px' },
+  { key: 'name', label: 'Name', width: '200px' },
+  { key: 'type', label: 'Type', width: '100px' },
+  { key: 'serialNo', label: 'Serial No.', width: '110px' },
+  { key: 'department', label: 'Co', width: '110px' },
 ]
-// 手册 P23：Global 模式下列表新增 Inst/Dept 列
-const columns = computed(() => {
-  const base = [...columnsBase]
-  if (globalMode.value) base.splice(1, 0, { key: '_instDept', label: 'Inst / Dept', width: '130px' })
-  return base
-})
+// 手册 P23：Global 模式下，Co 列改显示组件原属部门（_instDept），标识记录来源
+const columns = computed(() => [...columnsBase])
 const statusOptions = COMPONENT_STATUSES
 const tabs = [
   { id: 'general', label: 'General', fields: [
@@ -323,17 +363,23 @@ const tabs = [
   { id: 'jobs', label: 'Jobs', fields: [] },
   { id: 'parts', label: 'Parts', fields: [] },
   // 手册 2 / P44：Counters 标签（New/Delete、继承自组件类型、含 Depends On）
+  // 字段集对照手册截图：Counter Code / Latest Zeroed Date / Total at Zeroed / Total Running / Average / Calculate / Depends On
+  // 底部按钮：New / Delete（每行 Del）/ Update / Set Start（tab.subActions）
   {
     id: 'counters', label: 'Counters', type: 'subgrid',
     subKey: 'componentCounters',
+    subActions: [
+      { id: 'update', label: 'Update' },
+      { id: 'setStart', label: 'Set Start' },
+    ],
     columns: [
       { key: 'code', label: 'Counter Code', width: '120px', default: '' },
-      { key: 'description', label: 'Description', default: '' },
-      { key: 'unit', label: 'Unit', width: '70px', default: '' },
+      { key: 'latestZeroedDate', label: 'Latest Zeroed Date', type: 'date', width: '130px', default: '' },
+      { key: 'startValue', label: 'Total at Zeroed', type: 'number', width: '110px', default: 0 },
+      { key: 'currentValue', label: 'Total Running', type: 'number', width: '110px', default: 0 },
+      { key: 'average', label: 'Average', type: 'number', width: '90px', default: 0, readonly: true },
+      { key: 'calculate', label: 'Calculate', type: 'select', options: ['Yes', 'No'], width: '90px', default: 'No' },
       { key: 'dependsOn', label: 'Depends On', type: 'lookup', lookupKey: 'components', width: '140px', default: '', placeholder: '依赖组件' },
-      { key: 'startValue', label: 'Start', width: '70px', default: 0, type: 'number' },
-      { key: 'currentValue', label: 'Current', width: '80px', default: 0, type: 'number' },
-      { key: 'readingDate', label: 'Reading Date', type: 'date', width: '120px', default: '' },
     ],
   },
   // 手册 2 / P45：Measure Points 独立标签（New/Delete、继承自组件类型）
@@ -414,12 +460,37 @@ const inheritedType = computed(() => {
   if (!selected.value?.typeNumber) return null
   return componentService.getComponentType(selected.value.typeNumber)
 })
-
-function avg(r) {
-  const base = selected.value?.installDate || r.readingDate
-  let days = 365
-  if (base) { const d = (new Date(r.readingDate) - new Date(base)) / 86400000; if (d > 0) days = d }
-  return (r.currentValue / days).toFixed(1)
+// 手册 P44-45 截图右下角齿轮按钮：Counter Setup —— 为组件实例从组件类型计数器定义中增删计数器
+const showCounterSetup = ref(false)
+const counterDefs = computed(() => inheritedType.value?.counters || [])
+function isCounterAdded(code) {
+  return (selected.value?.componentCounters || []).some((c) => c.code === code)
+}
+function openCounterSetup() {
+  if (!selected.value) { showToast('请先选择组件', 'warn'); return }
+  showCounterSetup.value = true
+}
+function addCounter(d) {
+  if (!selected.value) return
+  if (!selected.value.componentCounters) selected.value.componentCounters = []
+  selected.value.componentCounters.push({
+    code: d.code,
+    description: d.description,
+    unit: d.unit || '',
+    startValue: 0,
+    currentValue: 0,
+    latestZeroedDate: '',
+    average: 0,
+    calculate: 'No',
+    dependsOn: d.dependsOn || '',
+  })
+  onDetailChange()
+  showToast(`已添加计数器 ${d.code}`, 'ok')
+}
+function removeCounter(code) {
+  const arr = selected.value?.componentCounters || []
+  const i = arr.findIndex((c) => c.code === code)
+  if (i >= 0) { arr.splice(i, 1); onDetailChange(); showToast(`已移除计数器 ${code}`, 'warn') }
 }
 
 // 不再于 activeKey 变化时硬重置；改用 onActivated：仅当存在 presetFilter（View 跳转 / Dashboard 告警带入）时才应用，否则保留窗口上下文
@@ -461,7 +532,7 @@ function onSelect(r) {
   // 手册 2 / P44-45：Counters / Measure Points 继承自组件类型（首次选择时从类型拷贝）
   const ct = componentService.getComponentType(r.typeNumber)
   if (!r.componentCounters && ct?.counters?.length) {
-    r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0 }))
+    r.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }))
   }
   if (!r.componentMeasurePoints && ct?.measurePointDefs?.length) {
     // 从组件类型的 Measure Points 标签定义继承为组件级可编辑子表
@@ -480,9 +551,29 @@ async function onDetailChange(e) {
     selected.value.maker = ct.maker || ''
     selected.value.type = ct.type || ''
     if (!selected.value.name) selected.value.name = ct.name || ''
+    // 手册 P44：切换类型时，若组件尚无 Counters，则继承类型的计数器模板（仅作用于当前组件）
+    if (!selected.value.componentCounters && ct.counters?.length) {
+      selected.value.componentCounters = ct.counters.map((c) => ({ ...c, startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No' }))
+    }
   } else if (e.key === 'functionNo') {
     await componentService.setFunction(selected.value.id, e.value)
     showToast(`功能位置变更：状态自动推导为 ${selected.value.status}`, 'info')
+  }
+}
+// 手册 P44：Counters 标签 Update / Set Start 按钮（RecordDetail 子表 subActions 触发）
+function onSubAction(e) {
+  const { action, tabId, row } = e
+  const comp = selected.value
+  if (!comp) return showToast('请先选择组件', 'warn')
+  if (tabId !== 'counters') return
+  if (!row) return showToast('请先在 Counters 标签选中一行计数器', 'warn')
+  if (action === 'setStart') {
+    counterService.setStart(comp.number, row.code)
+    showToast(`已设置起点（归零）：${row.code} 的 Total at Zeroed = ${row.currentValue}`, 'ok')
+  } else if (action === 'update') {
+    // 手册 P44：Update 按钮 → 打开 Update Counters 并预填当前组件
+    store.presetCounterComponent = comp.number
+    openWindow('update-counters')
   }
 }
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
@@ -687,4 +778,17 @@ function statusClass(v) {
 .open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
 .open-dialog .amos-field { margin-top: 12px; }
 .od-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+/* 手册 P44-45 截图右下角：Counter Setup 齿轮按钮（置于 Counters 标签底部右侧） */
+.counter-setup-bar { display: flex; justify-content: flex-end; margin-top: 10px; }
+.counter-setup-bar .gear { font-size: 13px; margin-right: 2px; }
+/* Counter Setup 弹窗（Teleport 到 body，需全局样式覆盖 scoped 限制） */
+:global(.cs-mask) { position: fixed; inset: 0; background: rgba(0,0,0,.32); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+:global(.cs-modal) { background: #fff; border-radius: 10px; box-shadow: 0 10px 36px rgba(0,0,0,.28); width: 560px; max-width: 92vw; max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
+:global(.cs-head) { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--amos-border); background: #f3f6fa; }
+:global(.cs-head strong) { font-size: 13.5px; color: #2c486a; }
+:global(.cs-body) { padding: 12px 14px; overflow: auto; }
+:global(.cs-body .muted) { font-size: 12px; margin: 0 0 10px; }
+:global(.cs-foot) { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--amos-border); background: #fafcff; }
+:global(.cs-action) { white-space: nowrap; }
+:global(.added-tag) { color: #0e6a30; font-size: 12px; }
 </style>

@@ -135,6 +135,7 @@ import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { stockTypeService } from '../services/stockTypeService.js'
 import { functionService } from '../services/functionService.js'
+import { counterService } from '../services/counterService.js'
 import { collectionService } from '../services/collectionService.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
@@ -246,6 +247,12 @@ function doNew() {
 }
 function doSave() {
   if (!selected.value) return showToast('请先选择或新建记录', 'warn')
+  // 手册 3（Update Counters）：保存时把读数回写到组件计数器，并级联依赖组件
+  if (config.value?.dataKey === 'counterLogs') {
+    counterService.recordReading(selected.value)
+    showToast('已记录读数并回写组件计数器（含依赖联动）', 'ok')
+    return
+  }
   showToast('已保存（原型：内存态）', 'ok')
 }
 function doDelete() {
@@ -513,7 +520,27 @@ function applyPreset() {
     viewRows.value = dbRows.value.slice()
   }
 }
-onMounted(() => { window.addEventListener('amos-action', onAction); applyPreset() })
+onMounted(() => {
+  window.addEventListener('amos-action', onAction)
+  applyPreset()
+  // 手册 P44：Components 窗口 Counters 标签 Update 按钮 → 预填当前组件并定位到 General
+  if (config.value?.dataKey === 'counterLogs' && store.presetCounterComponent) {
+    const compNo = store.presetCounterComponent
+    store.presetCounterComponent = ''
+    const comp = componentService.listSync().find((c) => c.number === compNo)
+    selected.value = {
+      id: 'new_' + Date.now(),
+      component: compNo,
+      function: comp?.functionNo || '',
+      counter: '',
+      currentValue: 0,
+      newValue: 0,
+      unit: '',
+      readingDate: new Date().toISOString().slice(0, 10),
+    }
+    detailPresetTab.value = 'general'
+  }
+})
 // keep-alive 激活时：处理 presetFilter（Dashboard 告警带入）和 returnContext（从其他窗口 View 跳回的上下文恢复）
 onActivated(() => {
   if (store.presetFilter) applyPreset()
