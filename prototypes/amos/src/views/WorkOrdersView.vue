@@ -86,7 +86,8 @@ import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
-import { db, uid } from '../mock/index.js'
+import { db } from '../mock/index.js'
+import { workOrderService } from '../services/workOrderService.js'
 import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 
@@ -135,7 +136,7 @@ const tabs = [
 
 const funcLoc = computed(() => Object.fromEntries(db.functions.map((f) => [f.functionNo, f.location])))
 
-const all = computed(() => db.workOrders)
+const all = computed(() => workOrderService.list())
 const viewRows = ref([])
 const showFilter = ref(false)
 const selected = ref(null)
@@ -199,12 +200,27 @@ function applyFilter(c) {
 function reopenFilter() { selected.value = null; showFilter.value = true }
 function onSelect(r) { selected.value = r }
 function onOpen(r) { selected.value = r }
-function setStatus(s) { if (selected.value) { selected.value.status = s; showToast('状态更新为 ' + s, 'ok') } }
-function advance() {
+// 视图层同步：viewRows 在 applyFilter 时可能被浅拷贝，需把 service 返回的最新值反写回列表行
+function syncRowsFromDb(ids) {
+  ids.forEach((id) => {
+    const svc = workOrderService.get(id)
+    if (!svc) return
+    const row = viewRows.value.find((r) => r.id === id)
+    if (row) Object.assign(row, svc)
+    if (selected.value && selected.value.id === id) Object.assign(selected.value, svc)
+  })
+}
+async function setStatus(s) {
+  if (!selected.value) return
+  const updated = await workOrderService.setStatus(selected.value.id, s)
+  if (updated) syncRowsFromDb([updated.id])
+  showToast('状态更新为 ' + s, 'ok')
+}
+async function advance() {
   if (!selected.value) return showToast('请选择工单', 'warn')
-  const i = flowIdx(selected.value.status)
-  if (i < flow.length - 1) setStatus(flow[i + 1])
-  else showToast('已处于终态：Completed', 'info')
+  const updated = await workOrderService.advance(selected.value.id)
+  if (updated) syncRowsFromDb([updated.id])
+  showToast('状态已推进为 ' + (updated ? updated.status : ''), 'ok')
 }
 function gen() { showToast('按计划自动生成工单（原型演示）', 'info') }
 function requisition() { showToast('打开 Requisition Work（原型演示）', 'info') }
@@ -230,9 +246,11 @@ function doPrint() {
   showToast('正在打印 ' + printRows.value.length + ' 张工单（' + printFormat.value + '）', 'ok')
   window.print()
 }
-function doNew() {
-  const rec = { id: uid('wo'), workOrderNo: 'WO-' + Math.floor(Math.random() * 9000 + 1000), description: '', status: 'Requested', priority: 'Medium', dueDate: '', department: store.department, functionNo: '', componentId: '', jobId: '' }
-  all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建工单，填写后点击 Save 或 Issue/Advance 推进状态', 'ok')
+async function doNew() {
+  const rec = await workOrderService.create({
+    workOrderNo: 'WO-' + Math.floor(Math.random() * 9000 + 1000), description: '', status: 'Requested', priority: 'Medium', dueDate: '', department: store.department, functionNo: '', componentId: '', jobId: '',
+  })
+  viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建工单，填写后点击 Save 或 Issue/Advance 推进状态', 'ok')
 }
 function onAction(e) {
   const a = e.detail?.action
@@ -243,24 +261,25 @@ function onAction(e) {
 }
 // 手册 4：Work Orders 删除限制 — 仅初始状态(Requested)可物理删除；
 // Planned / Issued / Completed 等已进入流程或具审计价值的工单不允许删除，应走 Cancel 流程
-const DELETABLE_STATUSES = ['Requested']
-function doDelete() {
+async function doDelete() {
   // 优先使用勾选集合，否则针对当前选中记录
   const targets = checkedIds.value.length
     ? viewRows.value.filter((r) => checkedIds.value.includes(r.id))
     : (selected.value ? [selected.value] : [])
   if (!targets.length) return showToast('请先选择要删除的工单', 'warn')
 
-  const blocked = targets.filter((r) => !DELETABLE_STATUSES.includes(r.status))
+  const blocked = targets.filter((r) => r.status !== 'Requested')
   if (blocked.length) {
     const nums = blocked.map((r) => r.workOrderNo).join('、')
     return showToast(`工单 ${nums} 状态为「${blocked[0].status}」，不可删除。请改用 Cancel 流程取消该工单。`, 'warn')
   }
-  // 全部为可删状态，执行删除
-  targets.forEach((r) => {
-    const i = all.value.findIndex((x) => x.id === r.id)
-    if (i >= 0) all.value.splice(i, 1)
-  })
+  // 全部为可删状态，执行删除（逐条走 service，由 service 做最终状态校验）
+  for (const r of targets) {
+    const res = await workOrderService.remove(r.id)
+    if (!res.ok && res.reason === 'status') {
+      return showToast(`工单 ${r.workOrderNo} 状态为「${res.status}」，不可删除。请改用 Cancel 流程取消该工单。`, 'warn')
+    }
+  }
   checkedIds.value = []
   selected.value = null
   applyFilter(lastCrit) // 保留当前筛选 / Global 状态刷新列表

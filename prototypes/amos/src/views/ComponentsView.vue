@@ -231,6 +231,7 @@ import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import { db } from '../mock/index.js'
 import { componentService, COMPONENT_STATUSES } from '../services/componentService.js'
+import { jobService } from '../services/jobService.js'
 import { store, openWindow, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -346,8 +347,7 @@ const openInputRef = ref(null)
 
 const relJobs = computed(() => {
   if (!selected.value) return []
-  const no = selected.value.number, tno = selected.value.typeNumber
-  return db.jobs.filter((j) => (j.targetType === 'Component' && j.targetId === no) || (j.targetType === 'ComponentType' && j.targetId === tno))
+  return jobService.relatedJobs(selected.value.number, selected.value.typeNumber)
 })
 const relParts = computed(() => !selected.value ? [] : db.stockItems.filter((s) => s.functionNo && s.functionNo === selected.value.functionNo))
 const relCounters = computed(() => !selected.value ? [] : db.counterLogs.filter((r) => r.component === selected.value.number))
@@ -434,12 +434,15 @@ async function onDetailChange(e) {
 function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
-// 手册 2.2(13)：从 Components 窗口创建组件级作业
-function newJob() {
+// 手册 2.2(13)：从 Components 窗口创建组件级作业（统一走 jobService）
+async function newJob() {
   const t = selected.value
   if (!t) return showToast('请先选择组件', 'warn')
-  const job = { id: 'new_' + Date.now(), jobNo: 'J-' + Math.floor(Math.random()*90000+10000), description: (t.name || t.number) + ' — 维护作业', frequency: 'Monthly', planningMethod: 'Time', dueDate: new Date(Date.now()+30*86400000).toISOString().slice(0,10), status: 'Planned', targetType: 'Component', targetId: t.number }
-  db.jobs.push(job)
+  const job = await jobService.create({
+    description: (t.name || t.number) + ' — 维护作业',
+    targetType: 'Component',
+    targetId: t.number,
+  })
   showToast('已创建组件级作业：' + job.jobNo + '（原型模拟）', 'ok')
 }
 // 手册 2.2(18)：附件管理——模拟新增 / 查看 / 删除

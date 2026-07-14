@@ -109,7 +109,8 @@ import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
-import { db, uid } from '../mock/index.js'
+import { db } from '../mock/index.js'
+import { stockItemService } from '../services/stockItemService.js'
 import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -166,7 +167,7 @@ const tabs = [
 ]
 
 const stockTypeByNo = computed(() => Object.fromEntries(db.stockTypes.map((s) => [s.stockTypeNo, s])))
-const all = computed(() => db.stockItems)
+const all = computed(() => stockItemService.list())
 const viewRows = ref([])
 const showFilter = ref(false)
 const selected = ref(null)
@@ -181,15 +182,9 @@ const openInputRef = ref(null)
 const globalMode = ref(false)
 const globalDepts = ref([])
 
-const relForms = computed(() => {
-  if (!selected.value) return []
-  const tno = selected.value.stockTypeNo
-  const out = []
-  db.purchaseForms.forEach((f) => f.lineItems.forEach((li) => { if (li.partNo === tno) out.push({ formNo: f.formNo, type: f.type, status: f.status, quantity: li.quantity, vendor: f.vendor }) }))
-  return out
-})
-const relTx = computed(() => !selected.value ? [] : db.transactions.filter((t) => t.stockItem === selected.value.stockItemNo))
-const relComponents = computed(() => !selected.value ? [] : db.components.filter((c) => c.functionNo && c.functionNo === selected.value.functionNo))
+const relForms = computed(() => stockItemService.relatedForms(selected.value))
+const relTx = computed(() => stockItemService.relatedTransactions(selected.value))
+const relComponents = computed(() => stockItemService.relatedComponents(selected.value))
 const overview = computed(() => {
   if (!selected.value) return []
   const now = new Date().getFullYear()
@@ -245,23 +240,39 @@ function applyFilter(c) {
 function reopenFilter() { selected.value = null; showFilter.value = true }
 function onSelect(r) { selected.value = r }
 function onOpen(r) { selected.value = r }
-function doNew() {
-  const rec = { id: uid('si'), stockItemNo: 'SI-' + Math.floor(Math.random() * 900 + 100), description: '', stockTypeNo: '', maker: '', makerRef: '', drawingNo: '', stockClass: '', functionNo: '', quantity: 0, department: store.department, location: '', status: 'Active', unitCost: 0 }
-  all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建库存项', 'ok')
+// 视图层同步：viewRows 在 applyFilter 时可能被浅拷贝，需把 service 返回的最新值反写回列表行
+function syncRowsFromDb(ids) {
+  ids.forEach((id) => {
+    const svc = stockItemService.get(id)
+    if (!svc) return
+    const row = viewRows.value.find((r) => r.id === id)
+    if (row) Object.assign(row, svc)
+    if (selected.value && selected.value.id === id) Object.assign(selected.value, svc)
+  })
+}
+async function doNew() {
+  const rec = await stockItemService.create({
+    stockItemNo: 'SI-' + Math.floor(Math.random() * 900 + 100), description: '', stockTypeNo: '', maker: '', makerRef: '', drawingNo: '', stockClass: '', functionNo: '', quantity: 0, department: store.department, location: '', status: 'Active', unitCost: 0,
+  })
+  viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建库存项', 'ok')
 }
 function doMove() { moveTo.value = ''; moveQty.value = 1; moveOpen.value = true }
-function confirmMove() {
+async function confirmMove() {
   if (selected.value && moveTo.value) {
-    const tno = 'TX-' + Math.floor(Math.random() * 9000 + 1000)
-    // 指南（手册 3）：移动生成两条事务——来源 Transferred Out、目的 Transferred In
-    db.transactions.push({ id: uid('tx'), transactionNo: tno + 'A', type: 'Transferred Out', stockItem: selected.value.stockItemNo, quantity: moveQty.value, fromLocation: selected.value.location, toLocation: moveTo.value, date: new Date().toISOString().slice(0, 10), reference: 'MV' })
-    db.transactions.push({ id: uid('tx'), transactionNo: tno + 'B', type: 'Transferred In', stockItem: selected.value.stockItemNo, quantity: moveQty.value, fromLocation: selected.value.location, toLocation: moveTo.value, date: new Date().toISOString().slice(0, 10), reference: 'MV' })
-    selected.value.location = moveTo.value
+    const updated = await stockItemService.move(selected.value.id, moveTo.value, moveQty.value)
     moveOpen.value = false
+    if (updated) syncRowsFromDb([updated.id])
     showToast('已移动并生成 Transferred Out / In 交易', 'ok')
   }
 }
-function setStatus() { showToast('Set Status（原型演示）', 'info') }
+async function setStatus() {
+  if (!selected.value) return
+  const opts = ['Active', 'Obsolete', 'Scrapped']
+  const next = opts[(opts.indexOf(selected.value.status) + 1) % opts.length]
+  const updated = await stockItemService.setStatus(selected.value.id, next)
+  if (updated) syncRowsFromDb([updated.id])
+  showToast('状态已设为 ' + next, 'ok')
+}
 function viewPH() { showToast('查看采购历史（原型演示）', 'info') }
 // Open Record
 function doOpen() {

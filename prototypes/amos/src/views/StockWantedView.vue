@@ -36,22 +36,20 @@
 
 <script setup>
 import { ref } from 'vue'
-import { db, uid } from '../mock/index.js'
+import { stockWantedService } from '../services/stockWantedService.js'
 import { showToast } from '../store.js'
 
-const wanted = db.stockWanted
+const wanted = stockWantedService.list()
 const selId = ref('')
-function calc() {
+async function calc() {
   // 指南（手册 3）：Wanted 依据 Reorder Level，并扣减已申请未到货（Outstanding）
-  wanted.forEach((r) => { r.wantedQty = Math.max(0, r.reorderLevel - r.currentQty - (r.outstanding || 0)) })
+  await stockWantedService.recalculate()
   showToast('已重新计算 Wanted Quantities', 'ok')
 }
-function genForms() {
-  const need = wanted.filter((r) => r.wantedQty > 0)
-  if (!need.length) return showToast('无缺货物料', 'info')
-  const no = 'REQ-' + Math.floor(Math.random() * 9000 + 1000)
-  db.purchaseForms.unshift({ id: uid('pf'), formNo: no, type: 'Requisition', status: 'Draft', vendor: '', deliveryLocation: 'ER-Store-A', contract: '', createdDate: new Date().toISOString().slice(0, 10), lineItems: need.map((r) => ({ id: uid('li'), partNo: r.stockTypeNo, description: r.description, quantity: r.wantedQty, unitPrice: 0, currency: 'USD' })), total: 0 })
-  showToast(`已生成采购申请 ${no}（${need.length} 项）`, 'ok')
+async function genForms() {
+  const res = await stockWantedService.generateRequisitions()
+  if (!res.ok) return showToast('无缺货物料', 'info')
+  showToast(`已生成采购申请 ${res.formNo}（${res.count} 项）`, 'ok')
 }
 function purchase() { showToast('跳转至 Purchase Forms（原型演示）', 'info') }
 </script>
