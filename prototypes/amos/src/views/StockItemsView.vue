@@ -308,9 +308,9 @@ watch(showOpenDialog, (v) => { if (v) nextTick(() => openInputRef.value?.focus()
 .scope-badge { font-size: 11.5px; color: #1f6fb2; background: #e8f2fb; border: 1px solid #b9d8f0; border-radius: 999px; padding: 2px 10px; }
 .global-badge { color: #0e6a30; background: #e4f7e8; border-color: #95d5a9; }
 .bw-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; min-height: 0; }
-.bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; }
+.bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; min-width: 0; display: flex; }
 .bw-list > * { flex: 1; }
-.bw-detail { padding: 10px; overflow: auto; }
+.bw-detail { padding: 10px; overflow: auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .sub { margin-top: 8px; }

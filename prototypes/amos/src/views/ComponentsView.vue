@@ -764,7 +764,7 @@ function statusClass(v) {
 .bw-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .bw-list { border-bottom: 1px solid var(--amos-border); padding: 8px; min-height: 0; max-height: 40%; overflow: hidden; }
 .bw-list > * { height: 100%; min-height: 0; }
-.bw-detail { padding: 10px; overflow-y: auto; flex: 1; min-height: 0; }
+.bw-detail { padding: 10px; overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
 /* slot 内按钮栏与继承信息框（scoped 不继承 RecordDetail 样式，需本组件定义） */
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
