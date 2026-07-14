@@ -108,10 +108,10 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { db, uid } from '../mock/index.js'
+import { budgetService } from '../services/budgetService.js'
 import { showToast } from '../store.js'
 
-const budgets = db.budgets
+const budgets = budgetService.list()
 const modes = [
   { key: 'overview', label: 'Overview' },
   { key: 'specification', label: 'Specification' },
@@ -143,22 +143,12 @@ function usage(b) { return Math.round((b.committed / (b.limit || 1)) * 100) }
 function money(v) { return '$' + Number(v).toLocaleString() }
 function classClass(c) { return { Purchase: 'blue', Stock: 'orange', Maintenance: 'violet' }[c] || 'gray' }
 
-function vouchersOf(code) { return db.vouchers.filter((v) => (v.formNos || []).length && v.budgetCode === code) }
-const groups = computed(() => {
-  const map = {}
-  budgets.forEach((b) => {
-    map[b.groupCode] = map[b.groupCode] || { code: b.groupCode, committed: 0, paid: 0, limit: 0, children: [] }
-    map[b.groupCode].committed += b.committed
-    map[b.groupCode].paid += b.paid
-    map[b.groupCode].limit += b.limit
-    map[b.groupCode].children.push(b)
-  })
-  return Object.values(map)
-})
+function vouchersOf(code) { return budgetService.vouchersOf(code) }
+const groups = computed(() => budgetService.accumulatedGroups())
 
-function doNew() {
-  const rec = { id: uid('bg'), code: 'BG-' + Math.random().toString(36).slice(2, 6).toUpperCase(), title: 'New Budget', groupCode: 'FIN', class: 'Purchase', model: 'Manual', status: 'Preliminary', access: 'Open', warning: 80, limit: 100000, committed: 0, paid: 0, forecast: 0 }
-  budgets.push(rec); selId.value = rec.id; showToast('已新建预算', 'ok')
+async function doNew() {
+  const rec = await budgetService.create({})
+  selId.value = rec.id; showToast('已新建预算', 'ok')
 }
 </script>
 

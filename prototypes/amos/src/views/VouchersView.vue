@@ -10,7 +10,7 @@
     </div>
 
     <div class="bw-body">
-      <section class="bw-list"><RecordList :columns="columns" :rows="db.vouchers" row-key="id" @select="onSelect" @open="onOpen" /></section>
+      <section class="bw-list"><RecordList :columns="columns" :rows="all" row-key="id" @select="onSelect" @open="onOpen" /></section>
       <section class="bw-detail" v-if="selected">
         <div class="bd-head"><strong>{{ selected.voucherNo }}</strong><span class="tag" :class="statusClass(selected.status)">{{ selected.status }}</span></div>
         <div class="amos-field"><label>Vendor</label><div class="ctrl"><input class="amos-input" v-model="selected.vendor" /></div></div>
@@ -39,9 +39,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import RecordList from '../components/RecordList.vue'
-import { db, uid } from '../mock/index.js'
+import { voucherService } from '../services/voucherService.js'
 import { store, showToast } from '../store.js'
 
 const columns = [
@@ -52,34 +52,25 @@ const columns = [
   { key: 'total', label: 'Total', align: 'right', width: '90px' },
   { key: 'status', label: 'Status', width: '90px', tag: true },
 ]
-// 凭证可关联多张采购单（formNos），统一派生一个展示用字符串
-db.vouchers.forEach((v) => { if (Array.isArray(v.formNos) && !('formNo' in v)) v.formNo = v.formNos.join(', ') })
+// 凭证可关联多张采购单（formNos），展示用 formNo 由 voucherService 在模块加载时规范化
+const all = computed(() => voucherService.list())
 const selected = ref(null)
 watch(() => store.activeKey, () => (selected.value = null))
 function onSelect(r) { selected.value = r }
 function onOpen(r) { selected.value = r }
-function doNew() {
-  const no = 'VC-' + Math.floor(Math.random() * 9000 + 1000)
-  const rec = { id: uid('vc'), voucherNo: no, vendor: '', formNo: '', formNos: [], status: 'Draft', net: 0, vat: 0, total: 0, lineItems: [] }
-  db.vouchers.unshift(rec); selected.value = rec; showToast('已新建凭证', 'ok')
+async function doNew() {
+  const rec = await voucherService.create({})
+  selected.value = rec; showToast('已新建凭证', 'ok')
 }
-function calculate() {
+async function calculate() {
   if (!selected.value) return
-  const net = (selected.value.lineItems || []).reduce((s, li) => s + li.quantity * li.unitPrice, 0)
-  selected.value.net = net
-  selected.value.vat = Math.round(net * 0.17)
-  selected.value.total = selected.value.net + selected.value.vat
-  showToast('已计算 Net / VAT / Total', 'ok')
+  const v = await voucherService.calculate(selected.value.id)
+  if (v) showToast('已计算 Net / VAT / Total', 'ok')
 }
-function linkForm() {
-  const po = db.purchaseForms.find((f) => f.type === 'PurchaseOrder')
-  if (selected.value && po) {
-    selected.value.formNos = [po.formNo]
-    selected.value.formNo = po.formNo
-    selected.value.vendor = po.vendor
-    selected.value.lineItems = po.lineItems.map((li) => ({ ...li }))
-    showToast('已关联采购单 ' + po.formNo, 'ok')
-  }
+async function linkForm() {
+  if (!selected.value) return
+  const v = await voucherService.linkForm(selected.value.id)
+  if (v) showToast('已关联采购单 ' + v.formNo, 'ok')
 }
 function statusClass(v) {
   const s = String(v).toLowerCase()

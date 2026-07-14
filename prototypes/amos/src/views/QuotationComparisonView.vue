@@ -54,17 +54,17 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { db } from '../mock/index.js'
+import { purchaseFormService } from '../services/purchaseFormService.js'
 import { showToast } from '../store.js'
 
-const forms = db.purchaseForms.filter((f) => f.type === 'Query')
+const forms = purchaseFormService.list().filter((f) => f.type === 'Query')
 const selForm = ref(forms[0]?.formNo || '')
 const selVendor = ref('')
 const approved = ref(false)
 
 const rows = computed(() => {
-  const form = db.quotations.filter((q) => q.formNo === selForm.value)
-  const first = db.purchaseForms.find((f) => f.formNo === selForm.value)
+  const form = purchaseFormService.quotations().filter((q) => q.formNo === selForm.value)
+  const first = purchaseFormService.list().find((f) => f.formNo === selForm.value)
   return form.map((q) => ({
     vendor: q.vendor,
     partNo: first?.lineItems[0]?.partNo || '',
@@ -114,22 +114,14 @@ function approve() {
   showToast('方案已批准，可应用到采购单', 'ok')
 }
 // 指南（手册 4）：选定报价方案后生成采购单（Query → Purchase Order）
-function selectCreatePO() {
+async function selectCreatePO() {
   if (!selVendor.value) return showToast('请先选择供应商', 'warn')
-  const form = db.purchaseForms.find((f) => f.formNo === selForm.value)
-  if (!form) return showToast('未找到对应 Query', 'warn')
-  const q = db.quotations.find((x) => x.formNo === selForm.value && x.vendor === selVendor.value)
-  const no = 'PO-' + Math.floor(Math.random() * 9000 + 1000)
-  db.purchaseForms.unshift({
-    id: uid('pf'), formNo: no, type: 'PurchaseOrder', status: 'Draft',
-    vendor: q?.vendor || selVendor.value, deliveryLocation: form.deliveryLocation,
-    contract: form.contract, createdDate: new Date().toISOString().slice(0, 10),
-    lineItems: (form.lineItems || []).map((li) => ({ ...li, unitPrice: q?.unitPrice || li.unitPrice })),
-    total: 0,
-  })
-  scenarioLabel.value = '已生成采购单：' + no
+  const q = purchaseFormService.quotations().find((x) => x.formNo === selForm.value && x.vendor === selVendor.value)
+  const po = await purchaseFormService.createPOFromQuery(selForm.value, selVendor.value, q?.unitPrice)
+  if (!po) return showToast('未找到对应 Query', 'warn')
+  scenarioLabel.value = '已生成采购单：' + po.formNo
   scenarioTone.value = 'green'
-  showToast(`已按选定供应商生成采购单 ${no}`, 'ok')
+  showToast(`已按选定供应商生成采购单 ${po.formNo}`, 'ok')
 }
 </script>
 

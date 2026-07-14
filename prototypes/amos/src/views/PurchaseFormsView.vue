@@ -67,7 +67,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import RecordList from '../components/RecordList.vue'
-import { db, uid } from '../mock/index.js'
+import { purchaseFormService } from '../services/purchaseFormService.js'
 import { store, showToast } from '../store.js'
 
 const types = ['Requisition', 'Query', 'PurchaseOrder']
@@ -89,7 +89,7 @@ const generalFields = [
   { key: 'contract', label: 'Contract' },
   { key: 'createdDate', label: 'Created', type: 'readonly' },
 ]
-const all = computed(() => db.purchaseForms)
+const all = computed(() => purchaseFormService.list())
 const viewRows = ref([])
 const selected = ref(null)
 const tab = ref('general')
@@ -102,23 +102,20 @@ watch(typeFilter, refresh)
 
 function onSelect(r) { selected.value = r; tab.value = 'general' }
 function onOpen(r) { selected.value = r; tab.value = 'general' }
-function newForm() {
-  const no = 'REQ-' + Math.floor(Math.random() * 9000 + 1000)
-  const rec = { id: uid('pf'), formNo: no, type: 'Requisition', status: 'Draft', vendor: '', deliveryLocation: 'ER-Store-A', contract: '', createdDate: new Date().toISOString().slice(0, 10), lineItems: [], total: 0 }
-  all.value.unshift(rec); refresh(); selected.value = rec; showToast('已新建采购申请', 'ok')
+async function newForm() {
+  const rec = await purchaseFormService.create({})
+  refresh(); selected.value = rec; showToast('已新建采购申请', 'ok')
 }
-function convert() {
+async function convert() {
   if (!selected.value) return
-  const order = { Requisition: 'Query', Query: 'PurchaseOrder', PurchaseOrder: 'PurchaseOrder' }
-  const next = order[selected.value.type]
-  if (next === selected.value.type) return showToast('Purchase Order 已是最终形态', 'info')
-  selected.value.type = next
-  // 指南（手册 4）：Requisition→Query 为已发出的询价（Issued）；Query→Purchase Order 为新生成的采购单（Draft，待审批）
-  selected.value.status = next === 'Query' ? 'Issued' : 'Draft'
-  showToast(`已转换为 ${next}`, 'ok')
+  const next = await purchaseFormService.convert(selected.value.id)
+  if (next && next.type === selected.value.type) return showToast('Purchase Order 已是最终形态', 'info')
+  showToast(`已转换为 ${next.type}`, 'ok')
 }
-function applyContract() {
-  if (selected.value) { selected.value.contract = selected.value.contract || db.contracts[0]?.contractNo || ''; showToast('已应用合同 ' + selected.value.contract, 'ok') }
+async function applyContract() {
+  if (!selected.value) return
+  const updated = await purchaseFormService.applyContract(selected.value.id)
+  if (updated) showToast('已应用合同 ' + updated.contract, 'ok')
 }
 function print() { window.print() }
 function typeClass(v) {
