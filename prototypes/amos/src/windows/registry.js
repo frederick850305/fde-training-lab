@@ -164,6 +164,8 @@ export const windowRegistry = {
           { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
           // 手册 P44：Counters 必须先列在 component/type 上，才能在 jobs 中选用；此字段仅当 Planning Method = Counter 时出现
           { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentTypeJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本类型已列计数器' },
+          // 手册 P45：Measure Points 必须先列在类型上，才能在 component type jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
+          { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentTypeJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本类型已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
         ],
       },
@@ -199,6 +201,8 @@ export const windowRegistry = {
           { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
           // 手册 P44：Counters 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = Counter 时出现
           { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本组件已列计数器' },
+          // 手册 P45：Measure Points 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
+          { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本组件已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
         ],
       },

@@ -255,6 +255,21 @@ export const lookups = {
     const ct = db.componentTypes.find((x) => x.typeNumber === (model && model.targetId))
     return (ct?.counters || []).map((cc) => ({ code: cc.code, label: `${cc.code} — ${cc.description}` }))
   },
+  // 手册 P45：Component Jobs 中，Measure Point 下拉仅列出该组件自身已登记的测点（先列在组件上才可选）
+  componentJobMeasurePoints: (model) => {
+    const c = db.components.find((x) => x.number === (model && model.targetId))
+    if (!c) return []
+    // 优先取组件级已登记测点；尚未在 Components 窗口选中继承时，回退到其类型的测点模板
+    const list = (c.componentMeasurePoints && c.componentMeasurePoints.length)
+      ? c.componentMeasurePoints
+      : (db.componentTypes.find((t) => t.typeNumber === c.typeNumber)?.measurePointDefs || [])
+    return list.map((m) => ({ code: m.code, label: `${m.code} — ${m.description}` }))
+  },
+  // 手册 P45：Component Type Jobs 中，Measure Point 下拉仅列出该类型自身已定义的测点模板
+  componentTypeJobMeasurePoints: (model) => {
+    const ct = db.componentTypes.find((x) => x.typeNumber === (model && model.targetId))
+    return (ct?.measurePointDefs || []).map((m) => ({ code: m.code, label: `${m.code} — ${m.description}` }))
+  },
 }
 
 // ===== Dashboard 告警 / 通知（从 db 动态计算，确保双击跳转后数据一致） =====
