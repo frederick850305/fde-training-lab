@@ -62,13 +62,15 @@
 <script setup>
 import { ref, computed } from 'vue'
 import Modal from '../components/Modal.vue'
-import { db } from '../mock/index.js'
+import { componentService } from '../services/componentService.js'
+import { functionService } from '../services/functionService.js'
+import { counterService } from '../services/counterService.js'
 
 const showFind = ref(true)
 const crit = ref({ component: '', function: '', inherits: '', includeChildren: true })
 
-const compByNo = computed(() => Object.fromEntries(db.components.map((c) => [c.number, c])))
-const funcByNo = computed(() => Object.fromEntries(db.functions.map((f) => [f.functionNo, f])))
+const compByNo = computed(() => componentService.byNo())
+const funcByNo = computed(() => functionService.byNo())
 
 // Average = 当前读数 / 自安装（或读数日往前 365 天基准）的天数
 function averageOf(rec) {
@@ -84,7 +86,7 @@ function averageOf(rec) {
 
 const rows = computed(() => {
   const c = crit.value
-  return db.counterLogs
+  return counterService.list()
     .filter((r) => {
       if (c.component && r.component !== c.component) return false
       if (c.function && r.function !== c.function) return false

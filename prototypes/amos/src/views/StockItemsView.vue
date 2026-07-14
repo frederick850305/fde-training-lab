@@ -109,8 +109,8 @@ import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
-import { db } from '../mock/index.js'
 import { stockItemService } from '../services/stockItemService.js'
+import { stockTypeService } from '../services/stockTypeService.js'
 import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -166,7 +166,7 @@ const tabs = [
   { id: 'overview', label: 'Overview', fields: [] },
 ]
 
-const stockTypeByNo = computed(() => Object.fromEntries(db.stockTypes.map((s) => [s.stockTypeNo, s])))
+const stockTypeByNo = computed(() => stockTypeService.byNo())
 const all = computed(() => stockItemService.list())
 const viewRows = ref([])
 const showFilter = ref(false)

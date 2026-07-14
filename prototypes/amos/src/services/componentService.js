@@ -51,6 +51,37 @@ export const componentService = {
   async get(id) {
     return db.components.find((c) => c.id === id) || null
   },
+  // 同步读取（供 computed 派生 / 视图列表源，保持对 db 的响应式追踪）
+  listSync() {
+    return db.components
+  },
+  // number → component 的映射（供 Hierarchy / Counters 快速查找）
+  byNo() {
+    return Object.fromEntries(db.components.map((c) => [c.number, c]))
+  },
+  // 按 id 列表批量取组件（供 Component Types 的 Components 标签展示已注册实例）
+  getByIds(ids = []) {
+    return ids.map((id) => db.components.find((c) => c.id === id)).filter(Boolean)
+  },
+  // 名称 / 编码片段模糊查找（供 Hierarchy 的 Find 窗口）
+  search(text) {
+    const s = (text || '').trim().toLowerCase()
+    if (!s) return []
+    return db.components.filter((c) => (c.number + ' ' + c.name).toLowerCase().includes(s))
+  },
+
+  // ---- 部件类型（Component Types）主数据访问 ----
+  listComponentTypes() {
+    return db.componentTypes
+  },
+  getComponentType(typeNumber) {
+    return db.componentTypes.find((c) => c.typeNumber === typeNumber) || null
+  },
+  // 复制 / 新增部件类型（Component Types 窗口 Options > Copy）
+  async addComponentType(record) {
+    db.componentTypes.push(record)
+    return record
+  },
 
   // ---- 注册组件（来自 Component Types 窗口 Options > Register as Component） ----
   // 注册时尚未安装到 function，状态按手册推导为 'Available'。

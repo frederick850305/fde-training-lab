@@ -28,6 +28,10 @@ export const purchaseFormService = {
   quotations() {
     return db.quotations
   },
+  // Dashboard KPI：待处理的申请单数（Requisition 且未归档）
+  openRequisitionCount() {
+    return db.purchaseForms.filter((f) => f.type === 'Requisition' && f.status !== 'Filed').length
+  },
 
   // ---- 写入 ----
   async create(data = {}) {

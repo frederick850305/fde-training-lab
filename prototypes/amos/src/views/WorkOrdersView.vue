@@ -86,8 +86,8 @@ import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import Modal from '../components/Modal.vue'
-import { db } from '../mock/index.js'
 import { workOrderService } from '../services/workOrderService.js'
+import { functionService } from '../services/functionService.js'
 import { store, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 
@@ -134,7 +134,7 @@ const tabs = [
   { id: 'history', label: 'History', fields: [{ key: '_note', label: '说明', type: 'readonly', value: '执行历史。' }] },
 ]
 
-const funcLoc = computed(() => Object.fromEntries(db.functions.map((f) => [f.functionNo, f.location])))
+const funcLoc = computed(() => functionService.locationMap())
 
 const all = computed(() => workOrderService.list())
 const viewRows = ref([])

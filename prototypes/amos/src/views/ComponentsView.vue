@@ -229,9 +229,11 @@ import { ref, computed, watch, onMounted, onActivated, onBeforeUnmount, nextTick
 import FilterDialog from '../components/FilterDialog.vue'
 import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
-import { db } from '../mock/index.js'
 import { componentService, COMPONENT_STATUSES } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
+import { stockItemService } from '../services/stockItemService.js'
+import { counterService } from '../services/counterService.js'
+import { workOrderService } from '../services/workOrderService.js'
 import { store, openWindow, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
 
@@ -316,7 +318,7 @@ const tabs = [
   { id: 'maintlog', label: 'Maintenance Log', fields: [] },
 ]
 
-const all = computed(() => db.components)
+const all = computed(() => componentService.listSync())
 const viewRows = ref([])
 const showFilter = ref(false)
 const selected = ref(null)
@@ -349,16 +351,16 @@ const relJobs = computed(() => {
   if (!selected.value) return []
   return jobService.relatedJobs(selected.value.number, selected.value.typeNumber)
 })
-const relParts = computed(() => !selected.value ? [] : db.stockItems.filter((s) => s.functionNo && s.functionNo === selected.value.functionNo))
-const relCounters = computed(() => !selected.value ? [] : db.counterLogs.filter((r) => r.component === selected.value.number))
-const relWO = computed(() => !selected.value ? [] : db.workOrders.filter((w) => w.componentId === selected.value.number))
+const relParts = computed(() => !selected.value ? [] : stockItemService.byFunction(selected.value.functionNo))
+const relCounters = computed(() => !selected.value ? [] : counterService.byComponent(selected.value.number))
+const relWO = computed(() => !selected.value ? [] : workOrderService.byComponent(selected.value.number))
 const relHistory = computed(() => relWO.value.filter((w) => w.status === 'Completed'))
 const relLog = computed(() => selected.value?.maintenanceLog || [])
 const relAttachments = computed(() => selected.value?.attachments || [])
 // 手册 2.2：Type Details 继承自 Component Type 的只读参考信息
 const inheritedType = computed(() => {
   if (!selected.value?.typeNumber) return null
-  return db.componentTypes.find((c) => c.typeNumber === selected.value.typeNumber) || null
+  return componentService.getComponentType(selected.value.typeNumber)
 })
 
 function avg(r) {
@@ -466,11 +468,17 @@ function addLog() {
 }
 function delLog(i) { selected.value.maintenanceLog.splice(i, 1); showToast('已删除日志', 'warn') }
 // 手册 2.2(19)：从 Components 窗口手工创建工单
-function newWO() {
+async function newWO() {
   const t = selected.value
   if (!t) return showToast('请先选择组件', 'warn')
-  const wo = { id: 'new_' + Date.now(), workOrderNo: 'WO-' + Math.floor(Math.random()*90000+10000), description: '维修工单：' + (t.name || t.number), functionNo: t.functionNo || '—', dueDate: new Date(Date.now()+14*86400000).toISOString().slice(0,10), status: 'Issued', componentId: t.number }
-  db.workOrders.push(wo)
+  const wo = await workOrderService.create({
+    workOrderNo: 'WO-' + Math.floor(Math.random() * 90000 + 10000),
+    description: '维修工单：' + (t.name || t.number),
+    functionNo: t.functionNo || '—',
+    dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    status: 'Issued',
+    componentId: t.number,
+  })
   showToast('已创建工单：' + wo.workOrderNo + '（原型模拟）', 'ok')
 }
 function doNew() {
@@ -530,7 +538,7 @@ function openChangeStatus() {
 // 视图层同步：viewRows 在 applyFilter 时可能被浅拷贝，需把 db 中的最新值反写回列表和当前选中行
 function syncRowsFromDb(ids) {
   ids.forEach((id) => {
-    const dbComp = db.components.find((c) => c.id === id)
+    const dbComp = componentService.listSync().find((c) => c.id === id)
     if (!dbComp) return
     const row = viewRows.value.find((r) => r.id === id)
     if (row) Object.assign(row, dbComp)

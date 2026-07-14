@@ -23,6 +23,10 @@ export const jobService = {
         (j.targetType === 'ComponentType' && j.targetId === componentTypeNumber),
     )
   },
+  // 手册 2：某部件类型关联的作业数（Component Types 列表 Jobs 列动态计算）
+  countForComponentType(typeNumber) {
+    return db.jobs.filter((j) => j.targetType === 'ComponentType' && j.targetId === typeNumber).length
+  },
 
   // ---- 写入 ----
   async create({ description, targetType, targetId, frequency = 'Monthly', planningMethod = 'Time', status = 'Planned', requiredDisciplines = [], requiredParts = [] }) {

@@ -14,6 +14,10 @@ export const stockWantedService = {
   list() {
     return db.stockWanted
   },
+  // Dashboard KPI：低于重订水平（缺货）的库存项数
+  shortageCount() {
+    return db.stockWanted.filter((s) => s.currentQty < s.reorderLevel).length
+  },
 
   // ---- 写入 ----
   // 重新计算 Wanted = Max(0, Reorder Level − Current − Outstanding)

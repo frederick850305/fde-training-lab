@@ -37,6 +37,14 @@ export const stockItemService = {
   relatedComponents(item) {
     return !item ? [] : db.components.filter((c) => c.functionNo && c.functionNo === item.functionNo)
   },
+  // 按功能位置匹配库存项（供 Components 明细 Parts 标签）
+  byFunction(functionNo) {
+    return !functionNo ? [] : db.stockItems.filter((s) => s.functionNo && s.functionNo === functionNo)
+  },
+  // 指定 stockType 是否已在某地点登记（供 Register as Component 的 Auto-Register Stock 去重）
+  existsAt(stockTypeNo, location) {
+    return db.stockItems.some((s) => s.stockTypeNo === stockTypeNo && s.location === location)
+  },
 
   // ---- 写入 ----
   async create(data) {

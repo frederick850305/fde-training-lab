@@ -113,8 +113,11 @@ import FilterDialog from './FilterDialog.vue'
 import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
 import { store, showToast, openWindow, setPresetFilter } from '../store.js'
-import { db, uid } from '../mock/index.js'
 import { componentService } from '../services/componentService.js'
+import { jobService } from '../services/jobService.js'
+import { stockItemService } from '../services/stockItemService.js'
+import { stockTypeService } from '../services/stockTypeService.js'
+import { collectionService } from '../services/collectionService.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 import { departments } from '../data/amosData.js'
@@ -145,7 +148,7 @@ const detailTitleKey = computed(() => {
 
 const dbRows = computed(() => {
   const d = config.value?.dataKey
-  return d ? db[d] : []
+  return d ? collectionService.collection(d) : []
 })
 const viewRows = ref([])
 const showFilter = ref(false)
@@ -184,7 +187,7 @@ function applyFilter(criteria) {
   if (config.value?.dataKey === 'componentTypes') {
     viewRows.value = viewRows.value.map((r) => ({
       ...r,
-      jobs: db.jobs.filter((j) => j.targetType === 'ComponentType' && j.targetId === r.typeNumber).length,
+      jobs: jobService.countForComponentType(r.typeNumber),
     }))
   }
 }
@@ -218,7 +221,7 @@ function blankRecord() {
 function doNew() {
   if (showFilter.value) return
   const rec = blankRecord()
-  dbRows.value.push(rec)
+  collectionService.push(config.value.dataKey, rec)
   viewRows.value = [...viewRows.value, rec]
   selected.value = rec
   showToast('已新建记录，编辑后点击 Save', 'ok')
@@ -229,8 +232,9 @@ function doSave() {
 }
 function doDelete() {
   if (!selected.value) return showToast('请先选择记录', 'warn')
-  const i = dbRows.value.findIndex((r) => r[rowKey.value] === selected.value[rowKey.value])
-  if (i >= 0) dbRows.value.splice(i, 1)
+  const key = rowKey.value
+  const target = selected.value[key]
+  collectionService.removeBy(config.value.dataKey, (r) => r[key] === target)
   const j = viewRows.value.findIndex((r) => r[rowKey.value] === selected.value[rowKey.value])
   if (j >= 0) viewRows.value.splice(j, 1)
   selected.value = null
@@ -311,7 +315,7 @@ function addPart() {
 }
 
 // 手册 2 / P37：复制组件类型
-function copyComponentType() {
+async function copyComponentType() {
   const t = selected.value
   if (!t) { showToast('请先在列表中选择要复制的部件类型', 'warn'); return }
   const base = { ...t }
@@ -327,7 +331,7 @@ function copyComponentType() {
   base.name = `${base.name || ''} (Copy)`
   base.status = 'Active'
   base.id = 'new_' + Date.now()
-  db.componentTypes.push(base)
+  await componentService.addComponentType(base)
   viewRows.value = [...viewRows.value, base]
   selected.value = base
   showToast('已复制部件类型：请修改编号 / 名称后 Save（手册 P37：Options > Copy）', 'ok')
@@ -349,7 +353,7 @@ const deptGroups = computed(() => {
 const regComponentsList = computed(() => {
   const t = selected.value
   if (!t || !t.regComponents) return []
-  return t.regComponents.map((id) => db.components.find((c) => c.id === id)).filter(Boolean)
+  return componentService.getByIds(t.regComponents)
 })
 function openRegister() {
   if (!selected.value) { showToast('请先在列表中选择一个部件类型', 'warn'); return }
@@ -386,20 +390,18 @@ async function confirmRegister() {
     count++
     // Auto-Register Stock Items：把该类型关联的备件一并登记到所选安装地点
     if (regAutoStock.value && Array.isArray(t.parts)) {
-      t.parts.forEach((p) => {
+      for (const p of t.parts) {
         const stNo = p.stockTypeNo
-        const st = db.stockTypes.find((x) => x.stockTypeNo === stNo)
-        if (!st) return
-        const exists = db.stockItems.some((s) => s.stockTypeNo === stNo && s.location === dept)
-        if (!exists) {
-          db.stockItems.push({
-            id: uid('si'), stockItemNo: 'SI-' + (Date.now() % 1000000), stockTypeNo: stNo,
-            description: st.description, makerRef: '', drawingNo: '', stockClass: '',
-            functionNo: '', quantity: 0, location: dept, expiryDate: '', perishable: false,
-            status: 'Active', unitCost: st.bestPrice,
-          })
-        }
-      })
+        const st = stockTypeService.get(stNo)
+        if (!st) continue
+        if (stockItemService.existsAt(stNo, dept)) continue
+        await stockItemService.create({
+          stockItemNo: 'SI-' + (Date.now() % 1000000), stockTypeNo: stNo,
+          description: st.description, makerRef: '', drawingNo: '', stockClass: '',
+          functionNo: '', quantity: 0, location: dept, expiryDate: '', perishable: false,
+          status: 'Active', unitCost: st.bestPrice,
+        })
+      }
     }
   }
   regDialog.value = false

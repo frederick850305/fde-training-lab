@@ -85,7 +85,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import LookupDialog from './LookupDialog.vue'
-import { db, lookups } from '../mock/index.js'
+import { lookups } from '../mock/index.js'
+import { collectionService } from '../services/collectionService.js'
 
 const props = defineProps({
   tabs: { type: Array, required: true },
@@ -157,7 +158,7 @@ function onLookupSelect(code) {
 // ===== 可编辑子表（手册 2 / P37-39：Jobs / Parts / Related）=====
 function subRows(t) {
   if (t.subSource) {
-    const src = db[t.subSource.dbKey] || []
+    const src = collectionService.collection(t.subSource.dbKey)
     return src.filter((r) => r[t.subSource.filterKey] === props.model[t.subSource.filterModelKey])
   }
   const key = t.subKey
@@ -175,7 +176,7 @@ function addSubRow(t) {
     base[t.subSource.filterKey] = props.model[t.subSource.filterModelKey]
     if (!row.id) row.id = 'new_' + Date.now() + '_' + Math.floor(Math.random() * 1000)
     Object.assign(row, base)
-    db[t.subSource.dbKey].push(row)
+    collectionService.push(t.subSource.dbKey, row)
   } else {
     const key = t.subKey
     if (!props.model[key]) props.model[key] = []
@@ -185,9 +186,7 @@ function addSubRow(t) {
 }
 function delSubRow(t, row) {
   if (t.subSource) {
-    const src = db[t.subSource.dbKey] || []
-    const i = src.findIndex((r) => r === row || r.id === row.id)
-    if (i >= 0) src.splice(i, 1)
+    collectionService.removeBy(t.subSource.dbKey, (r) => r === row || r.id === row.id)
   } else {
     const arr = props.model[t.subKey] || []
     const i = arr.findIndex((r) => r === row)
