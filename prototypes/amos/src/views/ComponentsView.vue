@@ -329,7 +329,7 @@ const filterAdvanced = [
 // 手册 P44-45 截图：Components 列表列对齐为 Number / Name / Type / Serial No. / Co
 const columnsBase = [
   { key: 'number', label: 'Number', width: '120px' },
-  { key: 'name', label: 'Name' },
+  { key: 'name', label: 'Name', width: '200px' },
   { key: 'type', label: 'Type', width: '100px' },
   { key: 'serialNo', label: 'Serial No.', width: '110px' },
   { key: 'department', label: 'Co', width: '110px' },
