@@ -52,6 +52,7 @@ const pageDefs = {
   'maintenance-history': ['Maintenance History', '维修历史记录查阅', 'P2', 'maintenance'],
   'maintenance-log': ['Maintenance Log', '维护日志', 'P2', 'maintenance'],
   'component-status-log': ['Component Status Log', '组件状态变更日志（安装/拆卸/Change Status/Transferred 留痕）', 'P2', 'maintenance'],
+  'component-archive': ['Component Archive', '组件档案：从先前部门转入的历史数据（Component/Transfer/Status）', 'P2', 'maintenance'],
 
   'stock-types': ['Stock Types', '库存物料类型与制造商 / 供应商 / 等级', 'P1', 'stock'],
   'stock-items': ['Stock Items', '具体库存实例与位置 / 状态 / 成本', 'P0', 'stock'],

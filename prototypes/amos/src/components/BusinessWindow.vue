@@ -61,6 +61,23 @@
       </div>
     </div>
 
+    <!-- Install Component 对话框（手册 Component Locations：Functions 窗口 Options > Install Component） -->
+    <div v-if="installDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Install Component — {{ selected?.functionNo }}</h3>
+        <p class="muted">选择要安装到该功能位置的组件（当前未安装其他功能位置的组件）。</p>
+        <div class="reg-depts">
+          <label v-for="c in installCandidates" :key="c.id" class="row" style="gap:6px">
+            <input type="radio" :value="c.number" v-model="installSelected" /> {{ c.number }} — {{ c.name }} <span class="muted">({{ c.status }})</span>
+          </label>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn" @click="installDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmInstall">OK</button>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <!-- 左：结果列表 -->
       <section class="bw-list">
@@ -117,6 +134,7 @@ import { componentService } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { stockTypeService } from '../services/stockTypeService.js'
+import { functionService } from '../services/functionService.js'
 import { collectionService } from '../services/collectionService.js'
 import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
@@ -244,8 +262,24 @@ function doRefresh() {
   applyFilter({})
   showToast('已刷新', 'info')
 }
-function onFieldChange() {
-  /* 内存态自动同步 */
+// 手册 Component Locations：Functions 窗口字段变更时的级联同步
+function onFieldChange(e) {
+  if (!e || !e.key || !selected.value) return
+  if (config.value?.dataKey === 'functions') {
+    const fn = selected.value.functionNo
+    if (e.key === 'location') {
+      // 修改 function location → 级联更新已安装组件的 location
+      functionService.updateLocation(fn, e.value)
+      showToast('功能位置地点变更，已级联更新安装组件的 Location', 'info')
+    } else if (e.key === 'installedComponentId') {
+      // 手动改 function 的 installedComponentId → 双向同步组件的 functionNo
+      if (e.value) {
+        const comp = componentService.listSync().find((c) => c.number === e.value)
+        if (comp) componentService.setFunction(comp.id, fn)
+      }
+      showToast('已同步组件的功能位置', 'info')
+    }
+  }
 }
 
 // ===== Open Record 对话框：主键字段标签与示例 =====
@@ -294,7 +328,42 @@ function runOption(o) {
   if (o.action === 'copy-type') { copyComponentType(); return }
   // 手册 2 / P36 脚注：系统参数 Use Component Types 开关
   if (o.action === 'toggle-use-types') { store.useComponentTypes = !store.useComponentTypes; showToast(`Use Component Types = ${store.useComponentTypes ? 'TRUE' : 'FALSE'}（系统参数）`, 'info'); return }
+  // 手册 Component Locations：Functions 窗口 Options > Install / Remove Component
+  if (o.action === 'install-component') { openInstall(); return }
+  if (o.action === 'remove-component') { removeComponent(); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
+}
+
+// ===== Install / Remove Component（手册 Component Locations：Functions 窗口 Options）=====
+const installDialog = ref(false)
+const installSelected = ref('')
+const installCandidates = computed(() => {
+  if (config.value?.dataKey !== 'functions' || !selected.value) return []
+  // 当前未安装到任何功能位置（或已安装到本 function）的组件可被选作安装
+  return componentService.listSync().filter((c) => !c.functionNo || c.functionNo === selected.value.functionNo)
+})
+function openInstall() {
+  const fn = selected.value
+  if (!fn) { showToast('请先选择功能位置', 'warn'); return }
+  installSelected.value = ''
+  installDialog.value = true
+}
+async function confirmInstall() {
+  const fn = selected.value
+  if (!fn || !installSelected.value) { showToast('请选择组件', 'warn'); return }
+  await functionService.installComponent(fn.functionNo, installSelected.value)
+  installDialog.value = false
+  showToast(`已将 ${installSelected.value} 安装到 ${fn.functionNo}`, 'ok')
+  applyFilter({})
+}
+function removeComponent() {
+  const fn = selected.value
+  if (!fn) { showToast('请先选择功能位置', 'warn'); return }
+  if (!fn.installedComponentId) { showToast('该功能位置未安装组件', 'warn'); return }
+  functionService.removeComponent(fn.functionNo).then(() => {
+    showToast(`已从 ${fn.functionNo} 拆卸组件`, 'ok')
+    applyFilter({})
+  })
 }
 
 // 手册 2 / P37：Options > View Job 打开 Component Type Jobs 并预过滤到当前选中类型

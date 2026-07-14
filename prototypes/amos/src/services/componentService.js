@@ -110,16 +110,67 @@ export const componentService = {
 
   // ---- 设置功能位置（安装 / 拆卸） ----
   // 安装到 function → 自动推导为 In Use；移除 → Available；并记录日志。
+  // 手册 Component Locations：安装时组件 Location 同步为 function 的 location；拆卸时清空 location。
   async setFunction(id, functionNo) {
     const comp = db.components.find((c) => c.id === id)
     if (!comp) return null
     const old = comp.status
+    const oldFn = comp.functionNo
     comp.functionNo = functionNo || ''
+    // 手册 Component Locations：安装到 function 时，组件的 Location 同步为 function 的 location
+    if (functionNo) {
+      const fn = db.functions.find((f) => f.functionNo === functionNo)
+      comp.location = fn ? fn.location : comp.location
+    } else {
+      comp.location = '' // 拆卸后清空安装地点（department 归属保留）
+    }
     comp.status = deriveStatus(comp)
     if (comp.status !== old) {
       logStatus(comp, old, comp.status, functionNo ? 'Installed on function' : 'Removed from function')
     }
+    // 手册 Component Locations：记录 Functions Performed 历史（安装 / 拆卸）
+    const newFn = functionNo || oldFn || ''
+    const fnInfo = db.functions.find((f) => f.functionNo === newFn)
+    db.componentFunctionHistory.push({
+      id: uid('cfh'),
+      componentId: comp.id,
+      componentNo: comp.number,
+      functionNo: newFn,
+      functionDescription: fnInfo?.description || '',
+      location: fnInfo?.location || '',
+      action: functionNo ? 'Installed' : 'Removed',
+      performedBy: 'A. Admin',
+      performedAt: new Date().toISOString().slice(0, 10),
+    })
     return comp
+  },
+
+  // ---- Functions Performed 历史（手册 Component Locations）----
+  // 返回某组件的安装 / 拆卸历史（倒序），供 Components 窗口 Functions Performed 标签查看。
+  getFunctionHistory(componentId) {
+    return db.componentFunctionHistory.filter((h) => h.componentId === componentId).slice().reverse()
+  },
+  // ---- Component Archives（手册 Component Archives）----
+  // 组件从其他部门转入时（参数 createComponentArchiveOnTransferIn = TRUE），把先前部门的
+  // 三种档案（component / transfer / status）写入 componentArchives，供 Options > Archive 查看。
+  async transferIn({ componentNo, fromDepartment, toDepartment, archiveData = {} }) {
+    const kinds = ['component', 'transfer', 'status']
+    kinds.forEach((kind) => {
+      db.componentArchives.push({
+        id: uid('ca'),
+        componentNo,
+        kind,
+        fromDepartment,
+        toDepartment,
+        archiveDate: new Date().toISOString().slice(0, 10),
+        data: archiveData[kind] || `${kind} archive from ${fromDepartment}`,
+      })
+    })
+    return true
+  },
+  // 查询某组件的 archive（kind 为空返回全部三种）
+  getArchives(componentNo, kind) {
+    return db.componentArchives.filter((a) => a.componentNo === componentNo && (!kind || a.kind === kind))
   },
 
   // ---- 修改状态（Options > Change Status） ----
