@@ -469,28 +469,37 @@ function statusClass(v) {
 
 <style scoped>
 .biz-win { display: flex; flex-direction: column; height: 100%; }
-.bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); }
-.bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
+.bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); gap: 8px; }
+.bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; flex-shrink: 0; }
+/* 按钮行：空间不足时可横向滚动，确保所有按钮始终可见 */
+.bw-head .row { display: flex; gap: 6px; overflow-x: auto; flex-shrink: 1; min-width: 0; scrollbar-width: thin; }
+.bw-head .row::-webkit-scrollbar { height: 4px; }
+.bw-head .row::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 2px; }
 .scope-badge { font-size: 11.5px; color: #1f6fb2; background: #e8f2fb; border: 1px solid #b9d8f0; border-radius: 999px; padding: 2px 10px; }
 .global-badge { color: #0e6a30; background: #e4f7e8; border-color: #95d5a9; }
 .bw-body { flex: 1; display: flex; min-height: 0; }
 .bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; display: flex; flex: 0 0 auto; overflow: hidden; }
 .bw-list > * { flex: 1; min-width: 0; }
-.bw-detail { padding: 10px; overflow: auto; flex: 1; min-width: 0; }
+.bw-detail { padding: 10px; overflow-x: auto; overflow-y: hidden; flex: 1; min-width: 0; scrollbar-width: thin; scrollbar-color: #9bb6d8 #edf2f8; }
+.bw-detail::-webkit-scrollbar { width: 8px; height: 10px; }
+.bw-detail::-webkit-scrollbar-track { background: #edf2f8; }
+.bw-detail::-webkit-scrollbar-thumb { background: #9bb6d8; border: 2px solid #edf2f8; border-radius: 6px; }
+.bw-detail::-webkit-scrollbar-thumb:hover { background: #789bc8; }
 .bw-detail.empty { display: flex; align-items: center; justify-content: center; }
 /* 可拖动分隔条 */
 .splitter { flex: 0 0 auto; width: 6px; cursor: col-resize; background: var(--amos-border); position: relative; transition: background .15s; }
 .splitter:hover, .splitter.active { background: var(--amos-blue); }
 .splitter::after { content: ''; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 2px; height: 30px; border-radius: 2px; background: rgba(255,255,255,.75); }
 .bd-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--amos-border); }
-.sub { margin-top: 8px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #c2d2e8 transparent; }
-.sub .table-wrap { min-width: max-content; }
-.sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
+.table-wrap { max-width: 100%; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #c2d2e8 transparent; }
+/* slot 内子表格：禁止自动收缩，按内容自然宽度展开 */
+.table-wrap > .amos-grid.sub { width: max-content; min-width: 100%; table-layout: auto; margin-top: 8px; }
+.amos-grid.sub .amos-btn.xs { padding: 2px 8px; font-size: 11px; }
 /* 表格横向滚动条美化（细、圆角、半透明） */
-.sub::-webkit-scrollbar { height: 8px; }
-.sub::-webkit-scrollbar-track { background: transparent; }
-.sub::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
-.sub::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
+.table-wrap::-webkit-scrollbar { height: 8px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
 /* slot 内按钮栏与继承信息框（scoped 不继承 RecordDetail 样式，需本组件定义） */
 .subgrid-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .inherited-box { border: 1px dashed var(--amos-border); border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #fafcff; }
