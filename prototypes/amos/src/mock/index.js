@@ -39,6 +39,15 @@ export const db = reactive({
     { id: uid('co'), number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' },
   ],
 
+  // 指南（手册 2.2 / Component Status）：组件状态变更日志。
+  // 所有状态变更（安装/拆卸自动推导、Options > Change Status、Transferred 与 Stock Wanted 交互）
+  // 都会在此留痕，供 Options > Component Status Log（单组件）与 Maintenance > Component Status Log（全部）查询。
+  componentStatusLog: [
+    { id: uid('csl'), componentId: 'co_1001', componentNo: 'C-10001', componentName: 'ME Cylinder #1', oldStatus: 'Available', newStatus: 'In Use', changedBy: 'A. Admin', changedAt: '2023-04-12', reason: 'Registered & installed on function' },
+    { id: uid('csl'), componentId: 'co_1002', componentNo: 'C-10002', componentName: 'Aux Boiler A', oldStatus: 'Available', newStatus: 'In Use', changedBy: 'A. Admin', changedAt: '2022-11-03', reason: 'Registered & installed on function' },
+    { id: uid('csl'), componentId: 'co_3001', componentNo: 'C-30001', componentName: 'SW Valve V-7', oldStatus: 'In Use', newStatus: 'Scrapped', changedBy: 'A. Admin', changedAt: '2025-09-30', reason: 'Manual change (Options > Change Status)' },
+  ],
+
   // 指南（手册 2.3）：功能位置状态为 In Use / Scrapped
   functions: [
     { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours' },
