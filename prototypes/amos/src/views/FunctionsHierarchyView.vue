@@ -63,7 +63,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
-import { db } from '../mock/index.js'
+import { componentService } from '../services/componentService.js'
+import { functionService } from '../services/functionService.js'
 import { openWindow, setPresetFilter, showToast } from '../store.js'
 
 const showNumber = ref(true)
@@ -75,16 +76,16 @@ const findHits = ref([])
 // 展开/折叠状态独立于树结构
 const expandedIds = ref(new Set())
 
-const compByNo = computed(() => Object.fromEntries(db.components.map((c) => [c.number, c])))
-const funcByNo = computed(() => Object.fromEntries(db.functions.map((f) => [f.functionNo, f])))
+const compByNo = computed(() => componentService.byNo())
+const funcByNo = computed(() => functionService.byNo())
 
 // ===== 功能位置树：按 parentFunctionNo 嵌套；已安装部件作为叶子 =====
 const roots = computed(() => {
   const nodes = {}
-  db.functions.forEach((f) => {
+  functionService.list().forEach((f) => {
     nodes[f.functionNo] = { id: 'fn:' + f.functionNo, type: 'function', no: f.functionNo, label: f.description, status: f.status, children: [] }
   })
-  db.functions.forEach((f) => {
+  functionService.list().forEach((f) => {
     const node = nodes[f.functionNo]
     if (f.installedComponentId && compByNo.value[f.installedComponentId]) {
       const c = compByNo.value[f.installedComponentId]
@@ -92,7 +93,7 @@ const roots = computed(() => {
     }
     if (f.parentFunctionNo && nodes[f.parentFunctionNo]) nodes[f.parentFunctionNo].children.push(node)
   })
-  return db.functions.filter((f) => !f.parentFunctionNo).map((f) => nodes[f.functionNo])
+  return functionService.roots().map((f) => nodes[f.functionNo])
 })
 
 const infoFields = computed(() => {
@@ -134,8 +135,7 @@ function onFind() { findText.value = ''; findHits.value = []; findOpen.value = t
 function doFind() {
   const s = findText.value.trim().toLowerCase()
   if (!s) { findHits.value = []; return }
-  findHits.value = db.functions
-    .filter((f) => (f.functionNo + ' ' + f.description).toLowerCase().includes(s))
+  findHits.value = functionService.search(s)
     .map((f) => ({ id: 'fn:' + f.functionNo, no: f.functionNo, label: f.description, type: 'function' }))
 }
 function jumpTo(h) { onSelect(h); findOpen.value = false; showToast('已定位：' + h.no, 'info') }
@@ -144,7 +144,7 @@ function jumpTo(h) { onSelect(h); findOpen.value = false; showToast('已定位�
 function onKey(e) { if (e.key === 'F3') { e.preventDefault(); onFind() } }
 onMounted(() => {
   // 初始化：Function 节点默认展开
-  expandedIds.value = new Set(db.functions.map((f) => 'fn:' + f.functionNo))
+  expandedIds.value = new Set(functionService.list().map((f) => 'fn:' + f.functionNo))
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))

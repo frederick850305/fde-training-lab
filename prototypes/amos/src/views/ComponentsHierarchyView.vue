@@ -63,7 +63,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
-import { db } from '../mock/index.js'
+import { componentService } from '../services/componentService.js'
+import { functionService } from '../services/functionService.js'
 import { openWindow, showToast, setPresetFilter } from '../store.js'
 
 const showNumber = ref(true)
@@ -75,21 +76,21 @@ const findHits = ref([])
 const expandedIds = ref(new Set())
 
 // ===== 构造树：Function 为父节点，Component 为子节点（按 functionNo 挂载）=====
-const compByNo = computed(() => Object.fromEntries(db.components.map((c) => [c.number, c])))
-const funcByNo = computed(() => Object.fromEntries(db.functions.map((f) => [f.functionNo, f])))
+const compByNo = computed(() => componentService.byNo())
+const funcByNo = computed(() => functionService.byNo())
 
 const roots = computed(() => {
   const funcNodes = {}
-  db.functions.forEach((f) => {
+  functionService.list().forEach((f) => {
     funcNodes[f.functionNo] = { id: 'fn:' + f.functionNo, type: 'function', no: f.functionNo, label: f.description, status: f.status, children: [] }
   })
   const compNodes = {}
-  db.components.forEach((c) => {
+  componentService.listSync().forEach((c) => {
     compNodes[c.number] = { id: 'co:' + c.number, type: 'component', no: c.number, label: c.name, status: c.status, parent: c.parentComponent, fn: c.functionNo, children: [] }
   })
   const result = []
   // 部件按 parentComponent 嵌套
-  db.components.forEach((c) => {
+  componentService.listSync().forEach((c) => {
     const node = compNodes[c.number]
     if (c.parentComponent && compNodes[c.parentComponent]) compNodes[c.parentComponent].children.push(node)
     else if (c.functionNo && funcNodes[c.functionNo]) funcNodes[c.functionNo].children.push(node)
@@ -128,7 +129,7 @@ function onToggle(id) {
 }
 // 初始化：Function 节点默认展开
 onMounted(() => {
-  expandedIds.value = new Set(db.functions.map((f) => 'fn:' + f.functionNo))
+  expandedIds.value = new Set(functionService.list().map((f) => 'fn:' + f.functionNo))
 })
 function openComponent(no) {
   setPresetFilter({ number: no })
@@ -148,8 +149,8 @@ function doFind() {
   const s = findText.value.trim().toLowerCase()
   if (!s) { findHits.value = []; return }
   const hits = []
-  db.functions.forEach((f) => { if ((f.functionNo + ' ' + f.description).toLowerCase().includes(s)) hits.push({ id: 'fn:' + f.functionNo, no: f.functionNo, label: f.description, type: 'function' }) })
-  db.components.forEach((c) => { if ((c.number + ' ' + c.name).toLowerCase().includes(s)) hits.push({ id: 'co:' + c.number, no: c.number, label: c.name, type: 'component' }) })
+  functionService.search(s).forEach((f) => hits.push({ id: 'fn:' + f.functionNo, no: f.functionNo, label: f.description, type: 'function' }))
+  componentService.search(s).forEach((c) => hits.push({ id: 'co:' + c.number, no: c.number, label: c.name, type: 'component' }))
   findHits.value = hits
 }
 function jumpTo(h) {
@@ -162,7 +163,7 @@ function jumpTo(h) {
 function onKey(e) { if (e.key === 'F3') { e.preventDefault(); onFind() } }
 onMounted(() => {
   // 初始化：Function 节点默认展开
-  expandedIds.value = new Set(db.functions.map((f) => 'fn:' + f.functionNo))
+  expandedIds.value = new Set(functionService.list().map((f) => 'fn:' + f.functionNo))
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))

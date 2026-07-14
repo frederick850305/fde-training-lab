@@ -34,6 +34,12 @@ export const budgetService = {
     })
     return Object.values(map)
   },
+  // Dashboard KPI：整体预算占用率（已承诺 / 上限，四舍五入为百分比）
+  usagePercent() {
+    const committed = db.budgets.reduce((s, b) => s + b.committed, 0)
+    const limit = db.budgets.reduce((s, b) => s + b.limit, 0)
+    return limit ? Math.round((committed / limit) * 100) : 0
+  },
 
   // ---- 写入 ----
   async create(data = {}) {

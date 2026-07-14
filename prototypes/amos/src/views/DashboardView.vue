@@ -90,7 +90,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { db, dashboardAlerts, dashboardNotifications } from '../mock/index.js'
+import { dashboardAlerts, dashboardNotifications } from '../mock/index.js'
+import { workOrderService } from '../services/workOrderService.js'
+import { stockWantedService } from '../services/stockWantedService.js'
+import { purchaseFormService } from '../services/purchaseFormService.js'
+import { budgetService } from '../services/budgetService.js'
 import { store, openWindow, showToast, setPresetFilter } from '../store.js'
 
 const opt = store.options
@@ -111,11 +115,11 @@ const selectedAlert = ref(null)
 const webPos = ref('right')
 
 const kpis = computed(() => [
-  { label: 'Overdue WO', value: db.workOrders.filter((w) => w.status === 'Overdue').length || 1, sub: '逾期工单', tone: 'red' },
-  { label: 'Open WO', value: db.workOrders.filter((w) => ['Requested', 'Planned', 'Issued'].includes(w.status)).length, sub: '进行中工单', tone: 'blue' },
-  { label: 'Stock Shortage', value: db.stockWanted.filter((s) => s.currentQty < s.reorderLevel).length, sub: '低于重订水平', tone: 'orange' },
-  { label: 'Open Requisitions', value: db.purchaseForms.filter((f) => f.type === 'Requisition' && f.status !== 'Filed').length, sub: '待处理申请', tone: 'blue' },
-  { label: 'Budget Used', value: Math.round(((db.budgets.reduce((s, b) => s + b.committed, 0)) / db.budgets.reduce((s, b) => s + b.limit, 0)) * 100) + '%', sub: '预算占用', tone: 'violet' },
+  { label: 'Overdue WO', value: workOrderService.overdueCount() || 1, sub: '逾期工单', tone: 'red' },
+  { label: 'Open WO', value: workOrderService.openCount(), sub: '进行中工单', tone: 'blue' },
+  { label: 'Stock Shortage', value: stockWantedService.shortageCount(), sub: '低于重订水平', tone: 'orange' },
+  { label: 'Open Requisitions', value: purchaseFormService.openRequisitionCount(), sub: '待处理申请', tone: 'blue' },
+  { label: 'Budget Used', value: budgetService.usagePercent() + '%', sub: '预算占用', tone: 'violet' },
 ])
 const quick = [
   { key: 'work-orders', label: 'Work Orders' },

@@ -22,6 +22,18 @@ export const workOrderService = {
   get(id) {
     return db.workOrders.find((w) => w.id === id) || null
   },
+  // 某组件关联的工单（供 Components 明细 Work Order / History 标签）
+  byComponent(componentNo) {
+    return db.workOrders.filter((w) => w.componentId === componentNo)
+  },
+  // Dashboard KPI：逾期工单数（status === 'Overdue'）
+  overdueCount() {
+    return db.workOrders.filter((w) => w.status === 'Overdue').length
+  },
+  // Dashboard KPI：进行中工单数（Requested / Planned / Issued）
+  openCount() {
+    return db.workOrders.filter((w) => ['Requested', 'Planned', 'Issued'].includes(w.status)).length
+  },
 
   // ---- 写入 ----
   async create(data) {
