@@ -131,13 +131,33 @@
         <div class="copy-section">
           <div class="copy-section-title">Related Functions</div>
           <div class="copy-grid">
-            <label><input type="checkbox" v-model="copyFunctionsState.related.childFunctions" /> Child Functions</label>
-            <label><input type="checkbox" v-model="copyFunctionsState.related.parentFunction" /> Parent Function</label>
+            <label :class="{ disabled: copyFunctionsState.duplicates === 'Skip' }"><input type="checkbox" v-model="copyFunctionsState.related.childFunctions" :disabled="copyFunctionsState.duplicates === 'Skip'" /> Child Functions</label>
+            <label :class="{ disabled: copyFunctionsState.duplicates === 'Skip' }"><input type="checkbox" v-model="copyFunctionsState.related.parentFunction" :disabled="copyFunctionsState.duplicates === 'Skip'" /> Parent Function</label>
           </div>
         </div>
         <div class="od-actions">
           <button class="amos-btn" @click="copyFunctionsDialog = false">Cancel</button>
           <button class="amos-btn primary" @click="confirmCopyFunctions">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy Functions 重复编号报告对话框（手册 Copying Functions - Handling Duplicate Function Numbers） -->
+    <div v-if="duplicateReportDialog" class="open-dialog-overlay copy-functions-overlay">
+      <div class="open-dialog reg duplicate-report">
+        <h3>Copy Functions</h3>
+        <div class="duplicate-report-body">
+          <div class="duplicate-info-icon">i</div>
+          <div class="duplicate-report-text">
+            <p>Functions have been copied.</p>
+            <p>There are now duplicate function numbers that need to be corrected:</p>
+            <ul class="duplicate-list">
+              <li v-for="num in duplicateReportNumbers" :key="num">{{ num }}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn primary" @click="confirmDuplicateReport">OK</button>
         </div>
       </div>
     </div>
@@ -461,7 +481,18 @@ const copyFunctionsState = reactive({
     parentFunction: true,
   },
 })
+const duplicateReportDialog = ref(false)
+const duplicateReportNumbers = ref([])
+const duplicateReportTarget = ref('')
+const duplicateReportNewIds = ref([])
 const departmentOptions = computed(() => departments.map((d) => d.code))
+// 手册：选择 Skip duplicates 时，不能包含 referenced parent and child functions
+watch(() => copyFunctionsState.duplicates, (v) => {
+  if (v === 'Skip') {
+    copyFunctionsState.related.childFunctions = false
+    copyFunctionsState.related.parentFunction = false
+  }
+})
 function openCopyFunctions() {
   copyFunctionsState.toDepartment = departmentOptions.value.find((d) => d !== store.department) || ''
   copyFunctionsState.statusFilter = 'All'
@@ -561,6 +592,7 @@ function confirmCopyFunctions() {
 
   const copied = []
   const skipped = []
+  const newFnIds = []
   const idMap = new Map() // 原 functionNo -> 新 functionNo
 
   ordered.forEach((fn) => {
@@ -570,16 +602,11 @@ function confirmCopyFunctions() {
       return
     }
 
-    let newNo = fn.functionNo
-    if (existing && copyFunctionsState.duplicates === 'Copy All') {
-      let n = 1
-      while (dbRows.value.find((f) => f.functionNo === `${fn.functionNo}-CP${n}` && f.department === target)) {
-        n++
-      }
-      newNo = `${fn.functionNo}-CP${n}`
-    }
+    // 手册：Copy All 保留原编号，允许产生重复编号，复制后统一提示
+    const newNo = fn.functionNo
 
     const newFn = buildCopyFunction(fn, newNo, target)
+    newFnIds.push(newFn.id)
     idMap.set(fn.functionNo, newNo)
     functionService.add(newFn)
     copied.push(newFn)
@@ -597,8 +624,66 @@ function confirmCopyFunctions() {
   })
 
   copyFunctionsDialog.value = false
+
+  // 手册：Copy All 导致目标部门出现重复编号时，弹出报告对话框并提示修正
+  if (copyFunctionsState.duplicates === 'Copy All' && newFnIds.length) {
+    const targetFns = dbRows.value.filter((f) => f.department === target)
+    const counts = {}
+    targetFns.forEach((f) => { counts[f.functionNo] = (counts[f.functionNo] || 0) + 1 })
+    const duplicates = Object.entries(counts)
+      .filter(([_, count]) => count > 1)
+      .map(([no]) => no)
+      .sort()
+
+    if (duplicates.length) {
+      duplicateReportNumbers.value = duplicates
+      duplicateReportTarget.value = target
+      duplicateReportNewIds.value = newFnIds
+      duplicateReportDialog.value = true
+      applyFilter({})
+      return
+    }
+  }
+
   applyFilter({})
   showToast(`已复制 ${copied.length} 个功能位置到 ${target}（跳过 ${skipped.length} 个）`, 'ok')
+}
+
+function confirmDuplicateReport() {
+  const target = duplicateReportTarget.value
+  const newIds = new Set(duplicateReportNewIds.value)
+
+  duplicateReportNumbers.value.forEach((dupNo) => {
+    const allDups = dbRows.value.filter((f) => f.department === target && f.functionNo === dupNo)
+    const existing = allDups.find((f) => !newIds.has(f.id))
+    const newOnes = allDups.filter((f) => newIds.has(f.id))
+
+    newOnes.forEach((fn, idx) => {
+      let n = idx + 1
+      let candidate = `${dupNo}-CP${n}`
+      while (dbRows.value.find((f) => f.functionNo === candidate && f.department === target)) {
+        n++
+        candidate = `${dupNo}-CP${n}`
+      }
+      fn.functionNo = candidate
+    })
+
+    // 同步 parentFunctionNo：如果父编号也被重命名，则保持关系
+    if (existing && newOnes.length) {
+      newOnes.forEach((fn) => {
+        if (fn.parentFunctionNo === dupNo && existing.functionNo !== dupNo) {
+          fn.parentFunctionNo = existing.functionNo
+        }
+      })
+    }
+  })
+
+  duplicateReportDialog.value = false
+  duplicateReportNumbers.value = []
+  duplicateReportTarget.value = ''
+  duplicateReportNewIds.value = []
+  applyFilter({})
+  showToast('已按手册要求修正重复的功能位置编号', 'ok')
 }
 
 // 手册 2 / P37：Options > View Job 打开 Component Type Jobs 并预过滤到当前选中类型
@@ -831,7 +916,15 @@ watch(showOpenDialog, (v) => {
 .copy-col { display: flex; flex-direction: column; gap: 4px; }
 .copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .copy-section label { display: flex; align-items: center; gap: 4px; font-size: 12.5px; cursor: pointer; }
+.copy-section label.disabled { opacity: 0.5; cursor: not-allowed; }
+.copy-section label.disabled input { cursor: not-allowed; }
 .copy-section input[type="checkbox"], .copy-section input[type="radio"] { cursor: pointer; }
+.duplicate-report { width: 420px; }
+.duplicate-report-body { display: flex; gap: 16px; align-items: flex-start; margin-top: 12px; padding: 12px; background: #f4f8fb; border: 1px solid var(--amos-border); border-radius: 6px; }
+.duplicate-info-icon { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4a90d9, #1e5aa8); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; flex-shrink: 0; }
+.duplicate-report-text p { margin: 0 0 6px; font-size: 13px; }
+.duplicate-list { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: #2c486a; }
+.duplicate-list li { margin-bottom: 2px; }
 .open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }
 .open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
 .open-dialog .amos-field { margin-top: 12px; }
