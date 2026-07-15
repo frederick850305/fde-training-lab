@@ -506,15 +506,25 @@ export const db = reactive({
     { id: uid('hl'), date: '2026-07-04', workOrder: 'WO-260650', job: 'J-5001', jobState: 'PartlyDone', reportedBy: 'J. Smith', text: 'Emergency pump repair; awaiting spare mechanical seal.' },
     { id: uid('hl'), date: '2026-07-09', workOrder: 'WO-260701', job: 'J-5001', jobState: 'Completed', reportedBy: 'A. Admin', text: 'ME cylinder liner overhaul completed; counter updated.' },
   ],
+
+  // 手册 Working with Functions：Location 作为编码 + 描述的主数据，供 New Location / Function Location 等 lookup 使用
+  locations: [],
 })
+
+// 初始化 Location 主数据：从现有组件 / 功能位置的 location 字段派生，避免丢失已有位置
+if (!db.locations.length) {
+  db.locations = Array.from(
+    new Set([...db.components.map((c) => c.location), ...db.functions.map((f) => f.location)])
+  ).filter(Boolean).map((l) => ({ id: uid('loc'), code: l, description: l }))
+}
 
 // ===== 派生查询列表（供 Lookup 使用） =====
 export const lookups = {
   componentTypes: () => db.componentTypes.map((c) => ({ code: c.typeNumber, label: `${c.typeNumber} — ${c.name}` })),
   components: () => db.components.map((c) => ({ code: c.number, label: `${c.number} — ${c.name}` })),
   functions: () => db.functions.map((f) => ({ code: f.functionNo, label: `${f.functionNo} — ${f.description}` })),
-  // 手册 Working with Functions：Location 字段使用编码 + 描述的 lookup
-  locations: () => Array.from(new Set([...db.components.map((c) => c.location), ...db.functions.map((f) => f.location)])).filter(Boolean).map((l) => ({ code: l, label: l })),
+  // 手册 Working with Functions：Location 字段使用编码 + 描述的 lookup（来源：db.locations 主数据）
+  locations: () => db.locations.map((l) => ({ code: l.code, label: l.description && l.description !== l.code ? `${l.code} — ${l.description}` : l.code })),
   stockTypes: () => db.stockTypes.map((s) => ({ code: s.stockTypeNo, label: `${s.stockTypeNo} — ${s.description}` })),
   stockItems: () => db.stockItems.map((s) => ({ code: s.stockItemNo, label: `${s.stockItemNo} — ${s.description}` })),
   vendors: () => ['Wärtsilä Marine', 'Alfa Laval', 'Grundfos', 'Shell Marine', 'Tyco'],

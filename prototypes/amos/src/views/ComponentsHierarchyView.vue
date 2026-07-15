@@ -75,6 +75,9 @@ const findHits = ref([])
 // 展开/折叠状态独立于树结构，避免 computed 重建时丢失
 const expandedIds = ref(new Set())
 
+// 手册 P20：切换安装地点时清除选中（树数据由 roots computed 自动响应 store.installation）
+watch(() => store.installation, () => { selected.value = null })
+
 // ===== 构造树：Function 为父节点，Component 为子节点（按 functionNo 挂载）=====
 // 仅展示当前船（store.installation）的设备与功能位置
 const compByNo = computed(() => componentService.byNo())
