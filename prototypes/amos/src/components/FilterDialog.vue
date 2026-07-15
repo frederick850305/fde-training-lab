@@ -21,7 +21,7 @@
           <div class="ctrl">
             <select v-if="f.type === 'select'" v-model="model[f.key]" class="amos-select">
               <option value="">（全部）</option>
-              <option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
+              <option v-for="o in filterOptions(f)" :key="o" :value="o">{{ o }}</option>
             </select>
             <input v-else-if="f.type === 'date'" type="date" v-model="model[f.key]" class="amos-input" />
             <label v-else-if="f.type === 'checkbox'" class="row" style="gap:6px">
@@ -69,6 +69,7 @@
 import { reactive, ref, computed } from 'vue'
 import Modal from './Modal.vue'
 import { departments, DEPARTMENTS_BY_INSTALLATION, installations } from '../data/amosData.js'
+import { lookups } from '../mock/index.js'
 
 const props = defineProps({
   basic: { type: Array, default: () => [] },
@@ -91,6 +92,16 @@ const deptTree = computed(() =>
 )
 
 const selectedDeptCount = computed(() => (model._globalDepts || []).length)
+
+// 手册 P44-46：select 过滤器若带 lookupKey，则从对应 register（如 FunctionCriticality）读取选项
+function filterOptions(f) {
+  if (f.lookupKey) {
+    const fn = lookups[f.lookupKey]
+    const list = (fn ? fn(model) : []) || []
+    return list.map((o) => o.code)
+  }
+  return f.options || []
+}
 
 function isInstChecked(inst) {
   return inst.depts.every((d) => (model._globalDepts || []).includes(d.code))

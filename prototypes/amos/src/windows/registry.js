@@ -112,6 +112,8 @@ export const windowRegistry = {
     filterBasic: [
       { key: 'status', label: 'Status', type: 'select', options: ['In Use', 'Scrapped'] },
       { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
+      // 手册 P44：一旦 criticality 在使用中，可按 degree 在 Functions 窗口过滤
+      { key: 'criticality', label: 'Criticality', type: 'select', lookupKey: 'criticalities' },
     ],
     filterAdvanced: [{ key: 'functionNo', label: 'Function No.', type: 'text' }, { key: 'description', label: 'Description', type: 'text' }],
     columns: [
@@ -119,7 +121,8 @@ export const windowRegistry = {
       { key: 'description', label: 'Description' },
       { key: 'parentFunctionNo', label: 'Parent', width: '120px' },
       { key: 'status', label: 'Status', width: '90px', tag: true },
-      { key: 'criticality', label: 'Criticality', width: '100px' },
+      // 手册 P44：Criticality 列以颜色编码指示器显示（cell-criticality 插槽渲染）
+      { key: 'criticality', label: 'Criticality', width: '110px', criticality: true },
       { key: 'installedComponentId', label: 'Installed', width: '110px' },
     ],
     // 手册 Working with Functions：General 标签字段与截图示例一致
@@ -133,7 +136,8 @@ export const windowRegistry = {
           // 手册 2 / P38-39：状态为指示性，修改统一走 Options > Change Status 对话框
           { key: 'status', label: 'Status', type: 'readonly' },
           { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
-          { key: 'criticality', label: 'Criticality', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'] },
+          // 手册 P44-46：Criticality 下拉选项来自 FunctionCriticality 注册表
+          { key: 'criticality', label: 'Criticality', type: 'select', lookupKey: 'criticalities' },
           { key: 'installedComponentId', label: 'Component Performing the Function', type: 'component-performing' },
         ],
       },
@@ -780,6 +784,32 @@ export const windowRegistry = {
       noteTab('items', 'Items', '物品。'),
     ],
     options: [{ label: 'New Form', action: 'new-form' }, { label: 'Finalise Item', action: 'finalise' }],
+  },
+
+  // 手册 P44-46：Function Criticality 注册表（先定义 degree 列表 + 颜色编码指示器，再应用到 Functions / Functions Hierarchy）
+  'function-criticalities': {
+    windowTitle: 'Function Criticality',
+    dataKey: 'functionCriticalities',
+    statusField: 'code',
+    statusOptions: [],
+    filterBasic: [{ key: 'description', label: 'Description', type: 'text' }],
+    filterAdvanced: [],
+    columns: [
+      { key: 'code', label: 'Code', width: '120px' },
+      { key: 'description', label: 'Description', width: '160px' },
+      // Indicator 列以颜色块显示（cell-color 插槽渲染）
+      { key: 'color', label: 'Indicator', width: '100px', color: true },
+    ],
+    detailTabs: [
+      {
+        id: 'general', label: 'General', fields: [
+          { key: 'code', label: 'Code' },
+          { key: 'description', label: 'Description' },
+          { key: 'color', label: 'Colour-coded Indicator', type: 'color' },
+        ],
+      },
+    ],
+    options: [],
   },
 }
 

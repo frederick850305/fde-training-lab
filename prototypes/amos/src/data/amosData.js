@@ -37,6 +37,8 @@ const pageDefs = {
   'components-hierarchy': ['Components Hierarchy', '设备 / 部件树状结构（Toggle number 显示 SFI 编码）', 'P0', 'maintenance'],
   functions: ['Functions', '固定功能位置：主机系统、辅助锅炉等', 'P0', 'maintenance'],
   'functions-hierarchy': ['Functions Hierarchy', '固定功能位置树状结构（Toggle number 显示 SFI 编码）', 'P0', 'maintenance'],
+  // 手册 P44-46：Function Criticality 注册表（先定义 degree 列表 + 颜色编码指示器，再应用到 Functions / Functions Hierarchy）
+  'function-criticalities': ['Function Criticality', '关键性程度注册表：定义 degree 列表与颜色编码指示器', 'P2', 'maintenance'],
   'component-type-jobs': ['Component Type Jobs', '组件类型级别预防性维护作业', 'P1', 'maintenance'],
   'component-jobs': ['Component Jobs', '组件级别维护作业', 'P1', 'maintenance'],
   'job-planning': ['Job Planning', '周期 / 计数器 / 测点 / 触发式调度', 'P1', 'maintenance'],
@@ -104,6 +106,8 @@ export const menu = [
       { label: 'Lock Application', action: 'lock' },
       { label: 'Save', action: 'save' },
       { label: 'Close Window', action: 'close' },
+      // 手册 P44-46：File > Open Register > Maintenance > Function Criticality
+      { label: 'Open Register', action: 'open-register' },
       { label: 'Exit', action: 'exit' },
     ],
   },
@@ -115,6 +119,8 @@ export const menu = [
       { label: 'Components Hierarchy', page: 'components-hierarchy' },
       { label: 'Functions', page: 'functions' },
       { label: 'Functions Hierarchy', page: 'functions-hierarchy' },
+      // 手册 P44-46：Function Criticality 注册表入口
+      { label: 'Function Criticality', page: 'function-criticalities' },
       { label: 'Component Type Jobs', page: 'component-type-jobs' },
       { label: 'Component Jobs', page: 'component-jobs' },
       { label: 'Job Planning', page: 'job-planning' },

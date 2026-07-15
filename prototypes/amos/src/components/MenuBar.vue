@@ -47,6 +47,8 @@ function handle(it) {
     case 'lock': showToast('应用已锁定（原型演示）', 'warn'); break
     case 'save': window.dispatchEvent(new CustomEvent('amos-action', { detail: { action: 'save' } })); break
     case 'close': if (store.activeKey) closeTab(store.activeKey); break
+    // 手册 P44-46：File > Open Register > Maintenance > Function Criticality
+    case 'open-register': openWindow('function-criticalities'); break
     case 'exit': showToast('退出（原型演示）', 'info'); break
     case 'select-view': showDialog('select-view'); break
     case 'switch-department': showDialog('switch-department'); break

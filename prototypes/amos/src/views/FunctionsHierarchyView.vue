@@ -61,7 +61,7 @@
         </div></div>
         <div class="amos-field"><label>Criticality</label><div class="ctrl">
           <select class="amos-select" v-model="selected.criticality">
-            <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+            <option v-for="c in criticalityOptions" :key="c.code" :value="c.code">{{ c.label }}</option>
           </select>
         </div></div>
         <div class="amos-field"><label>Status</label><div class="ctrl"><input class="amos-input" :value="selected.status" readonly /></div></div>
@@ -316,6 +316,8 @@ const funcByNo = computed(() => functionService.byNo())
 const locationOptions = computed(() => lookups.locations())
 const allFunctionOptions = computed(() => lookups.functions())
 const parentOptions = computed(() => lookups.functions().filter((o) => o.code !== (selected.value && selected.value.functionNo)))
+// 手册 P44-46：Criticality 下拉选项来自 FunctionCriticality 注册表
+const criticalityOptions = computed(() => lookups.criticalities())
 
 function blankForm() {
   return { functionNo: '', description: '', reference: '', parentFunctionNo: '', location: 'Engine Room', criticality: 'Medium', status: 'In Use' }
@@ -330,7 +332,7 @@ const roots = computed(() => {
   const list = functionService.list().filter((f) => f.installation === store.installation)
   const nodes = {}
   list.forEach((f) => {
-    nodes[f.functionNo] = { id: 'fn:' + f.functionNo, type: 'function', no: f.functionNo, label: f.description, status: f.status, children: [] }
+    nodes[f.functionNo] = { id: 'fn:' + f.functionNo, type: 'function', no: f.functionNo, label: f.description, status: f.status, criticality: f.criticality, children: [] }
   })
   list.forEach((f) => {
     const node = nodes[f.functionNo]
