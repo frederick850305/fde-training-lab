@@ -100,8 +100,9 @@
                 </div>
               </template>
               <select v-else-if="f.type === 'select'" v-model="model[f.key]" class="amos-select" :disabled="f.readonly">
-                <option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
+                <option v-for="o in selectOptions(f)" :key="o" :value="o">{{ o }}</option>
               </select>
+              <input v-else-if="f.type === 'color'" type="color" v-model="model[f.key]" class="amos-color" :disabled="f.readonly" />
               <textarea v-else-if="f.type === 'textarea'" v-model="model[f.key]" class="amos-textarea" :readonly="f.readonly" />
               <input v-else-if="f.type === 'number'" type="number" v-model.number="model[f.key]" class="amos-input" :readonly="f.readonly" />
               <input v-else-if="f.type === 'date'" type="date" v-model="model[f.key]" class="amos-input" :readonly="f.readonly" />
@@ -224,6 +225,15 @@ function lookupNameOf(lookupKey, code) {
   if (!found) return ''
   const prefix = code + ' — '
   return found.label.startsWith(prefix) ? found.label.slice(prefix.length) : found.label
+}
+// 手册 P44-46：select 字段若带 lookupKey，则从对应 register（如 FunctionCriticality）读取选项
+function selectOptions(f) {
+  if (f.lookupKey) {
+    const fn = lookups[f.lookupKey]
+    const list = (fn ? fn(props.model) : []) || []
+    return list.map((o) => o.code)
+  }
+  return f.options || []
 }
 const lookupField = ref(null)
 const lookupOptions = ref([])
@@ -368,6 +378,7 @@ function onSubResizeEnd() {
 .cell-ro { display: inline-block; padding: 2px 4px; color: var(--amos-text-soft); }
 .cell-lookup .amos-input { flex: 1; min-width: 0; }
 .amos-input.sm, .amos-select.sm { width: 100%; min-width: 60px; padding: 3px 5px; font-size: 12px; }
+.amos-color { width: 48px; height: 28px; padding: 2px; border: 1px solid var(--amos-border); border-radius: 4px; background: #fff; cursor: pointer; }
 .amos-btn.xs { padding: 3px 8px; font-size: 11.5px; }
 .amos-btn.danger { color: #b3261e; }
 .amos-btn.xs.danger:hover { background: #fdecea; }

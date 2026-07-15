@@ -213,11 +213,21 @@ export const db = reactive({
     { id: uid('csl'), componentId: 'co_3001', componentNo: 'C-30001', componentName: 'SW Valve V-7', oldStatus: 'In Use', newStatus: 'Scrapped', changedBy: 'A. Admin', changedAt: '2025-09-30', reason: 'Manual change (Options > Change Status)' },
   ],
 
+  // 手册 P44-46：Function Criticality 注册表（degree 列表 + 颜色编码指示器）。
+  // 先在此定义可用的关键性程度（Description + colour-coded Indicator），再在 Functions / Functions Hierarchy 窗口应用到功能位置。
+  // 手册 P44 截图示例值：High / Low / Medium / Not defined。
+  functionCriticalities: [
+    { id: uid('fc'), code: 'High', description: 'High', color: '#e74c3c' },
+    { id: uid('fc'), code: 'Medium', description: 'Medium', color: '#f39c12' },
+    { id: uid('fc'), code: 'Low', description: 'Low', color: '#27ae60' },
+    { id: uid('fc'), code: 'Not defined', description: 'Not defined', color: '#bdc3c7' },
+  ],
+
   // 指南（手册 2.3）：功能位置状态为 In Use / Scrapped
   // 字段对齐手册「Working with Functions」：General / Details / Additional Info / Financial Info / Counters / Rotation Log
   functions: [
     // ===== MV Traveller（散货船）功能位置树 =====
-    FN({ installation: 'Traveller', functionNo: 'FN-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours',
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'High', counter: 'Running Hours',
       sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', remarks: '主机系统功能位置', serialNo: 'WS-77412', maker: 'Wärtsilä', model: 'RT-flex', tagNo: 'ME-01',
       assetValue: 2500000, acquisitionDate: '2018-05-01', currency: 'USD', depreciation: 0,
       functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 48230 }],
@@ -245,11 +255,11 @@ export const db = reactive({
       sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-10020', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-09-10' }] }),
     FN({ installation: 'Traveller', functionNo: 'FN-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10030', criticality: 'Medium', counter: 'Running Hours',
       sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-10030', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-09-10' }] }),
-    FN({ installation: 'Traveller', functionNo: 'FN-ENG-40', description: 'Steering Gear', reference: 'STR', parentFunctionNo: '', status: 'In Use', location: 'Steering Flat', department: 'Deck', installedComponentId: 'C-10040', criticality: 'Critical', counter: 'Ram Stroke',
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-40', description: 'Steering Gear', reference: 'STR', parentFunctionNo: '', status: 'In Use', location: 'Steering Flat', department: 'Deck', installedComponentId: 'C-10040', criticality: 'High', counter: 'Ram Stroke',
       sfiCode: '27000000', system: 'Hull', subSystem: 'Steering', tagNo: 'STR-1', rotationLog: [{ componentNo: 'C-10040', componentName: 'Steering Gear', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
     FN({ installation: 'Traveller', functionNo: 'FN-ENG-50', description: 'Central Cooling Heat Exchanger', reference: 'CC', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10050', criticality: 'Medium', counter: 'Running Hours',
       sfiCode: '26000000', system: 'Machinery', subSystem: 'Cooling', tagNo: 'CC-1', rotationLog: [{ componentNo: 'C-10050', componentName: 'Central Cooling Heat Exchanger', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
-    FN({ installation: 'Traveller', functionNo: 'FN-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-10060', criticality: 'Critical', counter: 'Load Current',
+    FN({ installation: 'Traveller', functionNo: 'FN-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-10060', criticality: 'High', counter: 'Load Current',
       sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-10060', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
     FN({ installation: 'Traveller', functionNo: 'FN-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-10070', criticality: 'High', counter: 'Running Hours',
       sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-10070', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
@@ -267,7 +277,7 @@ export const db = reactive({
       sfiCode: '91000000', system: 'Lifesaving', subSystem: 'Lifeboat', tagNo: 'LB-1', rotationLog: [{ componentNo: 'C-10130', componentName: 'Lifeboat', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
 
     // ===== MV Voyager（集装箱船）功能位置树 =====
-    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1001', criticality: 'Critical', counter: 'Running Hours',
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1001', criticality: 'High', counter: 'Running Hours',
       sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', tagNo: 'ME-01', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 61020 }], rotationLog: [{ componentNo: 'C-VOY-1001', componentName: 'ME Cylinder #1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
     FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-VOY-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1002', criticality: 'High', counter: 'Fired Hours',
       sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', tagNo: 'AB-A', rotationLog: [{ componentNo: 'C-VOY-1002', componentName: 'Aux Boiler A', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
@@ -279,7 +289,7 @@ export const db = reactive({
       sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-VOY-1005', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
     FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1006', criticality: 'Medium', counter: 'Running Hours',
       sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-VOY-1006', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
-    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-VOY-1007', criticality: 'Critical', counter: 'Load Current',
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-VOY-1007', criticality: 'High', counter: 'Load Current',
       sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-VOY-1007', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
     FN({ installation: 'Voyager', functionNo: 'FN-VOY-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-VOY-1008', criticality: 'High', counter: 'Running Hours',
       sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-VOY-1008', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
@@ -297,7 +307,7 @@ export const db = reactive({
       sfiCode: '91000000', system: 'Lifesaving', subSystem: 'Lifeboat', tagNo: 'LB-1', rotationLog: [{ componentNo: 'C-VOY-1014', componentName: 'Lifeboat', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
 
     // ===== MV Endeavour（油轮）功能位置树 =====
-    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1001', criticality: 'Critical', counter: 'Running Hours',
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1001', criticality: 'High', counter: 'Running Hours',
       sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', tagNo: 'ME-01', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 52410 }], rotationLog: [{ componentNo: 'C-END-1001', componentName: 'ME Cylinder #1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
     FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-END-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1002', criticality: 'High', counter: 'Fired Hours',
       sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', tagNo: 'AB-A', rotationLog: [{ componentNo: 'C-END-1002', componentName: 'Aux Boiler A', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
@@ -309,9 +319,9 @@ export const db = reactive({
       sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-END-1005', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
     FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1006', criticality: 'Medium', counter: 'Running Hours',
       sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-END-1006', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
-    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-40', description: 'Cargo Oil Pump', reference: 'COP', parentFunctionNo: '', status: 'In Use', location: 'Pump Room', department: 'Cargo', installedComponentId: 'C-END-1007', criticality: 'Critical', counter: 'Running Hours',
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-40', description: 'Cargo Oil Pump', reference: 'COP', parentFunctionNo: '', status: 'In Use', location: 'Pump Room', department: 'Cargo', installedComponentId: 'C-END-1007', criticality: 'High', counter: 'Running Hours',
       sfiCode: '62000000', system: 'Cargo', subSystem: 'Cargo Oil', tagNo: 'COP-1', rotationLog: [{ componentNo: 'C-END-1007', componentName: 'Cargo Oil Pump', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
-    FN({ installation: 'Endeavour', functionNo: 'FN-END-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-END-1008', criticality: 'Critical', counter: 'Load Current',
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-END-1008', criticality: 'High', counter: 'Load Current',
       sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-END-1008', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
     FN({ installation: 'Endeavour', functionNo: 'FN-END-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-END-1009', criticality: 'High', counter: 'Running Hours',
       sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-END-1009', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
@@ -555,6 +565,8 @@ export const lookups = {
     const ct = db.componentTypes.find((x) => x.typeNumber === (model && model.targetId))
     return (ct?.measurePointDefs || []).map((m) => ({ code: m.code, label: `${m.code} — ${m.description}` }))
   },
+  // 手册 P44-46：Function Criticality 注册表（degree 列表 + 颜色），驱动 Criticality 下拉与颜色编码指示器
+  criticalities: () => db.functionCriticalities.map((c) => ({ code: c.code, label: c.description, color: c.color })),
 }
 
 // ===== Dashboard 告警 / 通知（从 db 动态计算，确保双击跳转后数据一致） =====

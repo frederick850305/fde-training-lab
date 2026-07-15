@@ -291,7 +291,18 @@
           :group-by="config.groupBy || ''"
           @select="onSelect"
           @open="onOpen"
-        />
+        >
+          <!-- 手册 P44-46：Criticality 列以颜色编码指示器显示 -->
+          <template #cell-criticality="{ row, value }">
+            <span class="crit-indicator" :style="{ background: critColor(value) }" :title="'Criticality: ' + (value || '—')" />
+            <span class="crit-text">{{ value || '—' }}</span>
+          </template>
+          <!-- 手册 P44-46：注册表 Indicator 列以颜色块显示 -->
+          <template #cell-color="{ value }">
+            <span class="crit-indicator" :style="{ background: value }" :title="value" />
+            <span class="crit-text">{{ value }}</span>
+          </template>
+        </RecordList>
       </section>
 
       <!-- 右：明细标签页 -->
@@ -350,6 +361,13 @@ import { windowRegistry } from '../windows/registry.js'
 import { matchRow, matchPlanning } from '../utils/filter.js'
 import { departments } from '../data/amosData.js'
 
+// 手册 P44-46：根据 criticality degree 在 FunctionCriticality 注册表中查对应颜色编码指示器
+function critColor(val) {
+  const list = lookups.criticalities()
+  const found = list.find((c) => c.code === val)
+  return found ? found.color : '#bdc3c7'
+}
+
 const config = computed(() => windowRegistry[store.activeKey] || null)
 
 // Options 菜单项：对系统参数类开关（toggle）附上当前状态（✓）；
@@ -377,7 +395,7 @@ const rowKey = computed(() => {
 })
 const detailTitleKey = computed(() => {
   const d = config.value?.dataKey
-  return { componentTypes: 'typeNumber', components: 'number', functions: 'functionNo', jobs: 'jobNo', workOrders: 'workOrderNo', stockTypes: 'stockTypeNo', stockItems: 'stockItemNo', purchaseForms: 'formNo', budgets: 'code', vouchers: 'voucherNo' }[d] || 'id'
+  return { componentTypes: 'typeNumber', components: 'number', functions: 'functionNo', jobs: 'jobNo', workOrders: 'workOrderNo', stockTypes: 'stockTypeNo', stockItems: 'stockItemNo', purchaseForms: 'formNo', budgets: 'code', vouchers: 'voucherNo', functionCriticalities: 'code' }[d] || 'id'
 })
 
 const dbRows = computed(() => {
@@ -1136,6 +1154,9 @@ watch(showOpenDialog, (v) => {
 
 <style scoped>
 .biz-win { display: flex; flex-direction: column; height: 100%; }
+/* 手册 P44-46：Functions 列表视图 Criticality 列的颜色编码指示器 */
+.crit-indicator { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08) inset; }
+.crit-text { color: #2c3e50; }
 .bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); }
 .bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
 .bw-body { flex: 1; display: grid; grid-template-columns: minmax(640px, 1.4fr) 1fr; min-height: 0; }
