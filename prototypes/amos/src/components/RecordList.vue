@@ -26,30 +26,38 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="row in filtered"
-            :key="rowId(row)"
-            :class="{ selected: rowId(row) === selectedId }"
-            @click="select(row)"
-            @dblclick="$emit('open', row)"
-          >
-            <td v-if="selectable" class="col-check" @click.stop>
-              <input type="checkbox" :checked="checkedSet.has(rowId(row))" @change="toggle(row)" />
-            </td>
-            <td
-              v-for="c in columns"
-              :key="c.key"
-              :style="colStyle(c)"
-              :class="{ num: c.align === 'right' }"
+          <template v-for="grp in grouped" :key="grp.key || 'all'">
+            <tr v-if="grp.label" class="grp-header">
+              <td :colspan="groupColspan">
+                <span class="grp-title">{{ grp.label }}</span>
+                <span class="grp-count">{{ grp.rows.length }}</span>
+              </td>
+            </tr>
+            <tr
+              v-for="row in grp.rows"
+              :key="rowId(row)"
+              :class="{ selected: rowId(row) === selectedId }"
+              @click="select(row)"
+              @dblclick="$emit('open', row)"
             >
-              <slot :name="'cell-' + c.key" :row="row" :value="row[c.key]">
-                <span v-if="c.tag" :class="['tag', tagClass(row[c.key])]">{{ row[c.key] }}</span>
-                <span v-else>{{ row[c.key] }}</span>
-              </slot>
-            </td>
-          </tr>
+              <td v-if="selectable" class="col-check" @click.stop>
+                <input type="checkbox" :checked="checkedSet.has(rowId(row))" @change="toggle(row)" />
+              </td>
+              <td
+                v-for="c in columns"
+                :key="c.key"
+                :style="colStyle(c)"
+                :class="{ num: c.align === 'right' }"
+              >
+                <slot :name="'cell-' + c.key" :row="row" :value="row[c.key]">
+                  <span v-if="c.tag" :class="['tag', tagClass(row[c.key])]">{{ row[c.key] }}</span>
+                  <span v-else>{{ row[c.key] }}</span>
+                </slot>
+              </td>
+            </tr>
+          </template>
           <tr v-if="!filtered.length">
-            <td :colspan="columns.length + (selectable ? 1 : 0)" class="muted" style="text-align:center;padding:18px">无记录（点击 New 或调整 Filter）</td>
+            <td :colspan="groupColspan" class="muted" style="text-align:center;padding:18px">无记录（点击 New 或调整 Filter）</td>
           </tr>
         </tbody>
       </table>
@@ -59,6 +67,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { installations } from '../data/amosData.js'
 
 const props = defineProps({
   columns: { type: Array, required: true },
@@ -67,6 +76,8 @@ const props = defineProps({
   selectable: { type: Boolean, default: false },
   checked: { type: Array, default: () => [] },
   preselectId: { type: String, default: '' },
+  // 手册 Fleet 场景：按某字段（如 installation = 船）对列表分组，每组前插入不可选中的分组标题行
+  groupBy: { type: String, default: '' },
 })
 const emit = defineEmits(['select', 'open', 'update:checked'])
 
@@ -146,6 +157,30 @@ const filtered = computed(() => {
 const checkedList = computed(() => props.rows.filter((r) => checkedSet.value.has(rowId(r))))
 const allChecked = computed(() => filtered.value.length > 0 && filtered.value.every((r) => checkedSet.value.has(rowId(r))))
 
+// ===== 按船（或其他字段）分组显示 =====
+const installationName = (code) => (installations.find((i) => i.code === code)?.name) || code || '未分配船'
+// 分组顺序跟随 installations 定义（Traveller → Voyager → Endeavour），未识别的船排在最后
+const grouped = computed(() => {
+  const list = filtered.value
+  if (!props.groupBy) return [{ key: '', label: '', rows: list }]
+  const order = installations.map((i) => i.code)
+  const map = new Map()
+  list.forEach((r) => {
+    const k = r[props.groupBy] || ''
+    if (!map.has(k)) map.set(k, [])
+    map.get(k).push(r)
+  })
+  const keys = [...map.keys()].sort((a, b) => {
+    const ia = order.indexOf(a), ib = order.indexOf(b)
+    if (ia < 0 && ib < 0) return String(a) < String(b) ? -1 : 1
+    if (ia < 0) return 1
+    if (ib < 0) return -1
+    return ia - ib
+  })
+  return keys.map((k) => ({ key: k, label: installationName(k), rows: map.get(k) }))
+})
+const groupColspan = computed(() => props.columns.length + (props.selectable ? 1 : 0))
+
 function emitChecked() { emit('update:checked', [...checkedSet.value]) }
 function toggle(row) {
   const k = rowId(row)
@@ -193,11 +228,15 @@ defineExpose({ clearSelection, selectedId })
 .rl-scroll { flex: 1; overflow: auto; border: 1px solid var(--amos-border); border-radius: 6px; background: #fff; }
 .col-check { width: 34px; text-align: center; }
 .sort-caret { font-size: 9px; color: var(--amos-blue); margin-left: 3px; }
-/* 列表表格按列宽紧凑显示，避免单一列被无限拉伸（默认宽度太长） */
-.amos-grid { width: auto; max-width: 100%; }
+/* 列表表格按列宽自然扩展，列宽总和超出容器时显示横向滚动条，避免固定宽度的列被压缩导致内容截断 */
+.amos-grid { width: auto; min-width: 100%; }
 /* 列宽调整手柄 */
 .col-resize { position: absolute; right: 0; top: 4px; bottom: 4px; width: 5px; cursor: col-resize; }
 .col-resize::after { content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px; background: var(--amos-border); opacity: 0; transition: opacity .15s; }
 .col-resize:hover::after, .col-resize.active::after { opacity: 1; background: var(--amos-blue); }
 .amos-grid thead th { position: relative; }
+/* 按船分组：分组标题行（不可选中），清晰区分不同 Installation */
+.grp-header td { background: linear-gradient(180deg, #eaf1f9, #e1ebf5); border-top: 1px solid var(--amos-border); padding: 5px 10px; }
+.grp-title { font-weight: 700; color: #2c486a; font-size: 12.5px; }
+.grp-count { margin-left: 8px; font-size: 11px; color: #6b7c92; background: #fff; border: 1px solid var(--amos-border); border-radius: 999px; padding: 0 8px; }
 </style>

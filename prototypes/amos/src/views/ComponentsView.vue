@@ -3,7 +3,7 @@
     <div class="bw-head">
       <h2>Components</h2>
       <span v-if="globalMode" class="scope-badge global-badge" title="手册 P21-23：Global 模式 — 跨 Department 搜索">🌐 Global：{{ globalDepts.length }} Dept</span>
-      <span v-else class="scope-badge" title="手册 P20：窗口仅显示当前 Department 范围内的记录">范围：{{ store.department }}</span>
+      <span v-else class="scope-badge" title="按当前 Installation（船）和 Department 过滤，结果按船分组显示">范围：{{ store.department }} / {{ store.installation }}（按船分组）</span>
       <div class="row" style="gap:6px">
         <button class="amos-btn sm" @click="reopenFilter">查找 / Find</button>
         <button class="amos-btn sm primary" @click="doNew">New</button>
@@ -110,7 +110,7 @@
 
     <div v-else class="bw-body">
       <section class="bw-list">
-        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" @select="onSelect" @open="onOpen">
+        <RecordList ref="listRef" :columns="columns" :rows="viewRows" row-key="id" group-by="installation" @select="onSelect" @open="onOpen">
           <!-- 手册 P23：Global 模式下 Co 列显示组件原属部门（_instDept） -->
           <template #cell-department="{ row }">
             {{ globalMode ? (row._instDept || row.department) : row.department }}
@@ -495,6 +495,7 @@ function removeCounter(code) {
 
 // 不再于 activeKey 变化时硬重置；改用 onActivated：仅当存在 presetFilter（View 跳转 / Dashboard 告警带入）时才应用，否则保留窗口上下文
 watch(() => store.department, () => { selected.value = null; applyPreset() })
+watch(() => store.installation, () => { selected.value = null; applyPreset() })
 
 function applyPreset() {
   if (store.presetFilter) { applyFilter(store.presetFilter); setPresetFilter(null) }
@@ -506,7 +507,8 @@ function applyPreset() {
   }
 }
 
-// 手册 P21-23：Global 模式下按选中的 Dept 过滤（跨 Dept）；普通模式用 scopeByDepartment
+// 普通模式：同时按当前 Installation（船）和 Department 过滤，
+// 列表仍按 installation 分组显示（单船时仅显示该船分组）；Global 模式仍按选中 Dept 跨船过滤。
 function scopeRows(rows) {
   if (globalMode.value && globalDepts.value.length) {
     return rows.filter((r) => !r.department || globalDepts.value.includes(r.department))
@@ -630,7 +632,7 @@ async function newWO() {
 }
 function doNew() {
   // 新建组件尚未安装到 function，状态按手册推导为 Available
-  const rec = { id: 'new_' + Date.now(), number: 'C-' + Math.floor(Math.random() * 90000 + 10000), name: '', typeNumber: '', status: 'Available', maker: '', type: '', serialNo: '', location: '', department: store.department, functionNo: '', vendor: '', parentComponent: '', installDate: '' }
+  const rec = { id: 'new_' + Date.now(), number: 'C-' + Math.floor(Math.random() * 90000 + 10000), name: '', typeNumber: '', status: 'Available', maker: '', type: '', serialNo: '', location: '', department: store.department, installation: store.installation, functionNo: '', vendor: '', parentComponent: '', installDate: '' }
   all.value.push(rec); viewRows.value = [...viewRows.value, rec]; selected.value = rec
   showToast('已新建组件，编辑后 Save', 'ok')
 }

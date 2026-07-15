@@ -105,6 +105,8 @@ export const windowRegistry = {
   functions: {
     windowTitle: 'Functions',
     dataKey: 'functions',
+    // 手册 Fleet 场景：列表按船（Installation）分组显示
+    groupBy: 'installation',
     statusField: 'status',
     statusOptions: ['In Use', 'Scrapped'],
     filterBasic: [
@@ -127,12 +129,12 @@ export const windowRegistry = {
           { key: 'functionNo', label: 'Function No.' },
           { key: 'description', label: 'Description' },
           { key: 'reference', label: 'Reference' },
-          { key: 'parentFunctionNo', label: 'Parent Function', type: 'lookup', lookupKey: 'functions' },
+          { key: 'parentFunctionNo', label: 'Parent Function', type: 'lookup-with-name', lookupKey: 'functions' },
           // 手册 2 / P38-39：状态为指示性，修改统一走 Options > Change Status 对话框
           { key: 'status', label: 'Status', type: 'readonly' },
           { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
           { key: 'criticality', label: 'Criticality', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'] },
-          { key: 'installedComponentId', label: 'Component Performing the Function', type: 'lookup', lookupKey: 'components' },
+          { key: 'installedComponentId', label: 'Component Performing the Function', type: 'component-performing' },
         ],
       },
       // 手册 Working with Functions：Details 标签
@@ -172,17 +174,18 @@ export const windowRegistry = {
           { key: 'lastValue', label: 'Last Reading', type: 'number', width: '110px', default: 0 },
         ],
       },
-      // 手册 Working with Functions：Rotation Log 标签（组件安装 / 拆卸历史，可维护）
+      // 手册 Working with Functions：Rotation Log 标签（组件安装 / 拆卸历史，只读）
       // 手册 P40：选择一行并点击 Notes 按钮可查看安装 / 拆卸时登记的 Details 评论
       {
-        id: 'rotation', label: 'Rotation Log', type: 'subgrid', subKey: 'rotationLog',
+        id: 'rotation', label: 'Rotation Log', type: 'rotation-log', sourceKey: 'rotationLog',
         subActions: [{ id: 'notes', label: 'Notes' }],
         columns: [
-          { key: 'componentNo', label: 'Component', width: '120px', default: '' },
-          { key: 'action', label: 'Action', width: '100px', default: '' },
-          { key: 'performedBy', label: 'By', width: '100px', default: '' },
-          { key: 'performedAt', label: 'Date', type: 'date', width: '120px', default: '' },
-          { key: 'details', label: 'Details', width: '220px', readonly: true, default: '' },
+          { key: 'componentNo', label: 'Component No.', width: '120px' },
+          { key: 'componentName', label: 'Component Name', width: '180px' },
+          { key: 'installedAt', label: 'Installed', width: '110px' },
+          { key: 'installedBy', label: 'Installed By', width: '120px' },
+          { key: 'removedAt', label: 'Removed', width: '110px' },
+          { key: 'removedBy', label: 'Removed By', width: '120px' },
         ],
       },
       // 手册 P40 step 5：只读的 Installed Component 标签，显示当前执行该功能位置的组件字段详情

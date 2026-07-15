@@ -64,4 +64,19 @@ export const workOrderService = {
     if (i >= 0) db.workOrders.splice(i, 1)
     return { ok: true }
   },
+  // 手册 P42 Removing a Component from a Function：
+  // 若拆卸时组件被置为 Scrapped / Transferred，所有未开始（outstanding）的工单都会被取消，
+  // 但“已上报开始（Started）”的工单例外——这些工单仍可继续上报直至 Completed。
+  // 返回被取消的工单编号列表（供 UI 提示）。
+  async cancelOutstandingForComponent(componentNo, { exceptStarted = true } = {}) {
+    const cancelled = []
+    db.workOrders.forEach((w) => {
+      if (w.componentId !== componentNo) return
+      if (['Completed', 'Cancelled'].includes(w.status)) return
+      if (exceptStarted && w.status === 'Started') return
+      w.status = 'Cancelled'
+      cancelled.push(w.workOrderNo)
+    })
+    return cancelled
+  },
 }

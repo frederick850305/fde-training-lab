@@ -261,6 +261,7 @@
           :rows="viewRows"
           :row-key="rowKey"
           :preselect-id="listPreselectId"
+          :group-by="config.groupBy || ''"
           @select="onSelect"
           @open="onOpen"
         />
@@ -573,7 +574,7 @@ function openRemove() {
 async function confirmRemove() {
   const fn = selected.value
   if (!fn) return
-  await functionService.removeComponent(fn.functionNo, {
+  const res = await functionService.removeComponent(fn.functionNo, {
     newLocation: removeState.newLocation,
     status: removeState.status,
     details: removeState.details,
@@ -581,7 +582,16 @@ async function confirmRemove() {
   })
   removeDialog.value = false
   const extra = removeState.cascadeSubFunctions ? '（含子功能位置）' : ''
-  showToast(`已从 ${fn.functionNo} 拆卸组件${extra}`, 'ok')
+  let msg = `已从 ${fn.functionNo} 拆卸组件${extra}`
+  // 手册 P42：Scrapped / Transferred 时取消未开始工单；已 Started 的工单保留
+  if (res?.cancelledWorkOrders?.length) {
+    msg += `；已取消 ${res.cancelledWorkOrders.length} 张未开始工单（${res.cancelledWorkOrders.join(', ')}）`
+  }
+  // 手册 P42 Note：依赖该组件的轮次作业随拆卸停用
+  if (res?.deactivatedRoundJobs?.length) {
+    msg += `；${res.deactivatedRoundJobs.length} 个轮次作业已停用（${res.deactivatedRoundJobs.join(', ')}）`
+  }
+  showToast(msg, 'ok')
   applyFilter({})
 }
 
@@ -1075,7 +1085,7 @@ watch(showOpenDialog, (v) => {
 .biz-win { display: flex; flex-direction: column; height: 100%; }
 .bw-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--amos-border); }
 .bw-head h2 { margin: 0; font-size: 15px; color: #2c486a; }
-.bw-body { flex: 1; display: grid; grid-template-columns: 1.4fr 1fr; min-height: 0; }
+.bw-body { flex: 1; display: grid; grid-template-columns: minmax(640px, 1.4fr) 1fr; min-height: 0; }
 .bw-list { border-right: 1px solid var(--amos-border); padding: 8px; min-height: 0; min-width: 0; display: flex; }
 .bw-list > * { flex: 1; }
 .bw-detail { padding: 10px; overflow: auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }

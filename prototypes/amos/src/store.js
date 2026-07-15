@@ -97,10 +97,15 @@ export function setDepartment(code) {
 
 // 手册 P20（Installations and Departments）：department 是工作范围(scope)。
 // 带 department 标签的记录必须匹配当前 department 才显示；无标签（类型/模板/作业）始终显示。
+// 同时按当前船（Installation）过滤：带 installation 字段的记录（functions / components）仅显示当前船。
 export function scopeByDepartment(rows) {
   const dept = store.department
-  if (!dept) return rows
-  return rows.filter((r) => !r.department || r.department === dept)
+  const inst = store.installation
+  return rows.filter((r) => {
+    if (dept && r.department && r.department !== dept) return false
+    if (inst && r.installation && r.installation !== inst) return false
+    return true
+  })
 }
 
 // 延迟引入，避免循环依赖

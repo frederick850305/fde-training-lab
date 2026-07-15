@@ -65,7 +65,7 @@ import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
 import { componentService } from '../services/componentService.js'
 import { functionService } from '../services/functionService.js'
-import { openWindow, showToast, setPresetFilter } from '../store.js'
+import { store, openWindow, showToast, setPresetFilter } from '../store.js'
 
 const showNumber = ref(true)
 const selected = ref(null)
@@ -76,21 +76,25 @@ const findHits = ref([])
 const expandedIds = ref(new Set())
 
 // ===== 构造树：Function 为父节点，Component 为子节点（按 functionNo 挂载）=====
+// 仅展示当前船（store.installation）的设备与功能位置
 const compByNo = computed(() => componentService.byNo())
 const funcByNo = computed(() => functionService.byNo())
 
 const roots = computed(() => {
+  const inst = store.installation
+  const funcs = functionService.list().filter((f) => f.installation === inst)
+  const comps = componentService.listSync().filter((c) => c.installation === inst)
   const funcNodes = {}
-  functionService.list().forEach((f) => {
+  funcs.forEach((f) => {
     funcNodes[f.functionNo] = { id: 'fn:' + f.functionNo, type: 'function', no: f.functionNo, label: f.description, status: f.status, children: [] }
   })
   const compNodes = {}
-  componentService.listSync().forEach((c) => {
+  comps.forEach((c) => {
     compNodes[c.number] = { id: 'co:' + c.number, type: 'component', no: c.number, label: c.name, status: c.status, parent: c.parentComponent, fn: c.functionNo, children: [] }
   })
   const result = []
   // 部件按 parentComponent 嵌套
-  componentService.listSync().forEach((c) => {
+  comps.forEach((c) => {
     const node = compNodes[c.number]
     if (c.parentComponent && compNodes[c.parentComponent]) compNodes[c.parentComponent].children.push(node)
     else if (c.functionNo && funcNodes[c.functionNo]) funcNodes[c.functionNo].children.push(node)
@@ -129,7 +133,7 @@ function onToggle(id) {
 }
 // 初始化：Function 节点默认展开
 onMounted(() => {
-  expandedIds.value = new Set(functionService.list().map((f) => 'fn:' + f.functionNo))
+  expandedIds.value = new Set(functionService.list().filter((f) => f.installation === store.installation).map((f) => 'fn:' + f.functionNo))
 })
 function openComponent(no) {
   setPresetFilter({ number: no })
@@ -163,7 +167,7 @@ function jumpTo(h) {
 function onKey(e) { if (e.key === 'F3') { e.preventDefault(); onFind() } }
 onMounted(() => {
   // 初始化：Function 节点默认展开
-  expandedIds.value = new Set(functionService.list().map((f) => 'fn:' + f.functionNo))
+  expandedIds.value = new Set(functionService.list().filter((f) => f.installation === store.installation).map((f) => 'fn:' + f.functionNo))
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
