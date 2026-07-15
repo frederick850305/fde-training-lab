@@ -182,7 +182,12 @@ export const windowRegistry = {
         ],
       },
     ],
-    options: [{ label: 'Install Component', action: 'install-component' }, { label: 'Remove Component', action: 'remove-component' }],
+    options: [
+      { label: 'Install Component', action: 'install-component' },
+      { label: 'Remove Component', action: 'remove-component' },
+      // 手册 Copying Functions to Other Departments：Options > Copy Functions
+      { label: 'Copy Functions', action: 'copy-functions' },
+    ],
   },
 
   'component-type-jobs': {
