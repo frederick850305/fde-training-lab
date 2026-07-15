@@ -48,6 +48,17 @@ export const counterService = {
     })
   },
 
+  // 手册 Function Counters：组件安装所在 function 的同 description 计数器，随组件读数增量同步递增
+  // （组件与 function 计数器的 code 命名可能不同，但 description 一致，故以 description 匹配）
+  _syncFunctionCounter(comp, description, delta) {
+    if (!comp || !comp.functionNo || !delta) return
+    const fn = db.functions.find((f) => f.functionNo === comp.functionNo)
+    if (!fn) return
+    fn.functionCounters = fn.functionCounters || []
+    const fc = fn.functionCounters.find((c) => c.description === description)
+    if (fc) fc.lastValue = (fc.lastValue || 0) + delta
+  },
+
   // 手册 3（Update Counters）：记录一次读数——回写组件 componentCounters 当前值，并级联依赖组件
   recordReading(rec) {
     const comp = db.components.find((c) => c.number === rec.component)
@@ -59,11 +70,15 @@ export const counterService = {
     }
     const cc = (comp.componentCounters || []).find((c) => c.description === rec.counter)
     if (cc) {
+      const oldValue = cc.currentValue
       cc.currentValue = rec.newValue != null ? rec.newValue : rec.currentValue
+      const delta = cc.currentValue - oldValue
       cc.latestZeroedDate = rec.readingDate || cc.latestZeroedDate
       cc.average = calcAverage(cc.currentValue, comp.installDate, cc.latestZeroedDate)
       // 同步所有依赖本组件该计数器的其它组件（手册 P44：Counters Dependent on Other Components' Counters）
       this._syncDependents(rec.component, cc.code, cc.currentValue, cc.latestZeroedDate)
+      // 手册 Function Counters：组件读数更新 → 所属 function 的同 description 计数器同步递增相同增量
+      this._syncFunctionCounter(comp, cc.description, delta)
     }
     // 追加一条只读历史日志
     db.counterLogs.push({
