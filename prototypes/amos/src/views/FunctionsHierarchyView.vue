@@ -19,6 +19,8 @@
             <button @click="openInstall" :disabled="!!selected?.installedComponentId">Install Component</button>
             <button @click="openRemove" :disabled="!selected?.installedComponentId">Remove Component</button>
             <button @click="openChangeStatus" :disabled="!!selected?.installedComponentId">Change Status</button>
+            <!-- 手册 Function Counters：Functions Hierarchy > Options > Function Counters -->
+            <button @click="openFuncCounters">Function Counters</button>
             <!-- 手册 P41 末尾：Function Hierarchy Options 菜单的 Component / History -->
             <button @click="openCompInfo" :disabled="!selected?.installedComponentId">Component</button>
             <button @click="openHistory" :disabled="!selected?.installedComponentId">History</button>
@@ -250,12 +252,39 @@
       </template>
     </Modal>
 
+    <!-- Function Counters 对话框（手册 Function Counters：Functions Hierarchy > Options > Function Counters） -->
+    <Modal v-if="funcCountersOpen" title="Function Counters" width="560px" @close="funcCountersOpen = false">
+      <p class="muted">功能位置：<b>{{ selected?.functionNo }}</b>　可在此维护该功能位置的计数器（累计读数）。</p>
+      <div class="subgrid-bar" style="margin:8px 0">
+        <button class="amos-btn xs primary" @click="addFuncCounter">New</button>
+        <span class="muted">{{ funcCounterRows.length }} 条记录</span>
+      </div>
+      <table class="amos-grid sub" v-if="funcCounterRows.length">
+        <thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Last Reading</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="(r, i) in funcCounterRows" :key="i">
+            <td><input class="amos-input sm" v-model="r.code" /></td>
+            <td><input class="amos-input sm" v-model="r.description" /></td>
+            <td><input class="amos-input sm" v-model="r.unit" style="width:60px" /></td>
+            <td><input class="amos-input sm" type="number" v-model.number="r.lastValue" style="width:90px" /></td>
+            <td><button class="amos-btn xs" @click="funcCounterRows.splice(i, 1)">Del</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">（暂无计数器，点击 New 添加）</p>
+      <template #footer>
+        <button class="amos-btn" @click="funcCountersOpen = false">Cancel</button>
+        <button class="amos-btn primary" @click="saveFuncCounters">OK</button>
+      </template>
+    </Modal>
+
     <!-- 手册 P42：Functions Hierarchy 窗口右键菜单 Install / Remove Component（与 Functions 窗口一致） -->
     <div v-if="ctxOpen" class="bw-options-menu ctx-menu" :style="{ left: ctxX + 'px', top: ctxY + 'px' }" @mouseleave="ctxOpen = false">
       <button :disabled="!ctxFunction || !!ctxFunction.installedComponentId" @click="ctxInstall">Install Component</button>
       <button :disabled="!ctxFunction || !ctxFunction.installedComponentId" @click="ctxRemove">Remove Component</button>
       <button :disabled="!ctxFunction || !ctxFunction.installedComponentId" @click="ctxComponent">Component</button>
       <button :disabled="!ctxFunction || !ctxFunction.installedComponentId" @click="ctxHistory">History</button>
+      <button :disabled="!ctxFunction" @click="ctxFuncCounters">Function Counters</button>
     </div>
   </div>
 </template>
@@ -309,6 +338,7 @@ function ctxInstall() { ctxOpen.value = false; openInstall() }
 function ctxRemove() { ctxOpen.value = false; openRemove() }
 function ctxComponent() { ctxOpen.value = false; openCompInfo() }
 function ctxHistory() { ctxOpen.value = false; openHistory() }
+function ctxFuncCounters() { ctxOpen.value = false; openFuncCounters() }
 
 const compByNo = computed(() => componentService.byNo())
 const funcByNo = computed(() => functionService.byNo())
@@ -561,6 +591,26 @@ function openHistoryNotes() {
   if (!selectedHistoryRow.value) { showToast('请先在 History 中选择一行', 'warn'); return }
   historyNotesText.value = selectedHistoryRow.value.details || '（无评论）'
   historyNotesOpen.value = true
+}
+// 手册 Function Counters：Functions Hierarchy > Options > Function Counters —— 维护功能位置计数器
+const funcCountersOpen = ref(false)
+const funcCounterRows = ref([])
+function openFuncCounters() {
+  optionsOpen.value = false
+  const s = selected.value
+  if (!s || s.__type !== 'function') { showToast('请先选择功能位置', 'warn'); return }
+  funcCounterRows.value = (s.functionCounters || []).map((x) => ({ ...x }))
+  funcCountersOpen.value = true
+}
+function addFuncCounter() {
+  funcCounterRows.value.push({ code: '', description: '', unit: '', lastValue: 0 })
+}
+function saveFuncCounters() {
+  const s = selected.value
+  if (!s) return
+  s.functionCounters = funcCounterRows.value.map((r) => ({ ...r }))
+  funcCountersOpen.value = false
+  showToast('功能位置计数器已保存：' + s.functionNo, 'ok')
 }
 function openNew() { newForm.value = blankForm(); newOpen.value = true }
 function createFunction() {
