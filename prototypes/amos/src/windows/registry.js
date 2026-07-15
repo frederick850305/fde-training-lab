@@ -109,7 +109,7 @@ export const windowRegistry = {
     statusOptions: ['In Use', 'Scrapped'],
     filterBasic: [
       { key: 'status', label: 'Status', type: 'select', options: ['In Use', 'Scrapped'] },
-      { key: 'location', label: 'Location', type: 'text' },
+      { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
     ],
     filterAdvanced: [{ key: 'functionNo', label: 'Function No.', type: 'text' }, { key: 'description', label: 'Description', type: 'text' }],
     columns: [
@@ -120,21 +120,67 @@ export const windowRegistry = {
       { key: 'criticality', label: 'Criticality', width: '100px' },
       { key: 'installedComponentId', label: 'Installed', width: '110px' },
     ],
+    // 手册 Working with Functions：General 标签字段与截图示例一致
     detailTabs: [
       {
         id: 'general', label: 'General', fields: [
           { key: 'functionNo', label: 'Function No.' },
           { key: 'description', label: 'Description' },
-          { key: 'parentFunctionNo', label: 'Parent Function' },
+          { key: 'reference', label: 'Reference' },
+          { key: 'parentFunctionNo', label: 'Parent Function', type: 'lookup', lookupKey: 'functions' },
           { key: 'status', label: 'Status', type: 'select', options: ['In Use', 'Scrapped'] },
-          { key: 'location', label: 'Location' },
+          { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
           { key: 'criticality', label: 'Criticality', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'] },
+          { key: 'installedComponentId', label: 'Component Performing the Function', type: 'lookup', lookupKey: 'components' },
         ],
       },
-      { id: 'component', label: 'Component', fields: [{ key: 'installedComponentId', label: 'Installed Component', type: 'lookup', lookupKey: 'components' }] },
-      noteTab('counters', 'Counters', '功能位置计数器读数。'),
-      noteTab('criticality', 'Criticality', '关键性评估与缓解措施。'),
-      noteTab('rotation', 'Rotation Log', '组件安装 / 拆卸历史。'),
+      // 手册 Working with Functions：Details 标签
+      {
+        id: 'details', label: 'Details', fields: [
+          { key: 'sfiCode', label: 'SFI Code' },
+          { key: 'system', label: 'System' },
+          { key: 'subSystem', label: 'Sub System' },
+          { key: 'remarks', label: 'Remarks', type: 'textarea' },
+        ],
+      },
+      // 手册 Working with Functions：Additional Info 标签
+      {
+        id: 'additional', label: 'Additional Info', fields: [
+          { key: 'serialNo', label: 'Serial No.' },
+          { key: 'maker', label: 'Maker' },
+          { key: 'model', label: 'Model' },
+          { key: 'tagNo', label: 'Tag No.' },
+        ],
+      },
+      // 手册 Working with Functions：Financial Info 标签
+      {
+        id: 'financial', label: 'Financial Info', fields: [
+          { key: 'assetValue', label: 'Asset Value', type: 'number' },
+          { key: 'acquisitionDate', label: 'Acquisition Date', type: 'date' },
+          { key: 'currency', label: 'Currency' },
+          { key: 'depreciation', label: 'Depreciation', type: 'number' },
+        ],
+      },
+      // 手册 Working with Functions：Counters 标签（功能位置计数器定义，可维护）
+      {
+        id: 'counters', label: 'Counters', type: 'subgrid', subKey: 'functionCounters',
+        columns: [
+          { key: 'code', label: 'Counter Code', width: '120px', default: '' },
+          { key: 'description', label: 'Description', default: '' },
+          { key: 'unit', label: 'Unit', width: '70px', default: '' },
+          { key: 'lastValue', label: 'Last Reading', type: 'number', width: '110px', default: 0 },
+        ],
+      },
+      // 手册 Working with Functions：Rotation Log 标签（组件安装 / 拆卸历史，可维护）
+      {
+        id: 'rotation', label: 'Rotation Log', type: 'subgrid', subKey: 'rotationLog',
+        columns: [
+          { key: 'componentNo', label: 'Component', width: '120px', default: '' },
+          { key: 'action', label: 'Action', width: '100px', default: '' },
+          { key: 'performedBy', label: 'By', width: '100px', default: '' },
+          { key: 'performedAt', label: 'Date', type: 'date', width: '120px', default: '' },
+        ],
+      },
     ],
     options: [{ label: 'Install Component', action: 'install-component' }, { label: 'Remove Component', action: 'remove-component' }],
   },

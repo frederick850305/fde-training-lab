@@ -86,11 +86,28 @@ export const db = reactive({
   ],
 
   // 指南（手册 2.3）：功能位置状态为 In Use / Scrapped
+  // 字段对齐手册「Working with Functions」：General / Details / Additional Info / Financial Info / Counters / Rotation Log
   functions: [
-    { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours' },
-    { id: uid('fn'), functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours' },
-    { id: uid('fn'), functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours' },
-    { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours' },
+    { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours',
+      sfiCode: 'SFI-10', system: 'Propulsion', subSystem: 'Main Engine', remarks: '主机系统功能位置', serialNo: 'WS-77412', maker: 'Wärtsilä', model: 'RT-flex', tagNo: 'ME-01',
+      assetValue: 2500000, acquisitionDate: '2018-05-01', currency: 'USD', depreciation: 0,
+      functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 48230 }],
+      rotationLog: [{ componentNo: 'C-10001', action: 'Installed', performedBy: 'A. Admin', performedAt: '2023-04-12' }] },
+    { id: uid('fn'), functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: 'SFI-11', system: 'Steam', subSystem: 'Aux Boiler', remarks: '', serialNo: 'AB-33901', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-A',
+      assetValue: 480000, acquisitionDate: '2019-02-15', currency: 'USD', depreciation: 0,
+      functionCounters: [{ code: 'FH', description: 'Fired Hours', unit: 'h', lastValue: 31200 }],
+      rotationLog: [{ componentNo: 'C-10002', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] },
+    { id: uid('fn'), functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', reference: 'AUX BOILER B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: 'SFI-12', system: 'Steam', subSystem: 'Aux Boiler', remarks: '', serialNo: 'AB-33902', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-B',
+      assetValue: 480000, acquisitionDate: '2019-02-15', currency: 'USD', depreciation: 0,
+      functionCounters: [{ code: 'FH', description: 'Fired Hours', unit: 'h', lastValue: 29870 }],
+      rotationLog: [{ componentNo: 'C-10003', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] },
+    { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', reference: 'DCRANE', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: 'SFI-20', system: 'Cargo', subSystem: 'Deck Crane', remarks: '', serialNo: '', maker: '', model: '', tagNo: 'DC-01',
+      assetValue: 0, acquisitionDate: '', currency: 'USD', depreciation: 0,
+      functionCounters: [{ code: 'OH', description: 'Operation Hours', unit: 'h', lastValue: 12450 }],
+      rotationLog: [] },
   ],
 
   // 指南（手册 Component Locations）：组件安装 / 拆卸历史，Functions Performed 标签页数据源。
@@ -240,6 +257,8 @@ export const lookups = {
   componentTypes: () => db.componentTypes.map((c) => ({ code: c.typeNumber, label: `${c.typeNumber} — ${c.name}` })),
   components: () => db.components.map((c) => ({ code: c.number, label: `${c.number} — ${c.name}` })),
   functions: () => db.functions.map((f) => ({ code: f.functionNo, label: `${f.functionNo} — ${f.description}` })),
+  // 手册 Working with Functions：Location 字段使用编码 + 描述的 lookup
+  locations: () => Array.from(new Set([...db.components.map((c) => c.location), ...db.functions.map((f) => f.location)])).filter(Boolean).map((l) => ({ code: l, label: l })),
   stockTypes: () => db.stockTypes.map((s) => ({ code: s.stockTypeNo, label: `${s.stockTypeNo} — ${s.description}` })),
   stockItems: () => db.stockItems.map((s) => ({ code: s.stockItemNo, label: `${s.stockItemNo} — ${s.description}` })),
   vendors: () => ['Wärtsilä Marine', 'Alfa Laval', 'Grundfos', 'Shell Marine', 'Tyco'],
