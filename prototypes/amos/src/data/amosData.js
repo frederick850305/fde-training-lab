@@ -1,19 +1,18 @@
 // AMOS M&P 原型系统 - 元数据（安装地点 / 部门 / 菜单 / 页面注册表）
 
+// 三艘船（Installation = 船）。原型以 MV Traveller 为基准扩充，并新增 MV Voyager（集装箱船）、
+// MV Endeavour（油轮），以体现船队（Fleet）级的设备与功能位置管理场景。
 export const installations = [
-  { code: 'Traveller', name: 'MV Traveller（船舶）' },
-  { code: 'Office', name: 'Shore Office（岸基办公室）' },
+  { code: 'Traveller', name: 'MV Traveller（散货船）' },
+  { code: 'Voyager', name: 'MV Voyager（集装箱船）' },
+  { code: 'Endeavour', name: 'MV Endeavour（油轮）' },
 ]
 
-export const departments = [
-  { installation: 'Traveller', code: 'Engine Room', name: '机舱' },
-  { installation: 'Traveller', code: 'Deck', name: '甲板' },
-  { installation: 'Traveller', code: 'Bridge', name: '驾驶台' },
-  { installation: 'Traveller', code: 'Cargo', name: '货舱' },
-  { installation: 'Office', code: 'Admin', name: '行政管理' },
-  { installation: 'Office', code: 'Purchasing', name: '采购部' },
-  { installation: 'Office', code: 'Engineering', name: '工程技术部' },
-]
+// 每艘船拥有独立的部门（工作范围 scope）；同名的部门在不同船上属于不同 Installation。
+const SHIP_DEPARTMENTS = ['Engine Room', 'Deck', 'Bridge', 'Cargo', 'Accommodation', 'Electrical', 'Engineering']
+export const departments = ['Traveller', 'Voyager', 'Endeavour'].flatMap((inst) =>
+  SHIP_DEPARTMENTS.map((code) => ({ installation: inst, code, name: code })),
+)
 
 export const DEPARTMENTS_BY_INSTALLATION = departments.reduce((acc, d) => {
   ;(acc[d.installation] = acc[d.installation] || []).push(d.code)

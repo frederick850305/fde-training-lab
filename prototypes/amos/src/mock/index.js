@@ -34,7 +34,30 @@ const pistonComponents = Array.from({ length: 10 }, (_, i) => {
   }
 })
 
+// ===== 多船数据工厂 =====
+// FN：生成功能位置（Function / SFI），填充手册要求的字段，o 可覆盖任意项。
+function FN(o) {
+  return Object.assign({
+    id: uid('fn'), reference: '', parentFunctionNo: '', status: 'In Use',
+    location: 'Engine Room', department: 'Engine Room', installedComponentId: '',
+    criticality: 'Medium', counter: '', sfiCode: '', system: '', subSystem: '',
+    remarks: '', serialNo: '', maker: '', model: '', tagNo: '',
+    assetValue: 0, acquisitionDate: '', currency: 'USD', depreciation: 0,
+    functionCounters: [], rotationLog: [],
+  }, o)
+}
+// CO：生成设备实例（Component），o 可覆盖任意项。
+function CO(o) {
+  return Object.assign({
+    id: uid('co'), status: 'Available', maker: '', type: '', serialNo: '',
+    location: '', department: 'Engine Room', parentComponent: '', vendor: '',
+    functionNo: '', installDate: '', componentCounters: [],
+  }, o)
+}
+
 export const db = reactive({
+  // 部件类型：全船队（Fleet）共享的模板，统一定义同类设备的作业 / 备件 / 计数器 / 测点。
+  // 既有 4 个类型保留，并扩充至 15 个覆盖船舶各系统的真实设备类型。
   componentTypes: [
     { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', type: 'Liner', classCode: 'ENG', status: 'Active', jobs: 4, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
@@ -57,23 +80,128 @@ export const db = reactive({
     { id: uid('ct'), typeNumber: 'CT-1003', name: 'Main Engine Piston & Rod', maker: 'Wärtsilä', model: 'S26MC', type: 'Piston', classCode: 'PIS', status: 'Active', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: 'C-10001' },
       ], measurePointDefs: [], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    // ===== 扩充：船舶各系统真实设备类型 =====
+    { id: uid('ct'), typeNumber: 'CT-2002', name: 'Auxiliary Engine (Generator Set)', maker: 'MAN Energy', model: '6L23/30', type: 'Generator', classCode: 'ENG', status: 'Active', jobs: 4, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
+        { code: 'FUEL-CONS', description: 'Fuel Consumption', unit: 't', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'TC-TEMP', description: 'Turbocharger Temp', trend: 'Up', unit: '°C' },
+        { code: 'LO-PRESS', description: 'Lub Oil Pressure', trend: 'Stable', unit: 'bar' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2003', name: 'Fresh Water Generator', maker: 'Alfa Laval', model: 'JWP-26', type: 'Evaporator', classCode: 'AUX', status: 'Active', jobs: 2, counters: [
+        { code: 'PROD-CAP', description: 'Produced Capacity', unit: 'm³/day', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'SALINITY', description: 'Salinity', trend: 'Up', unit: 'ppm' },
+        { code: 'TEMP-OUT', description: 'Distillate Temp', trend: 'Stable', unit: '°C' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', maker: 'Alfa Laval', model: 'MAPX-205', type: 'Purifier', classCode: 'ENG', status: 'Active', jobs: 3, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Stable', unit: '°C' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2005', name: 'Steering Gear', maker: 'Rolls-Royce', model: 'TF-80', type: 'Steering', classCode: 'DECK', status: 'Active', jobs: 2, counters: [
+        { code: 'RAM-STROKE', description: 'Ram Stroke', unit: 'mm', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2006', name: 'Plate Heat Exchanger', maker: 'SWEP', model: 'B200', type: 'Cooler', classCode: 'ENG', status: 'Active', jobs: 2, counters: [], measurePointDefs: [
+        { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Up', unit: '°C' },
+        { code: 'TEMP-IN', description: 'Inlet Temp', trend: 'Stable', unit: '°C' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2007', name: 'Main Switchboard', maker: 'ABB', model: 'UNIGEAR', type: 'Switchboard', classCode: 'ELE', status: 'Active', jobs: 3, counters: [], measurePointDefs: [
+        { code: 'LOAD-CURR', description: 'Load Current', trend: 'Up', unit: 'A' },
+        { code: 'FREQ', description: 'Frequency', trend: 'Stable', unit: 'Hz' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2008', name: 'Emergency Generator', maker: 'Cummins', model: 'KTA19', type: 'Generator', classCode: 'ELE', status: 'Active', jobs: 2, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
+      ], measurePointDefs: [], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2009', name: 'Mooring Winch', maker: 'MacGregor', model: 'MW-40', type: 'Winch', classCode: 'DECK', status: 'Active', jobs: 2, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2010', name: 'Cargo Hold / Hatch Cover', maker: 'TTS', model: 'CH-30', type: 'Hatch', classCode: 'CARGO', status: 'Active', jobs: 2, counters: [], measurePointDefs: [
+        { code: 'TEMP', description: 'Hold Temp', trend: 'Stable', unit: '°C' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2011', name: 'HVAC Chiller', maker: 'Carrier', model: '30HXC', type: 'Chiller', classCode: 'ACC', status: 'Active', jobs: 2, counters: [
+        { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
+      ], measurePointDefs: [
+        { code: 'TEMP-OUT', description: 'Supply Temp', trend: 'Stable', unit: '°C' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2012', name: 'Radar / Navigation Console', maker: 'Furuno', model: 'FAR-2827', type: 'Radar', classCode: 'NAV', status: 'Active', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2013', name: 'Fire Detection Panel', maker: 'Kidde', model: 'MX-400', type: 'Panel', classCode: 'SAF', status: 'Active', jobs: 1, counters: [], measurePointDefs: [
+        { code: 'ZONE-STATUS', description: 'Zone Status', trend: 'Stable', unit: '' },
+        ], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
+    { id: uid('ct'), typeNumber: 'CT-2014', name: 'Lifeboat', maker: 'Schat-Harding', model: 'FFD-42', type: 'Lifeboat', classCode: 'LS', status: 'Active', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [], preferredVendor: '', parentTypeNumber: '' },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped
   // department：手册 P20 范围标签，组件归属于当前 Department
   components: [
-    { id: uid('co'), number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12',
+    // ===== MV Traveller 设备实例 =====
+    CO({ installation: 'Traveller', number: 'C-10001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412', location: 'Engine Room', department: 'Engine Room', vendor: 'Wärtsilä Marine', functionNo: 'FN-ENG-01', installDate: '2023-04-12',
       // 手册 P44-45：主机预置 RUN-HRS 读数，作为活塞计数器的依赖源
       componentCounters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', startValue: 0, currentValue: 78200, latestZeroedDate: '2023-04-12', average: 0, calculate: 'No', dependsOn: '' },
         { code: 'CYCLES', description: 'Start Cycles', unit: 'cycles', startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No', dependsOn: '' },
-      ] },
-    { id: uid('co'), number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' },
-    { id: uid('co'), number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engineering', parentComponent: '', vendor: 'Grundfos', functionNo: '', installDate: '' },
-    { id: uid('co'), number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', department: 'Deck', parentComponent: '', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' },
-    { id: uid('co'), number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', parentComponent: '', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' },
+      ] }),
+    CO({ installation: 'Traveller', number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' }),
+    CO({ installation: 'Traveller', number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engineering', vendor: 'Grundfos', functionNo: '', installDate: '' }),
+    CO({ installation: 'Traveller', number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', department: 'Deck', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' }),
+    CO({ installation: 'Traveller', number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' }),
     // 手册 P44-45：10 个主发动机活塞（依赖主机 C-10001 的 RUN-HRS 计数器）
-    ...pistonComponents,
+    ...pistonComponents.map((p) => ({ ...p, installation: 'Traveller' })),
+    // Traveller 扩充设备实例
+    CO({ installation: 'Traveller', number: 'C-10010', typeNumber: 'CT-2002', name: 'Aux Engine DG-1', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG1-001', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-ENG-10', installDate: '2022-01-15' }),
+    CO({ installation: 'Traveller', number: 'C-10011', typeNumber: 'CT-2002', name: 'Aux Engine DG-2', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG2-002', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-ENG-11', installDate: '2022-01-15' }),
+    CO({ installation: 'Traveller', number: 'C-10020', typeNumber: 'CT-2003', name: 'Fresh Water Generator', status: 'In Use', maker: 'Alfa Laval', type: 'Evaporator', serialNo: 'AL-FWG-020', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-20', installDate: '2021-09-10' }),
+    CO({ installation: 'Traveller', number: 'C-10030', typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', status: 'In Use', maker: 'Alfa Laval', type: 'Purifier', serialNo: 'AL-FOP-030', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-30', installDate: '2021-09-10' }),
+    CO({ installation: 'Traveller', number: 'C-10040', typeNumber: 'CT-2005', name: 'Steering Gear', status: 'In Use', maker: 'Rolls-Royce', type: 'Steering', serialNo: 'RR-SG-040', location: 'Steering Flat', department: 'Deck', vendor: 'Rolls-Royce', functionNo: 'FN-ENG-40', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10050', typeNumber: 'CT-2006', name: 'Central Cooling Heat Exchanger', status: 'In Use', maker: 'SWEP', type: 'Cooler', serialNo: 'SW-CC-050', location: 'Engine Room', department: 'Engine Room', vendor: 'SWEP', functionNo: 'FN-ENG-50', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10060', typeNumber: 'CT-2007', name: 'Main Switchboard', status: 'In Use', maker: 'ABB', type: 'Switchboard', serialNo: 'ABB-MSB-060', location: 'Engine Room', department: 'Electrical', vendor: 'ABB', functionNo: 'FN-ELE-01', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10070', typeNumber: 'CT-2008', name: 'Emergency Generator', status: 'In Use', maker: 'Cummins', type: 'Generator', serialNo: 'CM-EG-070', location: 'Emergency Gen Room', department: 'Electrical', vendor: 'Cummins', functionNo: 'FN-ELE-02', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10080', typeNumber: 'CT-2009', name: 'Mooring Winch', status: 'In Use', maker: 'MacGregor', type: 'Winch', serialNo: 'MG-MW-080', location: 'Fore Deck', department: 'Deck', vendor: 'MacGregor', functionNo: 'FN-DECK-10', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10090', typeNumber: 'CT-2010', name: 'Cargo Hold No.1', status: 'In Use', maker: 'TTS', type: 'Hatch', serialNo: 'TTS-CH-090', location: 'Cargo Hold', department: 'Cargo', vendor: 'TTS', functionNo: 'FN-CARGO-01', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10100', typeNumber: 'CT-2011', name: 'HVAC Plant', status: 'In Use', maker: 'Carrier', type: 'Chiller', serialNo: 'CA-HV-100', location: 'Accommodation', department: 'Accommodation', vendor: 'Carrier', functionNo: 'FN-ACC-01', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10110', typeNumber: 'CT-2012', name: 'Radar / Navigation', status: 'In Use', maker: 'Furuno', type: 'Radar', serialNo: 'FU-NAV-110', location: 'Bridge', department: 'Bridge', vendor: 'Furuno', functionNo: 'FN-NAV-01', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10120', typeNumber: 'CT-2013', name: 'Fire Detection System', status: 'In Use', maker: 'Kidde', type: 'Panel', serialNo: 'KI-FD-120', location: 'Engine Room', department: 'Electrical', vendor: 'Kidde', functionNo: 'FN-SAF-01', installDate: '2020-03-22' }),
+    CO({ installation: 'Traveller', number: 'C-10130', typeNumber: 'CT-2014', name: 'Lifeboat', status: 'In Use', maker: 'Schat-Harding', type: 'Lifeboat', serialNo: 'SH-LB-130', location: 'Boat Deck', department: 'Deck', vendor: 'Schat-Harding', functionNo: 'FN-LS-01', installDate: '2020-03-22' }),
+
+    // ===== MV Voyager 设备实例 =====
+    CO({ installation: 'Voyager', number: 'C-VOY-1001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412V', location: 'Engine Room', department: 'Engine Room', vendor: 'Wärtsilä Marine', functionNo: 'FN-VOY-ENG-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901V', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-VOY-ENG-02', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1003', typeNumber: 'CT-2002', name: 'Aux Engine DG-1', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG1-V', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-VOY-ENG-10', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1004', typeNumber: 'CT-2002', name: 'Aux Engine DG-2', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG2-V', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-VOY-ENG-11', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1005', typeNumber: 'CT-2003', name: 'Fresh Water Generator', status: 'In Use', maker: 'Alfa Laval', type: 'Evaporator', serialNo: 'AL-FWG-V', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-VOY-ENG-20', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1006', typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', status: 'In Use', maker: 'Alfa Laval', type: 'Purifier', serialNo: 'AL-FOP-V', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-VOY-ENG-30', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1007', typeNumber: 'CT-2007', name: 'Main Switchboard', status: 'In Use', maker: 'ABB', type: 'Switchboard', serialNo: 'ABB-MSB-V', location: 'Engine Room', department: 'Electrical', vendor: 'ABB', functionNo: 'FN-VOY-ELE-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1008', typeNumber: 'CT-2008', name: 'Emergency Generator', status: 'In Use', maker: 'Cummins', type: 'Generator', serialNo: 'CM-EG-V', location: 'Emergency Gen Room', department: 'Electrical', vendor: 'Cummins', functionNo: 'FN-VOY-ELE-02', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1009', typeNumber: 'CT-2009', name: 'Deck Crane', status: 'In Use', maker: 'MacGregor', type: 'Winch', serialNo: 'MG-DC-V', location: 'Deck', department: 'Deck', vendor: 'MacGregor', functionNo: 'FN-VOY-DECK-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1010', typeNumber: 'CT-2009', name: 'Mooring Winch', status: 'In Use', maker: 'MacGregor', type: 'Winch', serialNo: 'MG-MW-V', location: 'Fore Deck', department: 'Deck', vendor: 'MacGregor', functionNo: 'FN-VOY-DECK-10', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1011', typeNumber: 'CT-2010', name: 'Cargo Hold No.1', status: 'In Use', maker: 'TTS', type: 'Hatch', serialNo: 'TTS-CH-V', location: 'Cargo Hold', department: 'Cargo', vendor: 'TTS', functionNo: 'FN-VOY-CARGO-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1012', typeNumber: 'CT-2012', name: 'Radar / Navigation', status: 'In Use', maker: 'Furuno', type: 'Radar', serialNo: 'FU-NAV-V', location: 'Bridge', department: 'Bridge', vendor: 'Furuno', functionNo: 'FN-VOY-NAV-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1013', typeNumber: 'CT-2013', name: 'Fire Detection System', status: 'In Use', maker: 'Kidde', type: 'Panel', serialNo: 'KI-FD-V', location: 'Engine Room', department: 'Electrical', vendor: 'Kidde', functionNo: 'FN-VOY-SAF-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-1014', typeNumber: 'CT-2014', name: 'Lifeboat', status: 'In Use', maker: 'Schat-Harding', type: 'Lifeboat', serialNo: 'SH-LB-V', location: 'Boat Deck', department: 'Deck', vendor: 'Schat-Harding', functionNo: 'FN-VOY-LS-01', installDate: '2021-06-01' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-2001', typeNumber: 'CT-2001', name: 'Spare FW Pump P-31', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55200', location: 'Store', department: 'Engineering', vendor: 'Grundfos', functionNo: '', installDate: '' }),
+    CO({ installation: 'Voyager', number: 'C-VOY-3001', typeNumber: 'CT-3001', name: 'SW Valve V-3', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-30001', location: 'Deck', department: 'Deck', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' }),
+
+    // ===== MV Endeavour 设备实例 =====
+    CO({ installation: 'Endeavour', number: 'C-END-1001', typeNumber: 'CT-1001', name: 'ME Cylinder #1', status: 'In Use', maker: 'Wärtsilä', type: 'Liner', serialNo: 'WS-77412E', location: 'Engine Room', department: 'Engine Room', vendor: 'Wärtsilä Marine', functionNo: 'FN-END-ENG-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901E', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-END-ENG-02', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1003', typeNumber: 'CT-2002', name: 'Aux Engine DG-1', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG1-E', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-END-ENG-10', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1004', typeNumber: 'CT-2002', name: 'Aux Engine DG-2', status: 'In Use', maker: 'MAN Energy', type: 'Generator', serialNo: 'MAN-DG2-E', location: 'Engine Room', department: 'Engine Room', vendor: 'MAN', functionNo: 'FN-END-ENG-11', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1005', typeNumber: 'CT-2003', name: 'Fresh Water Generator', status: 'In Use', maker: 'Alfa Laval', type: 'Evaporator', serialNo: 'AL-FWG-E', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-END-ENG-20', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1006', typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', status: 'In Use', maker: 'Alfa Laval', type: 'Purifier', serialNo: 'AL-FOP-E', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-END-ENG-30', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1007', typeNumber: 'CT-2001', name: 'Cargo Oil Pump', status: 'In Use', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-COP-E', location: 'Pump Room', department: 'Cargo', vendor: 'Grundfos', functionNo: 'FN-END-ENG-40', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1008', typeNumber: 'CT-2007', name: 'Main Switchboard', status: 'In Use', maker: 'ABB', type: 'Switchboard', serialNo: 'ABB-MSB-E', location: 'Engine Room', department: 'Electrical', vendor: 'ABB', functionNo: 'FN-END-ELE-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1009', typeNumber: 'CT-2008', name: 'Emergency Generator', status: 'In Use', maker: 'Cummins', type: 'Generator', serialNo: 'CM-EG-E', location: 'Emergency Gen Room', department: 'Electrical', vendor: 'Cummins', functionNo: 'FN-END-ELE-02', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1010', typeNumber: 'CT-2009', name: 'Mooring Winch', status: 'In Use', maker: 'MacGregor', type: 'Winch', serialNo: 'MG-MW-E', location: 'Fore Deck', department: 'Deck', vendor: 'MacGregor', functionNo: 'FN-END-DECK-10', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1011', typeNumber: 'CT-2010', name: 'Cargo Tank No.1', status: 'In Use', maker: 'TTS', type: 'Hatch', serialNo: 'TTS-CT-E', location: 'Cargo Tank', department: 'Cargo', vendor: 'TTS', functionNo: 'FN-END-CARGO-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1012', typeNumber: 'CT-2012', name: 'Radar / Navigation', status: 'In Use', maker: 'Furuno', type: 'Radar', serialNo: 'FU-NAV-E', location: 'Bridge', department: 'Bridge', vendor: 'Furuno', functionNo: 'FN-END-NAV-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1013', typeNumber: 'CT-2013', name: 'Fire Detection System', status: 'In Use', maker: 'Kidde', type: 'Panel', serialNo: 'KI-FD-E', location: 'Engine Room', department: 'Electrical', vendor: 'Kidde', functionNo: 'FN-END-SAF-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-1014', typeNumber: 'CT-2014', name: 'Lifeboat', status: 'In Use', maker: 'Schat-Harding', type: 'Lifeboat', serialNo: 'SH-LB-E', location: 'Boat Deck', department: 'Deck', vendor: 'Schat-Harding', functionNo: 'FN-END-LS-01', installDate: '2019-11-20' }),
+    CO({ installation: 'Endeavour', number: 'C-END-2001', typeNumber: 'CT-2001', name: 'Spare Cargo Pump P-41', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-56400', location: 'Store', department: 'Engineering', vendor: 'Grundfos', functionNo: '', installDate: '' }),
+    CO({ installation: 'Endeavour', number: 'C-END-3001', typeNumber: 'CT-3001', name: 'SW Valve V-5', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-30005', location: 'Deck', department: 'Deck', vendor: 'Tyco', functionNo: '', installDate: '2019-11-21' }),
   ],
 
   // 指南（手册 2.2 / Component Status）：组件状态变更日志。
@@ -88,26 +216,115 @@ export const db = reactive({
   // 指南（手册 2.3）：功能位置状态为 In Use / Scrapped
   // 字段对齐手册「Working with Functions」：General / Details / Additional Info / Financial Info / Counters / Rotation Log
   functions: [
-    { id: uid('fn'), functionNo: 'FN-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours',
-      sfiCode: 'SFI-10', system: 'Propulsion', subSystem: 'Main Engine', remarks: '主机系统功能位置', serialNo: 'WS-77412', maker: 'Wärtsilä', model: 'RT-flex', tagNo: 'ME-01',
+    // ===== MV Traveller（散货船）功能位置树 =====
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10001', criticality: 'Critical', counter: 'Running Hours',
+      sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', remarks: '主机系统功能位置', serialNo: 'WS-77412', maker: 'Wärtsilä', model: 'RT-flex', tagNo: 'ME-01',
       assetValue: 2500000, acquisitionDate: '2018-05-01', currency: 'USD', depreciation: 0,
       functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 48230 }],
-      rotationLog: [{ componentNo: 'C-10001', action: 'Installed', performedBy: 'A. Admin', performedAt: '2023-04-12' }] },
-    { id: uid('fn'), functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours',
-      sfiCode: 'SFI-11', system: 'Steam', subSystem: 'Aux Boiler', remarks: '', serialNo: 'AB-33901', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-A',
+      rotationLog: [{ componentNo: 'C-10001', componentName: 'ME Cylinder #1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2023-04-12' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10002', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', remarks: '', serialNo: 'AB-33901', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-A',
       assetValue: 480000, acquisitionDate: '2019-02-15', currency: 'USD', depreciation: 0,
       functionCounters: [{ code: 'FH', description: 'Fired Hours', unit: 'h', lastValue: 31200 }],
-      rotationLog: [{ componentNo: 'C-10002', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] },
-    { id: uid('fn'), functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', reference: 'AUX BOILER B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours',
-      sfiCode: 'SFI-12', system: 'Steam', subSystem: 'Aux Boiler', remarks: '', serialNo: 'AB-33902', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-B',
+      rotationLog: [{ componentNo: 'C-10002', componentName: 'Aux Boiler A', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-03', description: 'Auxiliary Boiler B', reference: 'AUX BOILER B', parentFunctionNo: 'FN-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10003', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', remarks: '', serialNo: 'AB-33902', maker: 'Aalborg', model: 'AV-6', tagNo: 'AB-B',
       assetValue: 480000, acquisitionDate: '2019-02-15', currency: 'USD', depreciation: 0,
       functionCounters: [{ code: 'FH', description: 'Fired Hours', unit: 'h', lastValue: 29870 }],
-      rotationLog: [{ componentNo: 'C-10003', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] },
-    { id: uid('fn'), functionNo: 'FN-DECK-01', description: 'Deck Crane', reference: 'DCRANE', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours',
-      sfiCode: 'SFI-20', system: 'Cargo', subSystem: 'Deck Crane', remarks: '', serialNo: '', maker: '', model: '', tagNo: 'DC-01',
+      rotationLog: [{ componentNo: 'C-10003', componentName: 'Aux Boiler B', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-11-03' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-DECK-01', description: 'Deck Crane', reference: 'DCRANE', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: '', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: '12000000', system: 'Hull', subSystem: 'Deck Crane', remarks: '', serialNo: '', maker: '', model: '', tagNo: 'DC-01',
       assetValue: 0, acquisitionDate: '', currency: 'USD', depreciation: 0,
-      functionCounters: [{ code: 'OH', description: 'Operation Hours', unit: 'h', lastValue: 12450 }],
-      rotationLog: [] },
+      functionCounters: [{ code: 'OH', description: 'Operation Hours', unit: 'h', lastValue: 12450 }], rotationLog: [] }),
+    // Traveller 扩充：发电机 / 造水机 / 分油机 / 舵机 / 配电 / 甲板 / 货舱 / 居装 / 通导 / 安全 / 救生
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-10', description: 'Auxiliary Engine DG-1', reference: 'DG-1', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10010', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-1', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 31540 }], rotationLog: [{ componentNo: 'C-10010', componentName: 'Aux Engine DG-1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-01-15' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-11', description: 'Auxiliary Engine DG-2', reference: 'DG-2', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10011', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-2', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 30210 }], rotationLog: [{ componentNo: 'C-10011', componentName: 'Aux Engine DG-2', action: 'Installed', performedBy: 'A. Admin', performedAt: '2022-01-15' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-20', description: 'Fresh Water Generator', reference: 'FWG', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10020', criticality: 'Medium', counter: 'Produced Capacity',
+      sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-10020', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-09-10' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10030', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-10030', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-09-10' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-40', description: 'Steering Gear', reference: 'STR', parentFunctionNo: '', status: 'In Use', location: 'Steering Flat', department: 'Deck', installedComponentId: 'C-10040', criticality: 'Critical', counter: 'Ram Stroke',
+      sfiCode: '27000000', system: 'Hull', subSystem: 'Steering', tagNo: 'STR-1', rotationLog: [{ componentNo: 'C-10040', componentName: 'Steering Gear', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ENG-50', description: 'Central Cooling Heat Exchanger', reference: 'CC', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-10050', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '26000000', system: 'Machinery', subSystem: 'Cooling', tagNo: 'CC-1', rotationLog: [{ componentNo: 'C-10050', componentName: 'Central Cooling Heat Exchanger', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-10060', criticality: 'Critical', counter: 'Load Current',
+      sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-10060', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-10070', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-10070', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-DECK-10', description: 'Mooring Winch', reference: 'MWA', parentFunctionNo: '', status: 'In Use', location: 'Fore Deck', department: 'Deck', installedComponentId: 'C-10080', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '13000000', system: 'Hull', subSystem: 'Mooring', tagNo: 'MWA-1', rotationLog: [{ componentNo: 'C-10080', componentName: 'Mooring Winch', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-CARGO-01', description: 'Cargo Hold No.1', reference: 'CH1', parentFunctionNo: '', status: 'In Use', location: 'Cargo Hold', department: 'Cargo', installedComponentId: 'C-10090', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: '61000000', system: 'Cargo', subSystem: 'Hold', tagNo: 'CH1', rotationLog: [{ componentNo: 'C-10090', componentName: 'Cargo Hold No.1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-ACC-01', description: 'HVAC Plant', reference: 'HVAC', parentFunctionNo: '', status: 'In Use', location: 'Accommodation', department: 'Accommodation', installedComponentId: 'C-10100', criticality: 'Low', counter: 'Running Hours',
+      sfiCode: '71000000', system: 'Accommodation', subSystem: 'HVAC', tagNo: 'HVAC-1', rotationLog: [{ componentNo: 'C-10100', componentName: 'HVAC Plant', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-NAV-01', description: 'Radar / Navigation', reference: 'NAV', parentFunctionNo: '', status: 'In Use', location: 'Bridge', department: 'Bridge', installedComponentId: 'C-10110', criticality: 'High', counter: '',
+      sfiCode: '81000000', system: 'Navigation', subSystem: 'Radar', tagNo: 'NAV-1', rotationLog: [{ componentNo: 'C-10110', componentName: 'Radar / Navigation', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-SAF-01', description: 'Fire Detection System', reference: 'FDS', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-10120', criticality: 'High', counter: '',
+      sfiCode: '51000000', system: 'Safety', subSystem: 'Fire', tagNo: 'FDS-1', rotationLog: [{ componentNo: 'C-10120', componentName: 'Fire Detection System', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+    FN({ installation: 'Traveller', functionNo: 'FN-LS-01', description: 'Lifeboat', reference: 'LB', parentFunctionNo: '', status: 'In Use', location: 'Boat Deck', department: 'Deck', installedComponentId: 'C-10130', criticality: 'High', counter: '',
+      sfiCode: '91000000', system: 'Lifesaving', subSystem: 'Lifeboat', tagNo: 'LB-1', rotationLog: [{ componentNo: 'C-10130', componentName: 'Lifeboat', action: 'Installed', performedBy: 'A. Admin', performedAt: '2020-03-22' }] }),
+
+    // ===== MV Voyager（集装箱船）功能位置树 =====
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1001', criticality: 'Critical', counter: 'Running Hours',
+      sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', tagNo: 'ME-01', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 61020 }], rotationLog: [{ componentNo: 'C-VOY-1001', componentName: 'ME Cylinder #1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-VOY-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1002', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', tagNo: 'AB-A', rotationLog: [{ componentNo: 'C-VOY-1002', componentName: 'Aux Boiler A', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-10', description: 'Auxiliary Engine DG-1', reference: 'DG-1', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1003', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-1', rotationLog: [{ componentNo: 'C-VOY-1003', componentName: 'Aux Engine DG-1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-11', description: 'Auxiliary Engine DG-2', reference: 'DG-2', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1004', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-2', rotationLog: [{ componentNo: 'C-VOY-1004', componentName: 'Aux Engine DG-2', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-20', description: 'Fresh Water Generator', reference: 'FWG', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1005', criticality: 'Medium', counter: 'Produced Capacity',
+      sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-VOY-1005', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-VOY-1006', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-VOY-1006', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-VOY-1007', criticality: 'Critical', counter: 'Load Current',
+      sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-VOY-1007', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-VOY-1008', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-VOY-1008', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-DECK-01', description: 'Deck Crane', reference: 'DCRANE', parentFunctionNo: '', status: 'In Use', location: 'Deck', department: 'Deck', installedComponentId: 'C-VOY-1009', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: '12000000', system: 'Hull', subSystem: 'Deck Crane', tagNo: 'DC-01', rotationLog: [{ componentNo: 'C-VOY-1009', componentName: 'Deck Crane', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-DECK-10', description: 'Mooring Winch', reference: 'MWA', parentFunctionNo: '', status: 'In Use', location: 'Fore Deck', department: 'Deck', installedComponentId: 'C-VOY-1010', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '13000000', system: 'Hull', subSystem: 'Mooring', tagNo: 'MWA-1', rotationLog: [{ componentNo: 'C-VOY-1010', componentName: 'Mooring Winch', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-CARGO-01', description: 'Cargo Hold No.1', reference: 'CH1', parentFunctionNo: '', status: 'In Use', location: 'Cargo Hold', department: 'Cargo', installedComponentId: 'C-VOY-1011', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: '61000000', system: 'Cargo', subSystem: 'Hold', tagNo: 'CH1', rotationLog: [{ componentNo: 'C-VOY-1011', componentName: 'Cargo Hold No.1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-NAV-01', description: 'Radar / Navigation', reference: 'NAV', parentFunctionNo: '', status: 'In Use', location: 'Bridge', department: 'Bridge', installedComponentId: 'C-VOY-1012', criticality: 'High', counter: '',
+      sfiCode: '81000000', system: 'Navigation', subSystem: 'Radar', tagNo: 'NAV-1', rotationLog: [{ componentNo: 'C-VOY-1012', componentName: 'Radar / Navigation', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-SAF-01', description: 'Fire Detection System', reference: 'FDS', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-VOY-1013', criticality: 'High', counter: '',
+      sfiCode: '51000000', system: 'Safety', subSystem: 'Fire', tagNo: 'FDS-1', rotationLog: [{ componentNo: 'C-VOY-1013', componentName: 'Fire Detection System', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+    FN({ installation: 'Voyager', functionNo: 'FN-VOY-LS-01', description: 'Lifeboat', reference: 'LB', parentFunctionNo: '', status: 'In Use', location: 'Boat Deck', department: 'Deck', installedComponentId: 'C-VOY-1014', criticality: 'High', counter: '',
+      sfiCode: '91000000', system: 'Lifesaving', subSystem: 'Lifeboat', tagNo: 'LB-1', rotationLog: [{ componentNo: 'C-VOY-1014', componentName: 'Lifeboat', action: 'Installed', performedBy: 'A. Admin', performedAt: '2021-06-01' }] }),
+
+    // ===== MV Endeavour（油轮）功能位置树 =====
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-01', description: 'Main Engine', reference: 'ME', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1001', criticality: 'Critical', counter: 'Running Hours',
+      sfiCode: '21000000', system: 'Machinery', subSystem: 'Propulsion', tagNo: 'ME-01', functionCounters: [{ code: 'RH', description: 'Running Hours', unit: 'h', lastValue: 52410 }], rotationLog: [{ componentNo: 'C-END-1001', componentName: 'ME Cylinder #1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-02', description: 'Auxiliary Boiler A', reference: 'AUX BOILER A', parentFunctionNo: 'FN-END-ENG-01', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1002', criticality: 'High', counter: 'Fired Hours',
+      sfiCode: '23000000', system: 'Machinery', subSystem: 'Boiler', tagNo: 'AB-A', rotationLog: [{ componentNo: 'C-END-1002', componentName: 'Aux Boiler A', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-10', description: 'Auxiliary Engine DG-1', reference: 'DG-1', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1003', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-1', rotationLog: [{ componentNo: 'C-END-1003', componentName: 'Aux Engine DG-1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-11', description: 'Auxiliary Engine DG-2', reference: 'DG-2', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1004', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '22000000', system: 'Machinery', subSystem: 'Generator', tagNo: 'DG-2', rotationLog: [{ componentNo: 'C-END-1004', componentName: 'Aux Engine DG-2', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-20', description: 'Fresh Water Generator', reference: 'FWG', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1005', criticality: 'Medium', counter: 'Produced Capacity',
+      sfiCode: '24000000', system: 'Machinery', subSystem: 'Fresh Water', tagNo: 'FWG-1', rotationLog: [{ componentNo: 'C-END-1005', componentName: 'Fresh Water Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-30', description: 'Fuel Oil Purifier', reference: 'FOP', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Engine Room', installedComponentId: 'C-END-1006', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '25000000', system: 'Machinery', subSystem: 'Purifier', tagNo: 'FOP-1', rotationLog: [{ componentNo: 'C-END-1006', componentName: 'Fuel Oil Purifier', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ENG-40', description: 'Cargo Oil Pump', reference: 'COP', parentFunctionNo: '', status: 'In Use', location: 'Pump Room', department: 'Cargo', installedComponentId: 'C-END-1007', criticality: 'Critical', counter: 'Running Hours',
+      sfiCode: '62000000', system: 'Cargo', subSystem: 'Cargo Oil', tagNo: 'COP-1', rotationLog: [{ componentNo: 'C-END-1007', componentName: 'Cargo Oil Pump', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ELE-01', description: 'Main Switchboard', reference: 'MSB', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-END-1008', criticality: 'Critical', counter: 'Load Current',
+      sfiCode: '31000000', system: 'Electrical', subSystem: 'Switchboard', tagNo: 'MSB-1', rotationLog: [{ componentNo: 'C-END-1008', componentName: 'Main Switchboard', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-ELE-02', description: 'Emergency Generator', reference: 'EG', parentFunctionNo: '', status: 'In Use', location: 'Emergency Gen Room', department: 'Electrical', installedComponentId: 'C-END-1009', criticality: 'High', counter: 'Running Hours',
+      sfiCode: '32000000', system: 'Electrical', subSystem: 'Emergency Power', tagNo: 'EG-1', rotationLog: [{ componentNo: 'C-END-1009', componentName: 'Emergency Generator', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-DECK-10', description: 'Mooring Winch', reference: 'MWA', parentFunctionNo: '', status: 'In Use', location: 'Fore Deck', department: 'Deck', installedComponentId: 'C-END-1010', criticality: 'Medium', counter: 'Running Hours',
+      sfiCode: '13000000', system: 'Hull', subSystem: 'Mooring', tagNo: 'MWA-1', rotationLog: [{ componentNo: 'C-END-1010', componentName: 'Mooring Winch', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-CARGO-01', description: 'Cargo Tank No.1', reference: 'CT1', parentFunctionNo: '', status: 'In Use', location: 'Cargo Tank', department: 'Cargo', installedComponentId: 'C-END-1011', criticality: 'Medium', counter: 'Operation Hours',
+      sfiCode: '63000000', system: 'Cargo', subSystem: 'Tank', tagNo: 'CT1', rotationLog: [{ componentNo: 'C-END-1011', componentName: 'Cargo Tank No.1', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-NAV-01', description: 'Radar / Navigation', reference: 'NAV', parentFunctionNo: '', status: 'In Use', location: 'Bridge', department: 'Bridge', installedComponentId: 'C-END-1012', criticality: 'High', counter: '',
+      sfiCode: '81000000', system: 'Navigation', subSystem: 'Radar', tagNo: 'NAV-1', rotationLog: [{ componentNo: 'C-END-1012', componentName: 'Radar / Navigation', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-SAF-01', description: 'Fire Detection System', reference: 'FDS', parentFunctionNo: '', status: 'In Use', location: 'Engine Room', department: 'Electrical', installedComponentId: 'C-END-1013', criticality: 'High', counter: '',
+      sfiCode: '51000000', system: 'Safety', subSystem: 'Fire', tagNo: 'FDS-1', rotationLog: [{ componentNo: 'C-END-1013', componentName: 'Fire Detection System', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
+    FN({ installation: 'Endeavour', functionNo: 'FN-END-LS-01', description: 'Lifeboat', reference: 'LB', parentFunctionNo: '', status: 'In Use', location: 'Boat Deck', department: 'Deck', installedComponentId: 'C-END-1014', criticality: 'High', counter: '',
+      sfiCode: '91000000', system: 'Lifesaving', subSystem: 'Lifeboat', tagNo: 'LB-1', rotationLog: [{ componentNo: 'C-END-1014', componentName: 'Lifeboat', action: 'Installed', performedBy: 'A. Admin', performedAt: '2019-11-20' }] }),
   ],
 
   // 指南（手册 Component Locations）：组件安装 / 拆卸历史，Functions Performed 标签页数据源。
@@ -129,6 +346,15 @@ export const db = reactive({
     { id: uid('ca'), componentNo: 'C-20001', kind: 'transfer', fromDepartment: 'Cargo', toDepartment: 'Engineering', archiveDate: '2024-01-15', data: 'Transferred in via TD-0888' },
   ],
 
+  // 指南（手册 P42 Note）：轮次作业（Rounds）可依赖功能位置——仅当特定组件安装在该功能位置上时，
+  // 该轮次作业才处于 Active。拆卸组件（尤其 Scrapped/Transferred）会使依赖它的轮次作业停用（Inactive）。
+  // 此处预置若干依赖 Main Engine / Aux Boiler 的轮次作业，用于模拟与测试拆卸时的停用通知。
+  roundJobs: [
+    { id: uid('rj'), roundCode: 'RND-ENG-01', description: 'Engine Room Daily Round', functionNo: 'FN-ENG-01', componentNo: 'C-10001', status: 'Active' },
+    { id: uid('rj'), roundCode: 'RND-ENG-02', description: 'Propulsion Watch Round', functionNo: 'FN-ENG-01', componentNo: 'C-10001', status: 'Active' },
+    { id: uid('rj'), roundCode: 'RND-BLR-01', description: 'Boiler Room Round', functionNo: 'FN-ENG-02', componentNo: 'C-10002', status: 'Active' },
+  ],
+
   jobs: [
     { id: uid('jb'), jobNo: 'J-5001', description: 'Overhaul ME Cylinder Liner', targetType: 'ComponentType', targetId: 'CT-1001', frequency: '8000 hrs', planningMethod: 'Counter', dueDate: '2026-07-12', requiredDisciplines: ['Fitter', 'Engineer'], requiredParts: ['P-101', 'P-102'], status: 'Due' },
     { id: uid('jb'), jobNo: 'J-5002', description: 'Boiler Annual Survey', targetType: 'ComponentType', targetId: 'CT-1002', frequency: '12 months', planningMethod: 'Periodic', dueDate: '2026-08-01', requiredDisciplines: ['Welder', 'Surveyor'], requiredParts: ['P-201'], status: 'Planned' },
@@ -140,8 +366,21 @@ export const db = reactive({
   { id: uid('wo'), workOrderNo: 'WO-260702', description: 'Boiler A Annual Survey', status: 'Planned', dueDate: '2026-08-01', department: 'Engine Room', componentId: 'C-10002', functionNo: 'FN-ENG-02', jobId: 'J-5002', priority: 'Medium', plannedDate: '2026-07-20' },
   { id: uid('wo'), workOrderNo: 'WO-260650', description: 'Emergency Pump Repair', status: 'Issued', dueDate: '2026-07-17', department: 'Engineering', componentId: 'C-20001', functionNo: '', jobId: '', priority: 'Critical', plannedDate: '2026-07-03' },
     { id: uid('wo'), workOrderNo: 'WO-260512', description: 'Valve Overhaul', status: 'Completed', dueDate: '2026-06-20', department: 'Deck', componentId: 'C-30001', functionNo: '', jobId: '', priority: 'Low', plannedDate: '2026-06-10' },
-    { id: uid('wo'), workOrderNo: 'WO-260480', description: 'ME Liner Inspection', status: 'Postponed', dueDate: '2026-07-10', department: 'Engine Room', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'Medium', plannedDate: '' },
-  ],
+  { id: uid('wo'), workOrderNo: 'WO-260480', description: 'ME Liner Inspection', status: 'Postponed', dueDate: '2026-07-10', department: 'Engine Room', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'Medium', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-260703', description: 'ME Liner Running Inspection', status: 'Started', dueDate: '2026-07-18', department: 'Engine Room', componentId: 'C-10001', functionNo: 'FN-ENG-01', jobId: 'J-5001', priority: 'High', plannedDate: '2026-07-05' },
+
+  // ===== MV Voyager（集装箱船）关联工作单 =====
+  { id: uid('wo'), workOrderNo: 'WO-261001', description: 'Overhaul ME Cylinder #1 (Voyager)', status: 'Planned', dueDate: '2026-08-10', department: 'Engine Room', componentId: 'C-VOY-1001', functionNo: 'FN-VOY-ENG-01', jobId: '', priority: 'High', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-261002', description: 'Boiler A Annual Survey (Voyager)', status: 'Requested', dueDate: '2026-09-01', department: 'Engine Room', componentId: 'C-VOY-1002', functionNo: 'FN-VOY-ENG-02', jobId: '', priority: 'Medium', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-261003', description: 'Aux Engine DG-1 Inspection (Voyager)', status: 'Issued', dueDate: '2026-07-25', department: 'Engine Room', componentId: 'C-VOY-1003', functionNo: 'FN-VOY-ENG-10', jobId: '', priority: 'Medium', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-261010', description: 'Mooring Winch Greasing (Voyager)', status: 'Open', dueDate: '2026-08-05', department: 'Deck', componentId: 'C-VOY-1010', functionNo: 'FN-VOY-DECK-10', jobId: '', priority: 'Low', plannedDate: '' },
+
+  // ===== MV Endeavour（油轮）关联工作单 =====
+  { id: uid('wo'), workOrderNo: 'WO-262001', description: 'Overhaul ME Cylinder #1 (Endeavour)', status: 'Planned', dueDate: '2026-08-15', department: 'Engine Room', componentId: 'C-END-1001', functionNo: 'FN-END-ENG-01', jobId: '', priority: 'High', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-262002', description: 'Boiler A Survey (Endeavour)', status: 'Open', dueDate: '2026-08-20', department: 'Engine Room', componentId: 'C-END-1002', functionNo: 'FN-END-ENG-02', jobId: '', priority: 'Medium', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-262007', description: 'Cargo Oil Pump Overhaul (Endeavour)', status: 'Requested', dueDate: '2026-09-10', department: 'Cargo', componentId: 'C-END-1007', functionNo: 'FN-END-ENG-40', jobId: '', priority: 'High', plannedDate: '' },
+  { id: uid('wo'), workOrderNo: 'WO-262010', description: 'Mooring Winch Inspection (Endeavour)', status: 'Issued', dueDate: '2026-07-22', department: 'Deck', componentId: 'C-END-1010', functionNo: 'FN-END-DECK-10', jobId: '', priority: 'Low', plannedDate: '' },
+],
 
   stockTypes: [
     { id: uid('st'), stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', maker: 'Wärtsilä', vendor: 'Wärtsilä Marine', grade: 'A', unit: 'pcs', bestPrice: 320, status: 'Active' },
@@ -156,21 +395,38 @@ export const db = reactive({
     { id: uid('si'), stockItemNo: 'SI-002', stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', makerRef: 'AL-SV-201', drawingNo: 'DW-BLR-201', stockClass: 'Valve', functionNo: 'FN-ENG-02', quantity: 2, department: 'Engine Room', location: 'ER-Store-B', expiryDate: '', perishable: false, status: 'Active', unitCost: 1850 },
     { id: uid('si'), stockItemNo: 'SI-003', stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', makerRef: 'GR-SEAL-301', drawingNo: 'DW-PMP-301', stockClass: 'Seal', functionNo: '', quantity: 8, department: 'Engineering', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 145 },
     { id: uid('si'), stockItemNo: 'SI-004', stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', makerRef: 'SH-LO-401', drawingNo: 'DW-TNK-401', stockClass: 'Lubricant', functionNo: '', quantity: 450, department: 'Engine Room', location: 'Tank-T1', expiryDate: '2027-12-01', perishable: true, status: 'Active', unitCost: 6.4 },
-    { id: uid('si'), stockItemNo: 'SI-005', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 0, department: 'Purchasing', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
-  ],
+  { id: uid('si'), stockItemNo: 'SI-005', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-ENG-01', quantity: 0, department: 'Purchasing', location: 'ER-Store-A', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
+
+  // ===== MV Voyager 库存 =====
+  { id: uid('si'), stockItemNo: 'SI-V001', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101V', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-VOY-ENG-01', quantity: 10, department: 'Engine Room', location: 'Voyager-ER-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
+  { id: uid('si'), stockItemNo: 'SI-V002', stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', makerRef: 'AL-SV-201V', drawingNo: 'DW-BLR-201', stockClass: 'Valve', functionNo: 'FN-VOY-ENG-02', quantity: 3, department: 'Engine Room', location: 'Voyager-ER-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 1850 },
+  { id: uid('si'), stockItemNo: 'SI-V003', stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', makerRef: 'GR-SEAL-301V', drawingNo: 'DW-PMP-301', stockClass: 'Seal', functionNo: '', quantity: 6, department: 'Engineering', location: 'Voyager-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 145 },
+  { id: uid('si'), stockItemNo: 'SI-V004', stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', makerRef: 'SH-LO-401V', drawingNo: 'DW-TNK-401', stockClass: 'Lubricant', functionNo: '', quantity: 380, department: 'Engine Room', location: 'Voyager-Tank', expiryDate: '2027-10-01', perishable: true, status: 'Active', unitCost: 6.4 },
+
+  // ===== MV Endeavour 库存 =====
+  { id: uid('si'), stockItemNo: 'SI-E001', stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', makerRef: 'WS-GSK-101E', drawingNo: 'DW-ENG-001', stockClass: 'Gasket', functionNo: 'FN-END-ENG-01', quantity: 8, department: 'Engine Room', location: 'Endeavour-ER-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 320 },
+  { id: uid('si'), stockItemNo: 'SI-E002', stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', makerRef: 'AL-SV-201E', drawingNo: 'DW-BLR-201', stockClass: 'Valve', functionNo: 'FN-END-ENG-02', quantity: 2, department: 'Engine Room', location: 'Endeavour-ER-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 1850 },
+  { id: uid('si'), stockItemNo: 'SI-E003', stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', makerRef: 'GR-SEAL-301E', drawingNo: 'DW-PMP-301', stockClass: 'Seal', functionNo: 'FN-END-ENG-40', quantity: 5, department: 'Cargo', location: 'Endeavour-Store', expiryDate: '', perishable: false, status: 'Active', unitCost: 145 },
+  { id: uid('si'), stockItemNo: 'SI-E004', stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', makerRef: 'SH-LO-401E', drawingNo: 'DW-TNK-401', stockClass: 'Lubricant', functionNo: '', quantity: 300, department: 'Engine Room', location: 'Endeavour-Tank', expiryDate: '2027-08-15', perishable: true, status: 'Active', unitCost: 6.4 },
+],
 
   // 指南（手册 3）：Wanted 基于 Reorder Level，并扣减已申请未到货（Outstanding）与关联组件（For Component）
   stockWanted: [
     { id: uid('sw'), stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', currentQty: 12, reorderLevel: 20, outstanding: 0, wantedQty: 8, forComponent: 'FN-ENG-01', vendor: 'Wärtsilä Marine', contract: 'C-2026-01' },
     { id: uid('sw'), stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', currentQty: 8, reorderLevel: 15, outstanding: 0, wantedQty: 7, forComponent: 'FN-DECK-01', vendor: 'Grundfos', contract: 'C-2026-02' },
-    { id: uid('sw'), stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', currentQty: 2, reorderLevel: 4, outstanding: 1, wantedQty: 2, forComponent: 'FN-ENG-02', vendor: 'Alfa Laval', contract: '' },
-  ],
+  { id: uid('sw'), stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', currentQty: 2, reorderLevel: 4, outstanding: 1, wantedQty: 2, forComponent: 'FN-ENG-02', vendor: 'Alfa Laval', contract: '' },
+  { id: uid('sw'), stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', currentQty: 10, reorderLevel: 20, outstanding: 0, wantedQty: 10, forComponent: 'FN-VOY-ENG-01', vendor: 'Wärtsilä Marine', contract: '' },
+  { id: uid('sw'), stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', currentQty: 5, reorderLevel: 12, outstanding: 0, wantedQty: 7, forComponent: 'FN-END-ENG-40', vendor: 'Grundfos', contract: '' },
+],
 
   transactions: [
     { id: uid('tx'), transactionNo: 'TX-9001', type: 'In', stockItem: 'SI-001', quantity: 20, fromLocation: '', toLocation: 'ER-Store-A', date: '2026-06-28', reference: 'GRN-220' },
     { id: uid('tx'), transactionNo: 'TX-9002', type: 'Out', stockItem: 'SI-003', quantity: 3, fromLocation: 'ER-Store-A', toLocation: 'WO-260650', date: '2026-07-04', reference: 'WO-260650' },
-    { id: uid('tx'), transactionNo: 'TX-9003', type: 'Move', stockItem: 'SI-002', quantity: 1, fromLocation: 'ER-Store-B', toLocation: 'ER-Store-A', date: '2026-07-06', reference: 'MV-31' },
-  ],
+  { id: uid('tx'), transactionNo: 'TX-9003', type: 'Move', stockItem: 'SI-002', quantity: 1, fromLocation: 'ER-Store-B', toLocation: 'ER-Store-A', date: '2026-07-06', reference: 'MV-31' },
+  { id: uid('tx'), transactionNo: 'TX-9101', type: 'In', stockItem: 'SI-V001', quantity: 15, fromLocation: '', toLocation: 'Voyager-ER-Store', date: '2026-06-25', reference: 'GRN-V01' },
+  { id: uid('tx'), transactionNo: 'TX-9102', type: 'Out', stockItem: 'SI-E003', quantity: 2, fromLocation: 'Endeavour-Store', toLocation: 'WO-262007', date: '2026-07-05', reference: 'WO-262007' },
+  { id: uid('tx'), transactionNo: 'TX-9103', type: 'In', stockItem: 'SI-E001', quantity: 12, fromLocation: '', toLocation: 'Endeavour-ER-Store', date: '2026-06-20', reference: 'GRN-E01' },
+],
 
   transferDocs: [
     { id: uid('td'), docNo: 'TD-1001', fromLocation: 'ER-Store-A', toLocation: 'Deck-Store', status: 'Approved', items: 3, created: '2026-07-01' },

@@ -5,6 +5,7 @@
       :class="{ active: selectedId === node.id }"
       :style="{ paddingLeft: depth * 16 + 8 + 'px' }"
       @click="onClick"
+      @contextmenu.prevent="$emit('contextmenu', { node, event: $event })"
     >
       <button v-if="hasChildren" class="tn-toggle" @click.stop="$emit('toggle', node.id)">
         {{ isExpanded ? '▾' : '▸' }}
@@ -41,7 +42,7 @@ const props = defineProps({
   selectedId: { type: String, default: '' },
   expandedIds: { type: Set, default: () => new Set() },
 })
-const emit = defineEmits(['select', 'open-component', 'toggle'])
+const emit = defineEmits(['select', 'open-component', 'toggle', 'contextmenu'])
 const hasChildren = computed(() => props.node.children && props.node.children.length)
 const isExpanded = computed(() => props.expandedIds.has(props.node.id))
 function onClick() {

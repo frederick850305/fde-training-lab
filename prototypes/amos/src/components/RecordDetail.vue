@@ -48,6 +48,34 @@
             </tbody>
           </table></div>
         </template>
+        <template v-else-if="t.type === 'rotation-log'">
+          <div class="subgrid-bar">
+            <button v-for="a in (t.subActions || [])" :key="a.id" class="amos-btn xs" @click="runRotationAction(t, a)">{{ a.label }}</button>
+            <span class="muted">{{ rotationCycles(t).length }} 条记录</span>
+          </div>
+          <div class="table-wrap"><table class="amos-grid sub">
+            <thead><tr>
+              <th v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ c.label }}</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="(row, ri) in rotationCycles(t)" :key="ri" :class="{ 'sub-sel': isRotationSelected(row) }" @click="selectRotationRow(row)">
+                <td v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ row[c.key] }}</td>
+              </tr>
+              <tr v-if="!rotationCycles(t).length">
+                <td :colspan="t.columns.length" class="muted" style="text-align:center;padding:10px">（无安装 / 拆卸历史）</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </template>
+        <template v-else-if="t.type === 'installed-component'">
+          <div v-if="installedComponentOf(t)" class="installed-comp">
+            <div v-for="f in (t.fields || [])" :key="f.key" class="amos-field">
+              <label>{{ f.label }}</label>
+              <div class="ctrl"><input class="amos-input" :value="installedComponentOf(t)[f.key]" readonly /></div>
+            </div>
+          </div>
+          <p v-else class="muted" style="padding:10px">（未安装组件）</p>
+        </template>
         <template v-else>
           <div v-for="f in visibleFields(t)" :key="f.key" class="amos-field">
             <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
@@ -57,6 +85,19 @@
               <template v-if="f.type === 'lookup'">
                 <input class="amos-input" :value="model[f.key]" readonly :placeholder="f.placeholder || '选择…'" />
                 <button class="lookup-btn" type="button" @click="openLookup(f)">…</button>
+              </template>
+              <template v-else-if="f.type === 'lookup-with-name'">
+                <div class="lookup-with-name-row">
+                  <input class="amos-input" :value="model[f.key]" readonly :placeholder="f.placeholder || 'Code…'" />
+                  <input class="amos-input" :value="lookupNameOf(f.lookupKey, model[f.key])" readonly :placeholder="f.namePlaceholder || 'Name…'" />
+                  <button class="lookup-btn" type="button" @click="openLookup(f)">…</button>
+                </div>
+              </template>
+              <template v-else-if="f.type === 'component-performing'">
+                <div class="cpf-row">
+                  <input class="amos-input" :value="model[f.key]" readonly :placeholder="'Component No.'" />
+                  <input class="amos-input" :value="componentNameOf(model[f.key])" readonly :placeholder="'Component Name'" />
+                </div>
               </template>
               <select v-else-if="f.type === 'select'" v-model="model[f.key]" class="amos-select" :disabled="f.readonly">
                 <option v-for="o in f.options" :key="o" :value="o">{{ o }}</option>
@@ -89,6 +130,8 @@ import { ref, computed } from 'vue'
 import LookupDialog from './LookupDialog.vue'
 import { lookups } from '../mock/index.js'
 import { collectionService } from '../services/collectionService.js'
+import { componentService } from '../services/componentService.js'
+import { functionService } from '../services/functionService.js'
 
 const props = defineProps({
   tabs: { type: Array, required: true },
@@ -104,7 +147,9 @@ const emit = defineEmits(['change', 'subaction'])
 const _tabCache = new Map()
 
 function getActive(key) {
-  return _tabCache.get(key) || props.tabs[0]?.id || ''
+  const cached = _tabCache.get(key)
+  const valid = cached && props.tabs.some((t) => t.id === cached)
+  return valid ? cached : props.tabs[0]?.id || ''
 }
 
 function setActive(key, val) {
@@ -113,11 +158,25 @@ function setActive(key, val) {
 
 const active = ref(getActive('default'))
 
+// 手册 P40：Rotation Log 周期视图（Component No./Name/Installed/By/Removed/By）
+// 注意：必须放在 watch(modelId) 之前，因为 immediate watch 会引用该变量。
+const selectedRotation = ref(null)
+function rotationCycles(t) {
+  return functionService.buildRotationCycles(props.model?.[t.sourceKey || 'rotationLog'])
+}
+function selectRotationRow(row) { selectedRotation.value = row }
+function isRotationSelected(row) { return selectedRotation.value === row }
+function runRotationAction(t, a) {
+  emit('subaction', { action: a.id, tabId: t.id, row: selectedRotation.value })
+}
+
 // 监听 model 变化（选中记录切换时）以决定是否使用缓存或默认
 import { watch, toRef } from 'vue'
 const modelId = computed(() => props.model?.id || props.model?.typeNumber || 'unknown')
 watch(modelId, (newId) => {
   const cacheKey = newId
+  // 切换记录时清空 Rotation Log 行选中，避免残留旧选中
+  selectedRotation.value = null
   if (!_tabCache.has(cacheKey)) {
     // 首次打开该记录 → 默认首 tab
     active.value = props.tabs[0]?.id || ''
@@ -143,6 +202,28 @@ function switchTab(id) {
 // 手册 P44：字段支持 showIf 条件显示（如 Jobs 中 Counter Code 仅当 Planning Method = Counter 出现）
 function visibleFields(t) {
   return (t.fields || []).filter((f) => !f.showIf || props.model[f.showIf.key] === f.showIf.value)
+}
+// 手册 P40 step 5：只读 Installed Component 标签 —— 查找当前执行该功能位置的组件
+function installedComponentOf() {
+  const no = props.model?.installedComponentId
+  if (!no) return null
+  return componentService.listSync().find((c) => c.number === no) || null
+}
+// 手册 P40：Component Performing the Function 双栏显示组件编号 + 名称
+function componentNameOf(componentNo) {
+  if (!componentNo) return ''
+  const comp = componentService.listSync().find((c) => c.number === componentNo)
+  return comp?.name || ''
+}
+// 通用 lookup 双栏：根据 lookupKey 返回当前 code 对应的名称（去掉 "code — " 前缀）
+function lookupNameOf(lookupKey, code) {
+  if (!code || !lookupKey) return ''
+  const fn = lookups[lookupKey]
+  const options = (fn ? fn(props.model) : []) || []
+  const found = options.find((o) => o.code === code)
+  if (!found) return ''
+  const prefix = code + ' — '
+  return found.label.startsWith(prefix) ? found.label.slice(prefix.length) : found.label
 }
 const lookupField = ref(null)
 const lookupOptions = ref([])
@@ -290,4 +371,10 @@ function onSubResizeEnd() {
 .amos-btn.xs { padding: 3px 8px; font-size: 11.5px; }
 .amos-btn.danger { color: #b3261e; }
 .amos-btn.xs.danger:hover { background: #fdecea; }
+/* Component Performing the Function：双栏只读展示 Component No. + Component Name */
+.cpf-row { display: flex; gap: 8px; }
+.cpf-row .amos-input { flex: 1; min-width: 0; }
+/* lookup-with-name：双栏显示 Code + Name */
+.lookup-with-name-row { display: flex; gap: 6px; align-items: center; }
+.lookup-with-name-row .amos-input { flex: 1; min-width: 0; }
 </style>
