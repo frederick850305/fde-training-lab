@@ -128,7 +128,8 @@ export const windowRegistry = {
           { key: 'description', label: 'Description' },
           { key: 'reference', label: 'Reference' },
           { key: 'parentFunctionNo', label: 'Parent Function', type: 'lookup', lookupKey: 'functions' },
-          { key: 'status', label: 'Status', type: 'select', options: ['In Use', 'Scrapped'] },
+          // 手册 2 / P38-39：状态为指示性，修改统一走 Options > Change Status 对话框
+          { key: 'status', label: 'Status', type: 'readonly' },
           { key: 'location', label: 'Location', type: 'lookup', lookupKey: 'locations' },
           { key: 'criticality', label: 'Criticality', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'] },
           { key: 'installedComponentId', label: 'Component Performing the Function', type: 'lookup', lookupKey: 'components' },
@@ -185,6 +186,8 @@ export const windowRegistry = {
     options: [
       { label: 'Install Component', action: 'install-component' },
       { label: 'Remove Component', action: 'remove-component' },
+      // 手册 2 / P38-39 Changing Function Status：Options > Change Status
+      { label: 'Change Status', action: 'change-status' },
       // 手册 Copying Functions to Other Departments：Options > Copy Functions
       { label: 'Copy Functions', action: 'copy-functions' },
     ],

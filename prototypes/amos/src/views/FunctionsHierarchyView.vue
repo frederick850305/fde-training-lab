@@ -10,6 +10,12 @@
         <button class="amos-btn sm" @click="expandAll(false)">Collapse All</button>
         <button class="amos-btn sm" @click="onFind">Find… (F3)</button>
         <button class="amos-btn sm primary" @click="openNew">New Function</button>
+        <div class="bw-options">
+          <button class="amos-btn sm" @click="optionsOpen = !optionsOpen" :disabled="!selected || selected.__type !== 'function'">Options ▾</button>
+          <div v-if="optionsOpen" class="bw-options-menu" @mouseleave="optionsOpen = false">
+            <button @click="openChangeStatus">Change Status</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -49,11 +55,7 @@
             <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
           </select>
         </div></div>
-        <div class="amos-field"><label>Status</label><div class="ctrl">
-          <select class="amos-select" v-model="selected.status">
-            <option>In Use</option><option>Scrapped</option>
-          </select>
-        </div></div>
+        <div class="amos-field"><label>Status</label><div class="ctrl"><input class="amos-input" :value="selected.status" readonly /></div></div>
         <div class="amos-field"><label>Installed Component</label><div class="ctrl"><input class="amos-input" :value="selected.installedComponentId" readonly /></div></div>
         <button class="amos-btn sm primary" @click="saveSelected">Save</button>
       </div>
@@ -116,6 +118,28 @@
         <button class="amos-btn primary" @click="createFunction">OK</button>
       </template>
     </Modal>
+
+    <!-- Change Function Status 对话框（手册 2 / P38-39 Changing Function Status） -->
+    <Modal v-if="changeStatusOpen" title="Change Function Status" width="460px" @close="changeStatusOpen = false">
+      <p class="muted">功能位置：<b>{{ selected?.functionNo }}</b>　当前状态：<b>{{ selected?.status }}</b></p>
+      <div class="amos-field">
+        <label>New Status</label>
+        <div class="ctrl">
+          <select class="amos-select" v-model="changeStatusTarget">
+            <option v-for="s in functionStatusOptions" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+      <label class="row" style="gap:6px;margin-top:8px" :class="{ disabled: !hasSubFunctions }">
+        <input type="checkbox" v-model="changeStatusCascade" :disabled="!hasSubFunctions" />
+        Change status of sub-functions also
+      </label>
+      <p v-if="!hasSubFunctions" class="muted" style="margin:4px 0 0;font-size:12px">所选功能位置没有子功能位置。</p>
+      <template #footer>
+        <button class="amos-btn" @click="changeStatusOpen = false">Cancel</button>
+        <button class="amos-btn primary" @click="confirmChangeStatus">OK</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -126,6 +150,7 @@ import TreeNode from '../components/TreeNode.vue'
 import { componentService } from '../services/componentService.js'
 import { functionService } from '../services/functionService.js'
 import { lookups } from '../mock/index.js'
+import { db } from '../mock/index.js'
 import { openWindow, setPresetFilter, showToast } from '../store.js'
 
 const showNumber = ref(true)
@@ -138,6 +163,13 @@ const newOpen = ref(false)
 const newForm = ref(blankForm())
 // 展开/折叠状态独立于树结构
 const expandedIds = ref(new Set())
+// 手册 2 / P38-39：Options > Change Status
+const optionsOpen = ref(false)
+const changeStatusOpen = ref(false)
+const changeStatusTarget = ref('In Use')
+const changeStatusCascade = ref(false)
+const functionStatusOptions = ['In Use', 'Scrapped']
+const hasSubFunctions = computed(() => selected.value && selected.value.__type === 'function' && db.functions.some((f) => f.parentFunctionNo === selected.value.functionNo))
 
 const compByNo = computed(() => componentService.byNo())
 const funcByNo = computed(() => functionService.byNo())
@@ -213,7 +245,7 @@ function doFind() {
 }
 function jumpTo(h) { onSelect(h); findOpen.value = false; showToast('已定位：' + h.no, 'info') }
 
-// 手册 Working with Functions：编辑后保存功能位置
+// 手册 Working with Functions：编辑后保存功能位置（Status 为只读指示，改状态统一走 Options > Change Status）
 function saveSelected() {
   const s = selected.value
   if (!s || s.__type !== 'function') return
@@ -223,9 +255,42 @@ function saveSelected() {
     parentFunctionNo: s.parentFunctionNo,
     location: s.location,
     criticality: s.criticality,
-    status: s.status,
   })
   showToast('功能位置已保存：' + s.functionNo, 'ok')
+}
+// 手册 2 / P38-39 Changing Function Status：Options > Change Status
+function openChangeStatus() {
+  optionsOpen.value = false
+  const s = selected.value
+  if (!s || s.__type !== 'function') { showToast('请先选择功能位置', 'warn'); return }
+  // 手册：不能对当前装有 component 的 function 更改 status
+  if (s.installedComponentId) {
+    showToast('该功能位置已安装组件，不能更改状态（请先 Remove Component）', 'warn')
+    return
+  }
+  changeStatusTarget.value = s.status
+  changeStatusCascade.value = false
+  changeStatusOpen.value = true
+}
+function confirmChangeStatus() {
+  const s = selected.value
+  if (!s || s.__type !== 'function') return
+  const res = functionService.changeStatus(s.functionNo, changeStatusTarget.value, { cascadeSubFunctions: changeStatusCascade.value })
+  if (!res.ok) {
+    if (res.reason === 'installed') showToast('该功能位置已安装组件，不能更改状态', 'warn')
+    else showToast('状态修改失败', 'warn')
+    return
+  }
+  changeStatusOpen.value = false
+  // 同步 db 最新值回选中对象
+  res.updatedIds.forEach((id) => {
+    const f = db.functions.find((x) => x.id === id)
+    if (f && selected.value && selected.value.id === id) {
+      selected.value.status = f.status
+    }
+  })
+  const extra = changeStatusCascade.value && res.updatedIds.length > 1 ? `（含 ${res.updatedIds.length - 1} 个子功能位置）` : ''
+  showToast('功能位置状态已改为 ' + changeStatusTarget.value + extra, 'ok')
 }
 function openNew() { newForm.value = blankForm(); newOpen.value = true }
 function createFunction() {
@@ -260,5 +325,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .find-hits { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
 .hit { text-align: left; border: 1px solid var(--amos-border); background: #fff; border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 12.5px; }
 .hit:hover { background: #eef3fb; border-color: var(--amos-blue); }
+.bw-options { position: relative; }
+.bw-options-menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid var(--amos-border-strong); border-radius: 6px; box-shadow: var(--amos-shadow); z-index: 50; min-width: 200px; padding: 4px; }
+.bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
+.bw-options-menu button:hover { background: var(--amos-blue-soft); }
+.row.disabled { opacity: 0.5; cursor: not-allowed; }
+.row.disabled input { cursor: not-allowed; }
 @media (max-width: 980px) { .hier-body { grid-template-columns: 1fr; } .hier-tree { border-right: none; border-bottom: 1px solid var(--amos-border); } }
 </style>

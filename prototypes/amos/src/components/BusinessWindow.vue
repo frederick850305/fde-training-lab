@@ -162,6 +162,31 @@
       </div>
     </div>
 
+    <!-- Change Function Status 对话框（手册 2 / P38-39 Changing Function Status） -->
+    <div v-if="changeStatusDialog" class="open-dialog-overlay copy-functions-overlay">
+      <div class="open-dialog reg change-function-status">
+        <h3>Change Function Status — {{ selected?.functionNo }}</h3>
+        <p class="muted">当前状态：<b>{{ selected?.status }}</b></p>
+        <div class="amos-field">
+          <label>New Status</label>
+          <div class="ctrl">
+            <select class="amos-select" v-model="changeStatusTarget">
+              <option v-for="s in functionStatusOptions" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+        <label class="row" style="gap:6px;margin-top:8px" :class="{ disabled: !hasSubFunctions }">
+          <input type="checkbox" v-model="changeStatusCascade" :disabled="!hasSubFunctions" />
+          Change status of sub-functions also
+        </label>
+        <p v-if="!hasSubFunctions" class="muted" style="margin:4px 0 0;font-size:12px">所选功能位置没有子功能位置。</p>
+        <div class="od-actions">
+          <button class="amos-btn" @click="changeStatusDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmChangeFunctionStatus">OK</button>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <!-- 左：结果列表 -->
       <section class="bw-list">
@@ -425,6 +450,8 @@ function runOption(o) {
   if (o.action === 'remove-component') { removeComponent(); return }
   // 手册 Copying Functions to Other Departments：Functions 窗口 Options > Copy Functions
   if (o.action === 'copy-functions') { openCopyFunctions(); return }
+  // 手册 2 / P38-39 Changing Function Status：Functions 窗口 Options > Change Status
+  if (o.action === 'change-status') { openChangeFunctionStatus(); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
 }
 
@@ -458,6 +485,47 @@ function removeComponent() {
     showToast(`已从 ${fn.functionNo} 拆卸组件`, 'ok')
     applyFilter({})
   })
+}
+
+// ===== Change Function Status（手册 2 / P38-39 Changing Function Status）=====
+const changeStatusDialog = ref(false)
+const changeStatusTarget = ref('In Use')
+const changeStatusCascade = ref(false)
+const functionStatusOptions = ['In Use', 'Scrapped']
+const hasSubFunctions = computed(() => {
+  if (config.value?.dataKey !== 'functions' || !selected.value) return false
+  return dbRows.value.some((f) => f.parentFunctionNo === selected.value.functionNo)
+})
+function openChangeFunctionStatus() {
+  const fn = selected.value
+  if (!fn) { showToast('请先选择功能位置', 'warn'); return }
+  // 手册：不能对当前装有 component 的 function 更改 status
+  if (fn.installedComponentId) {
+    showToast('该功能位置已安装组件，不能更改状态（请先 Remove Component）', 'warn')
+    return
+  }
+  changeStatusTarget.value = fn.status
+  changeStatusCascade.value = false
+  changeStatusDialog.value = true
+}
+function confirmChangeFunctionStatus() {
+  const fn = selected.value
+  if (!fn) return
+  const res = functionService.changeStatus(fn.functionNo, changeStatusTarget.value, { cascadeSubFunctions: changeStatusCascade.value })
+  if (!res.ok) {
+    if (res.reason === 'installed') showToast('该功能位置已安装组件，不能更改状态', 'warn')
+    else showToast('状态修改失败', 'warn')
+    return
+  }
+  changeStatusDialog.value = false
+  // 把 db 中的最新值同步回列表与当前选中行
+  res.updatedIds.forEach((id) => {
+    const row = dbRows.value.find((r) => r.id === id)
+    if (row) Object.assign(row, db.functions.find((f) => f.id === id))
+    if (selected.value && selected.value.id === id) Object.assign(selected.value, db.functions.find((f) => f.id === id))
+  })
+  const extra = changeStatusCascade.value && res.updatedIds.length > 1 ? `（含 ${res.updatedIds.length - 1} 个子功能位置）` : ''
+  showToast(`功能位置状态已改为 ${changeStatusTarget.value}${extra}`, 'ok')
 }
 
 // ===== Copy Functions（手册 Copying Functions to Other Departments）=====

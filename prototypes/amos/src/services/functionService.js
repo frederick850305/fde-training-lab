@@ -89,4 +89,31 @@ export const functionService = {
     fn.rotationLog.push({ componentNo: compNo, action: 'Removed', performedBy: 'A. Admin', performedAt: new Date().toISOString().slice(0, 10) })
     return comp
   },
+  // 手册 2 / P38-39 Changing Function Status：
+  // 只能对"空的"（未安装组件的）function 设置状态；装有组件的 function 不能改状态。
+  // 若所选 function 有 sub-functions，勾选 cascadeSubFunctions 时把全部 sub-functions
+  // 也设为相同的新状态（手册："Change status of sub-functions also"）。
+  changeStatus(functionNo, newStatus, { cascadeSubFunctions = false } = {}) {
+    const fn = db.functions.find((f) => f.functionNo === functionNo)
+    if (!fn) return { ok: false, reason: 'not-found' }
+    // 手册：不能对当前装有 component 的 function 更改 status
+    if (fn.installedComponentId) {
+      return { ok: false, reason: 'installed' }
+    }
+    if (!['In Use', 'Scrapped'].includes(newStatus)) return { ok: false, reason: 'invalid-status' }
+    const updatedIds = [fn.id]
+    fn.status = newStatus
+    if (cascadeSubFunctions) {
+      db.functions
+        .filter((f) => f.parentFunctionNo === functionNo)
+        .forEach((sub) => {
+          // 仅对同样为空的 sub-function 生效（装有组件的 sub-function 仍受手册约束，不能改）
+          if (!sub.installedComponentId) {
+            sub.status = newStatus
+            updatedIds.push(sub.id)
+          }
+        })
+    }
+    return { ok: true, updatedIds }
+  },
 }
