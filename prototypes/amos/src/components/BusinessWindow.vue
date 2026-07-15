@@ -6,10 +6,15 @@
       <div class="row" style="gap:6px">
         <span class="muted">{{ dbRows.length }} 条记录</span>
         <button class="amos-btn sm" @click="reopenFilter">查找 / Filter</button>
+        <!-- 手册 P40/P41：Functions 窗口工具栏 Install / Remove 按钮（无组件时 Install 可用、Remove 灰显；反之相反） -->
+        <template v-if="config.dataKey === 'functions'">
+          <button class="amos-btn sm" @click="openInstall" :disabled="!selected || !!selected.installedComponentId">Install</button>
+          <button class="amos-btn sm" @click="openRemove" :disabled="!selected || !selected.installedComponentId">Remove</button>
+        </template>
         <div class="bw-options">
           <button class="amos-btn sm" @click="optionsOpen = !optionsOpen" :disabled="!config.options?.length">Options ▾</button>
           <div v-if="optionsOpen" class="bw-options-menu" @mouseleave="optionsOpen = false">
-            <button v-for="o in optionItems" :key="o.action" @click="runOption(o)" :class="{ checked: o.checked }">{{ o.label }}</button>
+            <button v-for="o in optionItems" :key="o.action" @click="runOption(o)" :class="{ checked: o.checked }" :disabled="o.disabled">{{ o.label }}</button>
           </div>
         </div>
       </div>
@@ -71,9 +76,69 @@
             <input type="radio" :value="c.number" v-model="installSelected" /> {{ c.number }} — {{ c.name }} <span class="muted">({{ c.status }})</span>
           </label>
         </div>
+        <!-- 手册 P40：New Component Location 与功能位置的 location 相同 -->
+        <div class="amos-field" style="margin-top:8px">
+          <label>New Component Location</label>
+          <div class="ctrl"><input class="amos-input" :value="selected?.location" readonly /></div>
+        </div>
+        <!-- 手册 P40 step 4：Add any Details -->
+        <div class="amos-field">
+          <label>Details</label>
+          <div class="ctrl"><textarea class="amos-textarea" v-model="installDetails" placeholder="安装评论（可选）" /></div>
+        </div>
         <div class="od-actions">
           <button class="amos-btn" @click="installDialog = false">Cancel</button>
           <button class="amos-btn primary" @click="confirmInstall">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Remove Component 对话框（手册 P42 Removing a Component from a Function） -->
+    <div v-if="removeDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Remove Component — {{ selected?.functionNo }}</h3>
+        <p class="muted">从该功能位置拆卸组件 <b>{{ selected?.installedComponentId }}</b>。</p>
+        <div class="amos-field">
+          <label>New Location</label>
+          <div class="ctrl"><input class="amos-input" v-model="removeState.newLocation" placeholder="组件拆卸后移动到的新 Location" /></div>
+        </div>
+        <div class="amos-field">
+          <label>Status</label>
+          <div class="ctrl">
+            <select class="amos-select" v-model="removeState.status">
+              <option value="">（保持当前状态）</option>
+              <option>Scrapped</option>
+              <option>Transferred</option>
+              <option>Available</option>
+            </select>
+          </div>
+        </div>
+        <div class="amos-field">
+          <label>Details</label>
+          <div class="ctrl"><textarea class="amos-textarea" v-model="removeState.details" placeholder="拆卸评论（可选）" /></div>
+        </div>
+        <label class="row" style="gap:6px;margin-top:8px" :class="{ disabled: !hasSubFunctions }">
+          <input type="checkbox" v-model="removeState.cascadeSubFunctions" :disabled="!hasSubFunctions" />
+          Remove components from sub-functions also
+        </label>
+        <p v-if="!hasSubFunctions" class="muted" style="margin:4px 0 0;font-size:12px">所选功能位置没有子功能位置。</p>
+        <div class="od-actions">
+          <button class="amos-btn" @click="removeDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmRemove">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rotation Log Notes 对话框（手册 P40：查看安装 / 拆卸时登记的 Details 评论） -->
+    <div v-if="notesDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>Notes — Rotation Log</h3>
+        <div class="amos-field">
+          <label>Details</label>
+          <div class="ctrl"><textarea class="amos-textarea" :value="notesText" readonly /></div>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn primary" @click="notesDialog = false">Close</button>
         </div>
       </div>
     </div>
@@ -187,7 +252,7 @@
       </div>
     </div>
 
-    <div v-else class="bw-body">
+    <div v-else class="bw-body" @contextmenu.prevent="onCtxMenu($event)">
       <!-- 左：结果列表 -->
       <section class="bw-list">
         <RecordList
@@ -207,7 +272,7 @@
           <strong>{{ selected[detailTitleKey] || config.windowTitle }}</strong>
           <span class="tag" :class="statusClass">{{ selected[config.statusField] || '—' }}</span>
         </div>
-        <RecordDetail :tabs="config.detailTabs" :model="selected" :preset-tab-id="detailPresetTab" @change="onFieldChange">
+        <RecordDetail :tabs="config.detailTabs" :model="selected" :preset-tab-id="detailPresetTab" @change="onFieldChange" @subaction="onSubAction">
           <!-- 手册 2 / P30：部件类型窗口的 Components 标签，列出已注册的组件实例 -->
           <template #extra-components="scope">
             <p class="muted">由该类型注册的组件实例（手册 2 / P30）。</p>
@@ -227,6 +292,11 @@
       <section v-else class="bw-detail empty">
         <p class="muted">双击列表行查看明细，或点击 <b>New</b> 创建记录。</p>
       </section>
+      <!-- 手册 P40/P41：右键菜单 Install / Remove Component -->
+      <div v-if="ctxOpen" class="bw-options-menu ctx-menu" :style="{ left: ctxX + 'px', top: ctxY + 'px' }" @mouseleave="ctxOpen = false">
+        <button :disabled="!selected || !!selected.installedComponentId" @click="openInstall">Install Component</button>
+        <button :disabled="!selected || !selected.installedComponentId" @click="openRemove">Remove Component</button>
+      </div>
     </div>
 
     <div v-if="!config" class="bw-empty muted">该窗口未配置。</div>
@@ -253,10 +323,16 @@ import { departments } from '../data/amosData.js'
 
 const config = computed(() => windowRegistry[store.activeKey] || null)
 
-// Options 菜单项：对系统参数类开关（toggle）附上当前状态（✓）
+// Options 菜单项：对系统参数类开关（toggle）附上当前状态（✓）；
+// 手册 P40/P41：Functions 窗口 Install/Remove 互斥可用（无组件时 Install 可用、Remove 灰显；反之相反）
 const optionItems = computed(() => (config.value?.options || []).map((o) => {
   if (o.action === 'toggle-use-types') {
     return { ...o, checked: store.useComponentTypes, label: (store.useComponentTypes ? '✓ ' : '    ') + o.label }
+  }
+  if (config.value?.dataKey === 'functions' && (o.action === 'install-component' || o.action === 'remove-component')) {
+    const hasComp = !!(selected.value && selected.value.installedComponentId)
+    if (o.action === 'install-component') return { ...o, disabled: hasComp }
+    if (o.action === 'remove-component') return { ...o, disabled: !hasComp }
   }
   return o
 }))
@@ -447,7 +523,7 @@ function runOption(o) {
   if (o.action === 'toggle-use-types') { store.useComponentTypes = !store.useComponentTypes; showToast(`Use Component Types = ${store.useComponentTypes ? 'TRUE' : 'FALSE'}（系统参数）`, 'info'); return }
   // 手册 Component Locations：Functions 窗口 Options > Install / Remove Component
   if (o.action === 'install-component') { openInstall(); return }
-  if (o.action === 'remove-component') { removeComponent(); return }
+  if (o.action === 'remove-component') { openRemove(); return }
   // 手册 Copying Functions to Other Departments：Functions 窗口 Options > Copy Functions
   if (o.action === 'copy-functions') { openCopyFunctions(); return }
   // 手册 2 / P38-39 Changing Function Status：Functions 窗口 Options > Change Status
@@ -455,9 +531,10 @@ function runOption(o) {
   showToast(`执行：${o.label}（原型演示）`, 'info')
 }
 
-// ===== Install / Remove Component（手册 Component Locations：Functions 窗口 Options）=====
+// ===== Install / Remove Component（手册 Component Locations：Functions 窗口 Options / 按钮 / 右键）=====
 const installDialog = ref(false)
 const installSelected = ref('')
+const installDetails = ref('') // 手册 P40 step 4：安装时登记的 Details 评论
 const installCandidates = computed(() => {
   if (config.value?.dataKey !== 'functions' || !selected.value) return []
   // 当前未安装到任何功能位置（或已安装到本 function）的组件可被选作安装
@@ -466,25 +543,67 @@ const installCandidates = computed(() => {
 function openInstall() {
   const fn = selected.value
   if (!fn) { showToast('请先选择功能位置', 'warn'); return }
+  if (fn.installedComponentId) { showToast('该功能位置已安装组件，请先 Remove Component', 'warn'); return }
   installSelected.value = ''
+  installDetails.value = ''
   installDialog.value = true
 }
 async function confirmInstall() {
   const fn = selected.value
   if (!fn || !installSelected.value) { showToast('请选择组件', 'warn'); return }
-  await functionService.installComponent(fn.functionNo, installSelected.value)
+  await functionService.installComponent(fn.functionNo, installSelected.value, installDetails.value)
   installDialog.value = false
   showToast(`已将 ${installSelected.value} 安装到 ${fn.functionNo}`, 'ok')
   applyFilter({})
 }
-function removeComponent() {
+
+// 手册 P42 Removing a Component from a Function：New Location / Status / Details / sub-functions
+const removeDialog = ref(false)
+const removeState = reactive({ newLocation: '', status: '', details: '', cascadeSubFunctions: false })
+function openRemove() {
   const fn = selected.value
   if (!fn) { showToast('请先选择功能位置', 'warn'); return }
   if (!fn.installedComponentId) { showToast('该功能位置未安装组件', 'warn'); return }
-  functionService.removeComponent(fn.functionNo).then(() => {
-    showToast(`已从 ${fn.functionNo} 拆卸组件`, 'ok')
-    applyFilter({})
+  removeState.newLocation = ''
+  removeState.status = ''
+  removeState.details = ''
+  removeState.cascadeSubFunctions = false
+  removeDialog.value = true
+}
+async function confirmRemove() {
+  const fn = selected.value
+  if (!fn) return
+  await functionService.removeComponent(fn.functionNo, {
+    newLocation: removeState.newLocation,
+    status: removeState.status,
+    details: removeState.details,
+    cascadeSubFunctions: removeState.cascadeSubFunctions,
   })
+  removeDialog.value = false
+  const extra = removeState.cascadeSubFunctions ? '（含子功能位置）' : ''
+  showToast(`已从 ${fn.functionNo} 拆卸组件${extra}`, 'ok')
+  applyFilter({})
+}
+
+// 手册 P40：Rotation Log 的 Notes 按钮查看安装 / 拆卸时登记的 Details 评论
+const notesDialog = ref(false)
+const notesText = ref('')
+function onSubAction(e) {
+  if (e.action === 'notes' && e.tabId === 'rotation') {
+    if (!e.row) { showToast('请先在 Rotation Log 中选择一行', 'warn'); return }
+    notesText.value = e.row.details || '（无评论）'
+    notesDialog.value = true
+  }
+}
+
+// 手册 P40/P41：右键菜单 Install / Remove Component
+const ctxOpen = ref(false)
+const ctxX = ref(0)
+const ctxY = ref(0)
+function onCtxMenu(e) {
+  ctxX.value = e.clientX
+  ctxY.value = e.clientY
+  ctxOpen.value = true
 }
 
 // ===== Change Function Status（手册 2 / P38-39 Changing Function Status）=====
@@ -967,6 +1086,8 @@ watch(showOpenDialog, (v) => {
 .bw-options-menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12.5px; }
 .bw-options-menu button:hover { background: var(--amos-blue-soft); }
 .bw-options-menu button.checked { font-weight: 700; color: var(--amos-blue); }
+/* 右键菜单：相对视口绝对定位到鼠标坐标 */
+.bw-options-menu.ctx-menu { position: fixed; top: auto; right: auto; z-index: 200; }
 .bw-empty { padding: 30px; text-align: center; }
 /* 回跳高亮：从 Components View 跳出后切回时，目标组件行短暂高亮 */
 .highlight-row { background: #fff3cd !important; animation: hl-pulse 2s ease-out; }

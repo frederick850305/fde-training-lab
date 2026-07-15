@@ -173,13 +173,29 @@ export const windowRegistry = {
         ],
       },
       // 手册 Working with Functions：Rotation Log 标签（组件安装 / 拆卸历史，可维护）
+      // 手册 P40：选择一行并点击 Notes 按钮可查看安装 / 拆卸时登记的 Details 评论
       {
         id: 'rotation', label: 'Rotation Log', type: 'subgrid', subKey: 'rotationLog',
+        subActions: [{ id: 'notes', label: 'Notes' }],
         columns: [
           { key: 'componentNo', label: 'Component', width: '120px', default: '' },
           { key: 'action', label: 'Action', width: '100px', default: '' },
           { key: 'performedBy', label: 'By', width: '100px', default: '' },
           { key: 'performedAt', label: 'Date', type: 'date', width: '120px', default: '' },
+          { key: 'details', label: 'Details', width: '220px', readonly: true, default: '' },
+        ],
+      },
+      // 手册 P40 step 5：只读的 Installed Component 标签，显示当前执行该功能位置的组件字段详情
+      {
+        id: 'installed', label: 'Installed Component', type: 'installed-component',
+        fields: [
+          { key: 'number', label: 'Component No.' },
+          { key: 'name', label: 'Name' },
+          { key: 'typeNumber', label: 'Type No.' },
+          { key: 'status', label: 'Status' },
+          { key: 'location', label: 'Location' },
+          { key: 'maker', label: 'Maker' },
+          { key: 'serialNo', label: 'Serial No.' },
         ],
       },
     ],

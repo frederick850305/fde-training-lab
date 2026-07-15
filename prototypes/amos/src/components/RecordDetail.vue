@@ -48,6 +48,15 @@
             </tbody>
           </table></div>
         </template>
+        <template v-else-if="t.type === 'installed-component'">
+          <div v-if="installedComponentOf(t)" class="installed-comp">
+            <div v-for="f in (t.fields || [])" :key="f.key" class="amos-field">
+              <label>{{ f.label }}</label>
+              <div class="ctrl"><input class="amos-input" :value="installedComponentOf(t)[f.key]" readonly /></div>
+            </div>
+          </div>
+          <p v-else class="muted" style="padding:10px">（未安装组件）</p>
+        </template>
         <template v-else>
           <div v-for="f in visibleFields(t)" :key="f.key" class="amos-field">
             <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
@@ -89,6 +98,7 @@ import { ref, computed } from 'vue'
 import LookupDialog from './LookupDialog.vue'
 import { lookups } from '../mock/index.js'
 import { collectionService } from '../services/collectionService.js'
+import { componentService } from '../services/componentService.js'
 
 const props = defineProps({
   tabs: { type: Array, required: true },
@@ -143,6 +153,12 @@ function switchTab(id) {
 // 手册 P44：字段支持 showIf 条件显示（如 Jobs 中 Counter Code 仅当 Planning Method = Counter 出现）
 function visibleFields(t) {
   return (t.fields || []).filter((f) => !f.showIf || props.model[f.showIf.key] === f.showIf.value)
+}
+// 手册 P40 step 5：只读 Installed Component 标签 —— 查找当前执行该功能位置的组件
+function installedComponentOf() {
+  const no = props.model?.installedComponentId
+  if (!no) return null
+  return componentService.listSync().find((c) => c.number === no) || null
 }
 const lookupField = ref(null)
 const lookupOptions = ref([])
