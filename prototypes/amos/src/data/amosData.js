@@ -1,4 +1,4 @@
-// AMOS M&P 原型系统 - 元数据（安装地点 / 部门 / 菜单 / 页面注册表）
+// Neusoft M&P 原型系统 - 元数据（安装地点 / 部门 / 菜单 / 页面注册表）
 
 // 三艘船（Installation = 船）。原型以 MV Traveller 为基准扩充，并新增 MV Voyager（集装箱船）、
 // MV Endeavour（油轮），以体现船队（Fleet）级的设备与功能位置管理场景。
@@ -88,8 +88,8 @@ export const AMOS_PAGES = Object.entries(pageDefs).map(([key, [title, desc, prio
 }))
 
 export const prototypeData = {
-  productName: 'AMOS M&P',
-  windowCaption: 'AMOS Traveller / Maintenance',
+  productName: 'Neusoft M&P',
+  windowCaption: 'Neusoft Traveller / Maintenance',
   version: 'Vrs.10.0.30（国产化原型）',
   user: 'A. Admin',
 }
