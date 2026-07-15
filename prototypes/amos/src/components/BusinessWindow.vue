@@ -79,7 +79,7 @@
     </div>
 
     <!-- Copy Functions 对话框（手册 Copying Functions to Other Departments） -->
-    <div v-if="copyFunctionsDialog" class="open-dialog-overlay">
+    <div v-if="copyFunctionsDialog" class="open-dialog-overlay copy-functions-overlay">
       <div class="open-dialog reg copy-functions">
         <h3>Copy Functions</h3>
         <p class="muted">Copy functions from the current department to another department.</p>
@@ -91,27 +91,29 @@
             </select>
           </div>
         </div>
-        <div class="copy-section">
-          <div class="copy-section-title">Copy Functions with Status</div>
-          <div class="copy-row">
-            <label><input type="radio" value="All" v-model="copyFunctionsState.statusFilter" /> All</label>
-            <label><input type="radio" value="In Use" v-model="copyFunctionsState.statusFilter" /> In Use</label>
-            <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.statusFilter" /> Scrapped</label>
+        <div class="copy-sections-row">
+          <div class="copy-section">
+            <div class="copy-section-title">Copy Functions with Status</div>
+            <div class="copy-col">
+              <label><input type="radio" value="All" v-model="copyFunctionsState.statusFilter" /> All</label>
+              <label><input type="radio" value="In Use" v-model="copyFunctionsState.statusFilter" /> In Use</label>
+              <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.statusFilter" /> Scrapped</label>
+            </div>
           </div>
-        </div>
-        <div class="copy-section">
-          <div class="copy-section-title">Status of New Function</div>
-          <div class="copy-row">
-            <label><input type="radio" value="Same" v-model="copyFunctionsState.newStatus" /> Same</label>
-            <label><input type="radio" value="In Use" v-model="copyFunctionsState.newStatus" /> In Use</label>
-            <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.newStatus" /> Scrapped</label>
+          <div class="copy-section">
+            <div class="copy-section-title">Status of New Function</div>
+            <div class="copy-col">
+              <label><input type="radio" value="Same" v-model="copyFunctionsState.newStatus" /> Same</label>
+              <label><input type="radio" value="In Use" v-model="copyFunctionsState.newStatus" /> In Use</label>
+              <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.newStatus" /> Scrapped</label>
+            </div>
           </div>
-        </div>
-        <div class="copy-section">
-          <div class="copy-section-title">Duplicates</div>
-          <div class="copy-row">
-            <label><input type="radio" value="Copy All" v-model="copyFunctionsState.duplicates" /> Copy All</label>
-            <label><input type="radio" value="Skip" v-model="copyFunctionsState.duplicates" /> Skip</label>
+          <div class="copy-section">
+            <div class="copy-section-title">Duplicates</div>
+            <div class="copy-col">
+              <label><input type="radio" value="Copy All" v-model="copyFunctionsState.duplicates" /> Copy All</label>
+              <label><input type="radio" value="Skip" v-model="copyFunctionsState.duplicates" /> Skip</label>
+            </div>
           </div>
         </div>
         <div class="copy-section">
@@ -818,10 +820,15 @@ watch(showOpenDialog, (v) => {
 @keyframes hl-pulse { 0% { background: #ffe066; } 100% { background: #fff3cd; } }
 
 /* Copy Functions 对话框 */
-.copy-functions { width: 500px; }
+.copy-functions-overlay { position: fixed; align-items: flex-start; padding: 20px 0; }
+.copy-functions { width: 520px; max-height: calc(100vh - 40px); overflow-y: auto; display: flex; flex-direction: column; }
+.copy-functions .od-actions { position: sticky; bottom: 0; background: #fff; padding: 12px 0; margin-top: auto; border-top: 1px solid var(--amos-border); }
+.copy-sections-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 .copy-section { margin-top: 10px; padding: 8px; border: 1px solid var(--amos-border); border-radius: 6px; }
+.copy-sections-row .copy-section { margin-top: 0; }
 .copy-section-title { font-size: 12px; font-weight: 700; color: var(--amos-text-soft); margin-bottom: 6px; }
 .copy-row { display: flex; gap: 16px; }
+.copy-col { display: flex; flex-direction: column; gap: 4px; }
 .copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .copy-section label { display: flex; align-items: center; gap: 4px; font-size: 12.5px; cursor: pointer; }
 .copy-section input[type="checkbox"], .copy-section input[type="radio"] { cursor: pointer; }
