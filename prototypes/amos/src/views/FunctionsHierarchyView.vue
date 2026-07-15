@@ -261,7 +261,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
 import { componentService } from '../services/componentService.js'

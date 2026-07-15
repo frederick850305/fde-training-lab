@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
 import { componentService } from '../services/componentService.js'
