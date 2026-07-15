@@ -168,7 +168,13 @@
     <!-- Remove Component 对话框（手册 P42） -->
     <Modal v-if="removeOpen" title="Remove Component" width="480px" @close="removeOpen = false">
       <p class="muted">从功能位置 <b>{{ selected?.functionNo }}</b> 拆卸组件 <b>{{ selected?.installedComponentId }}</b>。</p>
-      <div class="amos-field"><label>New Location</label><div class="ctrl"><input class="amos-input" v-model="removeState.newLocation" placeholder="组件拆卸后移动到的新 Location" /></div></div>
+      <div class="amos-field"><label>New Location</label><div class="ctrl" style="display:flex;gap:6px;align-items:center">
+        <select class="amos-select" v-model="removeState.newLocation" style="flex:1">
+          <option value="">（不更新 Location）</option>
+          <option v-for="o in locationOptions" :key="o.code" :value="o.code">{{ o.label }}</option>
+        </select>
+        <button class="amos-btn sm" type="button" @click="openNewLocation" title="新增 Location 主数据">+</button>
+      </div></div>
       <div class="amos-field"><label>Status</label><div class="ctrl">
         <select class="amos-select" v-model="removeState.status">
           <option value="">（保持当前状态）</option>
@@ -186,6 +192,18 @@
       <template #footer>
         <button class="amos-btn" @click="removeOpen = false">Cancel</button>
         <button class="amos-btn primary" @click="confirmRemove">OK</button>
+      </template>
+    </Modal>
+
+    <!-- 新增 Location 主数据（手册 Working with Functions：Location lookup 可扩展） -->
+    <Modal v-if="newLocationOpen" title="New Location" width="440px" @close="newLocationOpen = false">
+      <p class="muted">新增一个标准 Location，保存后可用于 New Location / Function Location 等下拉。</p>
+      <div class="amos-field"><label>Code</label><div class="ctrl"><input class="amos-input" v-model="newLocationForm.code" placeholder="如 STORE-A" @keyup.enter="confirmNewLocation" /></div></div>
+      <div class="amos-field"><label>Description</label><div class="ctrl"><input class="amos-input" v-model="newLocationForm.description" placeholder="如 Store Room A（可选）" @keyup.enter="confirmNewLocation" /></div></div>
+      <p v-if="newLocationError" class="muted" style="color:#c0392b;margin:4px 0 0">{{ newLocationError }}</p>
+      <template #footer>
+        <button class="amos-btn" @click="newLocationOpen = false">Cancel</button>
+        <button class="amos-btn primary" @click="confirmNewLocation">OK</button>
       </template>
     </Modal>
 
@@ -248,6 +266,7 @@ import Modal from '../components/Modal.vue'
 import TreeNode from '../components/TreeNode.vue'
 import { componentService } from '../services/componentService.js'
 import { functionService } from '../services/functionService.js'
+import { locationService } from '../services/locationService.js'
 import { lookups } from '../mock/index.js'
 import { db } from '../mock/index.js'
 import { store, openWindow, setPresetFilter, showToast } from '../store.js'
@@ -301,6 +320,9 @@ const parentOptions = computed(() => lookups.functions().filter((o) => o.code !=
 function blankForm() {
   return { functionNo: '', description: '', reference: '', parentFunctionNo: '', location: 'Engine Room', criticality: 'Medium', status: 'In Use' }
 }
+
+// 手册 P20：切换安装地点时清除选中（树数据由 roots computed 自动响应 store.installation）
+watch(() => store.installation, () => { selected.value = null })
 
 // ===== 功能位置树：按 parentFunctionNo 嵌套；已安装部件作为叶子 =====
 // 仅展示当前船（store.installation）的功能位置
@@ -449,6 +471,23 @@ async function confirmInstall() {
 }
 const removeOpen = ref(false)
 const removeState = reactive({ newLocation: '', status: '', details: '', cascadeSubFunctions: false })
+// 手册 Working with Functions：Location 作为主数据，支持在 New Location 下拉旁新增
+const newLocationOpen = ref(false)
+const newLocationForm = reactive({ code: '', description: '' })
+const newLocationError = ref('')
+function openNewLocation() {
+  newLocationForm.code = ''
+  newLocationForm.description = ''
+  newLocationError.value = ''
+  newLocationOpen.value = true
+}
+function confirmNewLocation() {
+  const res = locationService.create({ code: newLocationForm.code, description: newLocationForm.description })
+  if (!res.ok) { newLocationError.value = res.error; return }
+  newLocationOpen.value = false
+  removeState.newLocation = res.record.code // 自动选中新建的 Location
+  showToast(`已新增 Location：${res.record.code}`, 'ok')
+}
 function openRemove() {
   optionsOpen.value = false
   const s = selected.value

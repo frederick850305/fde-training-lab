@@ -100,7 +100,13 @@
         <p class="muted">从该功能位置拆卸组件 <b>{{ selected?.installedComponentId }}</b>。</p>
         <div class="amos-field">
           <label>New Location</label>
-          <div class="ctrl"><input class="amos-input" v-model="removeState.newLocation" placeholder="组件拆卸后移动到的新 Location" /></div>
+          <div class="ctrl" style="display:flex;gap:6px;align-items:center">
+            <select class="amos-select" v-model="removeState.newLocation" style="flex:1">
+              <option value="">（不更新 Location）</option>
+              <option v-for="o in locationOptions" :key="o.code" :value="o.code">{{ o.label }}</option>
+            </select>
+            <button class="amos-btn sm" type="button" @click="openNewLocation" title="新增 Location 主数据">+</button>
+          </div>
         </div>
         <div class="amos-field">
           <label>Status</label>
@@ -125,6 +131,27 @@
         <div class="od-actions">
           <button class="amos-btn" @click="removeDialog = false">Cancel</button>
           <button class="amos-btn primary" @click="confirmRemove">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增 Location 主数据（手册 Working with Functions：Location lookup 可扩展） -->
+    <div v-if="newLocationDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg">
+        <h3>New Location</h3>
+        <p class="muted">新增一个标准 Location，保存后可用于 New Location / Function Location 等下拉。</p>
+        <div class="amos-field">
+          <label>Code</label>
+          <div class="ctrl"><input class="amos-input" v-model="newLocationForm.code" placeholder="如 STORE-A" @keyup.enter="confirmNewLocation" /></div>
+        </div>
+        <div class="amos-field">
+          <label>Description</label>
+          <div class="ctrl"><input class="amos-input" v-model="newLocationForm.description" placeholder="如 Store Room A（可选）" @keyup.enter="confirmNewLocation" /></div>
+        </div>
+        <p v-if="newLocationError" class="muted" style="color:#c0392b;margin:4px 0 0">{{ newLocationError }}</p>
+        <div class="od-actions">
+          <button class="amos-btn" @click="newLocationDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmNewLocation">OK</button>
         </div>
       </div>
     </div>
@@ -309,13 +336,14 @@ import { ref, reactive, computed, watch, onMounted, onActivated, onBeforeUnmount
 import FilterDialog from './FilterDialog.vue'
 import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
-import { store, showToast, openWindow, setPresetFilter } from '../store.js'
-import { db, uid } from '../mock/index.js'
+import { store, showToast, openWindow, setPresetFilter, scopeByDepartment } from '../store.js'
+import { db, uid, lookups } from '../mock/index.js'
 import { componentService } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { stockTypeService } from '../services/stockTypeService.js'
 import { functionService } from '../services/functionService.js'
+import { locationService } from '../services/locationService.js'
 import { counterService } from '../services/counterService.js'
 import { collectionService } from '../services/collectionService.js'
 import { windowRegistry } from '../windows/registry.js'
@@ -354,7 +382,9 @@ const detailTitleKey = computed(() => {
 
 const dbRows = computed(() => {
   const d = config.value?.dataKey
-  return d ? collectionService.collection(d) : []
+  const rows = d ? collectionService.collection(d) : []
+  // 手册 P20（Installations and Departments）：按当前安装地点 + 部门过滤数据权限
+  return scopeByDepartment(rows)
 })
 const viewRows = ref([])
 const showFilter = ref(false)
@@ -376,6 +406,10 @@ const statusClass = computed(() => {
   if (/(due|pending|warning)/.test(s)) return 'orange'
   return 'gray'
 })
+
+// 手册 P20：切换安装地点或部门时，自动刷新当前窗口数据（清除选中 + 重新过滤）
+watch(() => store.installation, () => { selected.value = null; applyFilter({}) })
+watch(() => store.department, () => { selected.value = null; applyFilter({}) })
 
 // 不再于 activeKey 变化时硬重置（避免切回窗口丢失选中记录与过滤上下文）；改用 onActivated 仅在存在 presetFilter 时应用
 
@@ -559,8 +593,27 @@ async function confirmInstall() {
 }
 
 // 手册 P42 Removing a Component from a Function：New Location / Status / Details / sub-functions
+// 手册 Working with Functions：Location 字段使用编码 + 描述的 lookup（与 Functions 窗口一致）
+const locationOptions = computed(() => lookups.locations())
 const removeDialog = ref(false)
 const removeState = reactive({ newLocation: '', status: '', details: '', cascadeSubFunctions: false })
+// 手册 Working with Functions：Location 作为主数据，支持在 New Location 下拉旁新增
+const newLocationDialog = ref(false)
+const newLocationForm = reactive({ code: '', description: '' })
+const newLocationError = ref('')
+function openNewLocation() {
+  newLocationForm.code = ''
+  newLocationForm.description = ''
+  newLocationError.value = ''
+  newLocationDialog.value = true
+}
+function confirmNewLocation() {
+  const res = locationService.create({ code: newLocationForm.code, description: newLocationForm.description })
+  if (!res.ok) { newLocationError.value = res.error; return }
+  newLocationDialog.value = false
+  removeState.newLocation = res.record.code // 自动选中新建的 Location
+  showToast(`已新增 Location：${res.record.code}`, 'ok')
+}
 function openRemove() {
   const fn = selected.value
   if (!fn) { showToast('请先选择功能位置', 'warn'); return }
