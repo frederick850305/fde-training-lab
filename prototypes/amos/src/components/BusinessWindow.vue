@@ -78,6 +78,68 @@
       </div>
     </div>
 
+    <!-- Copy Functions 对话框（手册 Copying Functions to Other Departments） -->
+    <div v-if="copyFunctionsDialog" class="open-dialog-overlay">
+      <div class="open-dialog reg copy-functions">
+        <h3>Copy Functions</h3>
+        <p class="muted">Copy functions from the current department to another department.</p>
+        <div class="amos-field">
+          <label>To Department</label>
+          <div class="ctrl">
+            <select v-model="copyFunctionsState.toDepartment" class="amos-select">
+              <option v-for="d in departmentOptions" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="copy-section">
+          <div class="copy-section-title">Copy Functions with Status</div>
+          <div class="copy-row">
+            <label><input type="radio" value="All" v-model="copyFunctionsState.statusFilter" /> All</label>
+            <label><input type="radio" value="In Use" v-model="copyFunctionsState.statusFilter" /> In Use</label>
+            <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.statusFilter" /> Scrapped</label>
+          </div>
+        </div>
+        <div class="copy-section">
+          <div class="copy-section-title">Status of New Function</div>
+          <div class="copy-row">
+            <label><input type="radio" value="Same" v-model="copyFunctionsState.newStatus" /> Same</label>
+            <label><input type="radio" value="In Use" v-model="copyFunctionsState.newStatus" /> In Use</label>
+            <label><input type="radio" value="Scrapped" v-model="copyFunctionsState.newStatus" /> Scrapped</label>
+          </div>
+        </div>
+        <div class="copy-section">
+          <div class="copy-section-title">Duplicates</div>
+          <div class="copy-row">
+            <label><input type="radio" value="Copy All" v-model="copyFunctionsState.duplicates" /> Copy All</label>
+            <label><input type="radio" value="Skip" v-model="copyFunctionsState.duplicates" /> Skip</label>
+          </div>
+        </div>
+        <div class="copy-section">
+          <div class="copy-section-title">Fields to Copy</div>
+          <div class="copy-grid">
+            <label><input type="checkbox" checked disabled /> Description</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.reference" /> Reference</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.criticality" /> Criticality</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.location" /> Location</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.details" /> Details</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.maintenanceBudget" /> Maintenance Budget</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.fields.stockBudget" /> Stock Budget</label>
+          </div>
+        </div>
+        <div class="copy-section">
+          <div class="copy-section-title">Related Functions</div>
+          <div class="copy-grid">
+            <label><input type="checkbox" v-model="copyFunctionsState.related.childFunctions" /> Child Functions</label>
+            <label><input type="checkbox" v-model="copyFunctionsState.related.parentFunction" /> Parent Function</label>
+          </div>
+        </div>
+        <div class="od-actions">
+          <button class="amos-btn" @click="copyFunctionsDialog = false">Cancel</button>
+          <button class="amos-btn primary" @click="confirmCopyFunctions">OK</button>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="bw-body">
       <!-- 左：结果列表 -->
       <section class="bw-list">
@@ -125,11 +187,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onActivated, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onActivated, onBeforeUnmount, nextTick } from 'vue'
 import FilterDialog from './FilterDialog.vue'
 import RecordList from './RecordList.vue'
 import RecordDetail from './RecordDetail.vue'
 import { store, showToast, openWindow, setPresetFilter } from '../store.js'
+import { db, uid } from '../mock/index.js'
 import { componentService } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
@@ -338,6 +401,8 @@ function runOption(o) {
   // 手册 Component Locations：Functions 窗口 Options > Install / Remove Component
   if (o.action === 'install-component') { openInstall(); return }
   if (o.action === 'remove-component') { removeComponent(); return }
+  // 手册 Copying Functions to Other Departments：Functions 窗口 Options > Copy Functions
+  if (o.action === 'copy-functions') { openCopyFunctions(); return }
   showToast(`执行：${o.label}（原型演示）`, 'info')
 }
 
@@ -371,6 +436,167 @@ function removeComponent() {
     showToast(`已从 ${fn.functionNo} 拆卸组件`, 'ok')
     applyFilter({})
   })
+}
+
+// ===== Copy Functions（手册 Copying Functions to Other Departments）=====
+const copyFunctionsDialog = ref(false)
+const copyFunctionsState = reactive({
+  toDepartment: '',
+  statusFilter: 'All',
+  newStatus: 'Same',
+  duplicates: 'Copy All',
+  fields: {
+    description: true,
+    reference: true,
+    criticality: true,
+    location: true,
+    details: true,
+    maintenanceBudget: false,
+    stockBudget: false,
+  },
+  related: {
+    childFunctions: true,
+    parentFunction: true,
+  },
+})
+const departmentOptions = computed(() => departments.map((d) => d.code))
+function openCopyFunctions() {
+  copyFunctionsState.toDepartment = departmentOptions.value.find((d) => d !== store.department) || ''
+  copyFunctionsState.statusFilter = 'All'
+  copyFunctionsState.newStatus = 'Same'
+  copyFunctionsState.duplicates = 'Copy All'
+  copyFunctionsState.fields.description = true
+  copyFunctionsState.fields.reference = true
+  copyFunctionsState.fields.criticality = true
+  copyFunctionsState.fields.location = true
+  copyFunctionsState.fields.details = true
+  copyFunctionsState.fields.maintenanceBudget = false
+  copyFunctionsState.fields.stockBudget = false
+  copyFunctionsState.related.childFunctions = true
+  copyFunctionsState.related.parentFunction = true
+  copyFunctionsDialog.value = true
+}
+function buildCopyFunction(fn, newNo, target) {
+  const newFn = {
+    id: uid('fn'),
+    functionNo: newNo,
+    department: target,
+    description: copyFunctionsState.fields.description ? fn.description : '',
+    reference: copyFunctionsState.fields.reference ? fn.reference : '',
+    status: copyFunctionsState.newStatus === 'Same' ? fn.status : copyFunctionsState.newStatus,
+    criticality: copyFunctionsState.fields.criticality ? fn.criticality : '',
+    location: copyFunctionsState.fields.location ? fn.location : '',
+    installedComponentId: '',
+    counter: fn.counter || '',
+    functionCounters: [],
+    rotationLog: [],
+    assetValue: 0,
+    acquisitionDate: '',
+    currency: 'USD',
+    depreciation: 0,
+  }
+  if (copyFunctionsState.fields.details) {
+    Object.assign(newFn, {
+      sfiCode: fn.sfiCode || '',
+      system: fn.system || '',
+      subSystem: fn.subSystem || '',
+      remarks: fn.remarks || '',
+      serialNo: fn.serialNo || '',
+      maker: fn.maker || '',
+      model: fn.model || '',
+      tagNo: fn.tagNo || '',
+      functionCounters: (fn.functionCounters || []).map((x) => ({ ...x })),
+      rotationLog: (fn.rotationLog || []).map((x) => ({ ...x })),
+      assetValue: fn.assetValue || 0,
+      acquisitionDate: fn.acquisitionDate || '',
+      currency: fn.currency || 'USD',
+      depreciation: fn.depreciation || 0,
+    })
+  }
+  return newFn
+}
+function confirmCopyFunctions() {
+  const target = copyFunctionsState.toDepartment
+  if (!target) { showToast('请选择目标 Department', 'warn'); return }
+  if (target === store.department) { showToast('目标部门不能与当前部门相同', 'warn'); return }
+
+  // 源：当前部门的 functions
+  let source = dbRows.value.filter((f) => f.department === store.department)
+  if (copyFunctionsState.statusFilter !== 'All') {
+    source = source.filter((f) => f.status === copyFunctionsState.statusFilter)
+  }
+
+  const toCopy = new Set(source)
+
+  // 包含子功能位置
+  if (copyFunctionsState.related.childFunctions) {
+    source.forEach((f) => {
+      dbRows.value.filter((c) => c.parentFunctionNo === f.functionNo).forEach((c) => {
+        if (copyFunctionsState.statusFilter === 'All' || c.status === copyFunctionsState.statusFilter) {
+          toCopy.add(c)
+        }
+      })
+    })
+  }
+
+  // 包含父功能位置
+  if (copyFunctionsState.related.parentFunction) {
+    Array.from(toCopy).forEach((f) => {
+      if (!f.parentFunctionNo) return
+      const p = dbRows.value.find((x) => x.functionNo === f.parentFunctionNo)
+      if (p && (copyFunctionsState.statusFilter === 'All' || p.status === copyFunctionsState.statusFilter)) {
+        toCopy.add(p)
+      }
+    })
+  }
+
+  // 父先子后排序，便于映射 parentFunctionNo
+  const ordered = Array.from(toCopy).sort((a, b) => {
+    if (a.parentFunctionNo === b.functionNo) return 1
+    if (b.parentFunctionNo === a.functionNo) return -1
+    return 0
+  })
+
+  const copied = []
+  const skipped = []
+  const idMap = new Map() // 原 functionNo -> 新 functionNo
+
+  ordered.forEach((fn) => {
+    const existing = dbRows.value.find((f) => f.functionNo === fn.functionNo && f.department === target)
+    if (existing && copyFunctionsState.duplicates === 'Skip') {
+      skipped.push(fn.functionNo)
+      return
+    }
+
+    let newNo = fn.functionNo
+    if (existing && copyFunctionsState.duplicates === 'Copy All') {
+      let n = 1
+      while (dbRows.value.find((f) => f.functionNo === `${fn.functionNo}-CP${n}` && f.department === target)) {
+        n++
+      }
+      newNo = `${fn.functionNo}-CP${n}`
+    }
+
+    const newFn = buildCopyFunction(fn, newNo, target)
+    idMap.set(fn.functionNo, newNo)
+    functionService.add(newFn)
+    copied.push(newFn)
+  })
+
+  // 回写新功能位置的 parentFunctionNo
+  copied.forEach((newFn) => {
+    const original = ordered.find((f) => idMap.get(f.functionNo) === newFn.functionNo)
+    if (!original) return
+    if (original.parentFunctionNo && idMap.has(original.parentFunctionNo)) {
+      newFn.parentFunctionNo = idMap.get(original.parentFunctionNo)
+    } else {
+      newFn.parentFunctionNo = ''
+    }
+  })
+
+  copyFunctionsDialog.value = false
+  applyFilter({})
+  showToast(`已复制 ${copied.length} 个功能位置到 ${target}（跳过 ${skipped.length} 个）`, 'ok')
 }
 
 // 手册 2 / P37：Options > View Job 打开 Component Type Jobs 并预过滤到当前选中类型
@@ -591,8 +817,14 @@ watch(showOpenDialog, (v) => {
 .highlight-row { background: #fff3cd !important; animation: hl-pulse 2s ease-out; }
 @keyframes hl-pulse { 0% { background: #ffe066; } 100% { background: #fff3cd; } }
 
-/* Open Record 对话框 */
-.open-dialog-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; z-index: 40; }
+/* Copy Functions 对话框 */
+.copy-functions { width: 500px; }
+.copy-section { margin-top: 10px; padding: 8px; border: 1px solid var(--amos-border); border-radius: 6px; }
+.copy-section-title { font-size: 12px; font-weight: 700; color: var(--amos-text-soft); margin-bottom: 6px; }
+.copy-row { display: flex; gap: 16px; }
+.copy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.copy-section label { display: flex; align-items: center; gap: 4px; font-size: 12.5px; cursor: pointer; }
+.copy-section input[type="checkbox"], .copy-section input[type="radio"] { cursor: pointer; }
 .open-dialog { background: #fff; border-radius: 10px; box-shadow: var(--amos-shadow); width: 420px; padding: 20px 24px; }
 .open-dialog h3 { margin: 0 0 8px; font-size: 15px; color: #2c486a; }
 .open-dialog .amos-field { margin-top: 12px; }
