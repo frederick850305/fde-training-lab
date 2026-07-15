@@ -56,9 +56,9 @@
   </Modal>
 
   <!-- 关于 -->
-  <Modal v-else-if="store.globalDialog === 'about'" title="About AMOS M&P" width="440px" @close="close">
+  <Modal v-else-if="store.globalDialog === 'about'" title="About Neusoft M&P" width="440px" @close="close">
     <div class="about">
-      <div class="about-logo">AMOS</div>
+      <div class="about-logo">Neusoft</div>
       <p><b>{{ prototypeData.productName }}</b> — {{ prototypeData.windowCaption }}</p>
       <p class="muted">版本：{{ prototypeData.version }}</p>
       <hr class="sep" />
