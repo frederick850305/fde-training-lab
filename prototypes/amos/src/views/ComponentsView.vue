@@ -160,6 +160,7 @@
           </template>
           <!-- 手册 P60：Jobs 标签页 —— 展示该组件已关联的作业（以 JD 视角：Code / Revision / Title / Frequency） -->
           <!-- 顶部 New / Delete / View / Details 全局按钮作用于「选中的作业」（先点选一行） -->
+          <!-- View → 跳转 Component Jobs 完整编辑窗口；Details → 本窗口内只读展示该作业的 Job Description（JD）内容 -->
           <template #extra-jobs>
             <div class="subgrid-bar" style="margin-bottom:8px">
               <button class="amos-btn xs primary" @click="newJob">New</button>
@@ -181,6 +182,28 @@
                 <tr v-if="!relJobs.length"><td colspan="4" class="muted">该部件无关联作业。点击 New 创建组件级作业（先在 Job Description 标签查找 JD）。</td></tr>
               </tbody>
             </table></div>
+            <!-- 手册 P60：Details → see the job description for the selected job（只读展示 JD 主数据，不进入编辑窗口） -->
+            <Teleport to="body">
+              <div v-if="jobDetailsOpen" class="jd-mask" @click.self="jobDetailsOpen = false">
+                <div class="jd-modal">
+                  <div class="jd-head">
+                    <strong>Job Description — {{ jobDetailsJD?.code }}</strong>
+                    <button class="amos-btn xs" @click="jobDetailsOpen = false">✕</button>
+                  </div>
+                  <div class="jd-body" v-if="jobDetailsJD">
+                    <p class="muted">该作业（{{ jobDetailsJobNo }}）关联的 Job Description 主数据（只读参考）：</p>
+                    <div class="amos-field"><label>Job Description Code</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.code" readonly /></div></div>
+                    <div class="amos-field"><label>Revision</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.revision" readonly /></div></div>
+                    <div class="amos-field"><label>Title</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.title" readonly /></div></div>
+                    <div class="amos-field"><label>Frequency</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.frequency || '—'" readonly /></div></div>
+                    <div class="amos-field"><label>Window</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.window != null ? jobDetailsJD.window : '—'" readonly /></div></div>
+                  </div>
+                  <div class="jd-foot">
+                    <button class="amos-btn sm primary" @click="jobDetailsOpen = false">关闭</button>
+                  </div>
+                </div>
+              </div>
+            </Teleport>
           </template>
           <!-- 手册 2.2(15)：Parts 标签页（View 打开 Stock Items）-->
           <template #extra-parts>
@@ -601,11 +624,17 @@ function viewJob(j) {
   setPresetFilter({ _focusJobNo: j.jobNo })
   openWindow('component-jobs')
 }
-// 手册 P60：Details → see the job description for the selected job（定位到 Job Description 标签，仅看 JD 描述）
+// 手册 P60：Details → see the job description for the selected job（本窗口内只读展示关联的 JD 主数据，不进入编辑窗口）
+const jobDetailsOpen = ref(false)
+const jobDetailsJD = ref(null)
+const jobDetailsJobNo = ref('')
 function detailsJob(j) {
   if (!j) return
-  setPresetFilter({ _focusJobNo: j.jobNo, _focusTab: 'jobDescription' })
-  openWindow('component-jobs')
+  const jd = jobService.getJobDescription(j.jdCode)
+  if (!jd) { showToast(`作业 ${j.jobNo} 未关联 Job Description（jdCode 为空），无法查看 JD 内容`, 'warn'); return }
+  jobDetailsJD.value = jd
+  jobDetailsJobNo.value = j.jobNo
+  jobDetailsOpen.value = true
 }
 // 手册 P60：Delete → remove the selected job if necessary
 function deleteJob(j) {
@@ -830,5 +859,14 @@ function statusClass(v) {
 :global(.cs-body .muted) { font-size: 12px; margin: 0 0 10px; }
 :global(.cs-foot) { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--amos-border); background: #fafcff; }
 :global(.cs-action) { white-space: nowrap; }
+/* 手册 P60：Details 只读 Job Description 对话框（Teleport 到 body，需全局样式覆盖 scoped 限制） */
+:global(.jd-mask) { position: fixed; inset: 0; background: rgba(0,0,0,.32); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+:global(.jd-modal) { background: #fff; border-radius: 10px; box-shadow: 0 10px 36px rgba(0,0,0,.28); width: 460px; max-width: 92vw; max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
+:global(.jd-head) { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--amos-border); background: #f3f6fa; }
+:global(.jd-head strong) { font-size: 13.5px; color: #2c486a; }
+:global(.jd-body) { padding: 12px 14px; overflow: auto; }
+:global(.jd-body .muted) { font-size: 12px; margin: 0 0 10px; }
+:global(.jd-body .amos-field) { margin-top: 8px; }
+:global(.jd-foot) { display: flex; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid var(--amos-border); background: #fafcff; }
 :global(.added-tag) { color: #0e6a30; font-size: 12px; }
 </style>
