@@ -1152,7 +1152,18 @@ function onAction(e) {
 // 双击 Dashboard 告警带入的预过滤
 function applyPreset() {
   if (store.presetFilter) {
-    applyFilter(store.presetFilter)
+    const pf = store.presetFilter
+    // 手册 P58/P60/P62：从 Components 窗口 Jobs 标签 View 跳入时，打开 Component Jobs 窗口并定位该作业完整详情（所有页签）
+    if (pf._focusJobNo) {
+      const target = dbRows.value.find((r) => r.jobNo === pf._focusJobNo)
+      store.presetFilter = null
+      // 保留全部作业列表，仅高亮并选中目标作业，展示其完整详情（所有页签）
+      viewRows.value = dbRows.value.slice()
+      if (target) selected.value = target
+      else showToast('未找到作业：' + pf._focusJobNo, 'warn')
+      return
+    }
+    applyFilter(pf)
     store.presetFilter = null
   } else {
     // 进入窗口默认显示全部记录（手册交互：先见列表，再用 Filter 收窄）

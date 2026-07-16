@@ -585,7 +585,12 @@ function onSubAction(e) {
     openWindow('update-counters')
   }
 }
-function viewJob(j) { showToast('查看作业：' + j.jobNo + '（原型演示）', 'info') }
+// 手册 P58/P60/P62：Components 窗口 Jobs 标签的 View 按钮 → 打开 Component Jobs 窗口并定位该作业完整详情
+// （P62 明确：Click View to open the Component Jobs window；P58/P60：Click View to see the selected job's complete details）
+function viewJob(j) {
+  setPresetFilter({ _focusJobNo: j.jobNo })
+  openWindow('component-jobs')
+}
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
 // 手册 2.2(13)：从 Components 窗口创建组件级作业（统一走 jobService）
