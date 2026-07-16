@@ -543,7 +543,8 @@ if (!db.locations.length) {
       if (inherited.has(tj.jobNo)) return
       db.jobs.push({
         id: uid('jb'),
-        jobNo: 'J-' + Math.floor(Math.random() * 90000 + 10000),
+        // 手册 P59-61：继承作业编号从「父类型作业号 @ 组件号」派生，确定性且可追溯来源，避免随机号碰撞
+        jobNo: `${tj.jobNo}@${c.number}`,
         description: tj.description,
         targetType: 'Component',
         targetId: c.number,

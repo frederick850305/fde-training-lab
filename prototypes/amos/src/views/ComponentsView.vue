@@ -165,13 +165,15 @@
               <span class="muted">{{ relJobs.length }} 条作业</span>
             </div>
             <div class="table-wrap"><table class="amos-grid sub">
-              <thead><tr><th>Job No.</th><th>Description</th><th>Frequency</th><th>Method</th><th>Due</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Job No.</th><th>Description</th><th>Inherited From</th><th>Frequency</th><th>Method</th><th>Due</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="j in relJobs" :key="j.id">
-                  <td>{{ j.jobNo }}</td><td>{{ j.description }}</td><td>{{ j.frequency }}</td><td>{{ j.planningMethod }}</td><td>{{ j.dueDate }}</td><td>{{ j.status }}</td>
+                  <td>{{ j.jobNo }}</td><td>{{ j.description }}</td>
+                  <td>{{ j.inheritedFrom ? j.inheritedFrom : '—' }}</td>
+                  <td>{{ j.frequency }}</td><td>{{ j.planningMethod }}</td><td>{{ j.dueDate }}</td><td>{{ j.status }}</td>
                   <td><button class="amos-btn xs" @click="viewJob(j)">View</button></td>
                 </tr>
-                <tr v-if="!relJobs.length"><td colspan="7" class="muted">该部件无关联作业。点击 New 创建组件级作业。</td></tr>
+                <tr v-if="!relJobs.length"><td colspan="8" class="muted">该部件无关联作业。点击 New 创建组件级作业。</td></tr>
               </tbody>
             </table></div>
           </template>

@@ -219,8 +219,13 @@ function switchTab(id) {
   setActive(modelId.value, id)
 }
 // 手册 P44：字段支持 showIf 条件显示（如 Jobs 中 Counter Code 仅当 Planning Method = Counter 出现）
+// showIf 支持两种形式：{ key, value }（值相等时显示）或 { key, truthy: true }（该字段有值时显示）
 function visibleFields(t) {
-  return (t.fields || []).filter((f) => !f.showIf || props.model[f.showIf.key] === f.showIf.value)
+  return (t.fields || []).filter((f) => {
+    if (!f.showIf) return true
+    if (f.showIf.truthy) return !!props.model[f.showIf.key]
+    return props.model[f.showIf.key] === f.showIf.value
+  })
 }
 // 手册 P40 step 5：只读 Installed Component 标签 —— 查找当前执行该功能位置的组件
 function installedComponentOf() {

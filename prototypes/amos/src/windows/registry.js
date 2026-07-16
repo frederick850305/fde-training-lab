@@ -279,6 +279,8 @@ export const windowRegistry = {
       { key: 'jobNo', label: 'Job No.', width: '120px' },
       { key: 'description', label: 'Description' },
       { key: 'targetType', label: 'Target', width: '110px' },
+      // 手册 P59-61：继承自组件类型作业的来源 Job No.（空则为组件自建作业）
+      { key: 'inheritedFrom', label: 'Inherited From', width: '130px' },
       { key: 'frequency', label: 'Frequency', width: '100px' },
       { key: 'dueDate', label: 'Due', width: '110px' },
     ],
@@ -288,6 +290,8 @@ export const windowRegistry = {
           { key: 'jobNo', label: 'Job No.' },
           { key: 'description', label: 'Job Description' },
           { key: 'targetId', label: 'Component', type: 'lookup', lookupKey: 'components' },
+          // 手册 P59-61：只读展示继承来源（继承自哪条组件类型作业）
+          { key: 'inheritedFrom', label: 'Inherited From (Type Job)', readonly: true, showIf: { key: 'inheritedFrom', truthy: true } },
           { key: 'frequency', label: 'Frequency' },
           { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
           // 手册 P44：Counters 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = Counter 时出现
