@@ -88,8 +88,8 @@ export const AMOS_PAGES = Object.entries(pageDefs).map(([key, [title, desc, prio
 }))
 
 export const prototypeData = {
-  productName: 'Neusoft M&P',
-  windowCaption: 'Neusoft Traveller / Maintenance',
+  productName: 'M&P',
+  windowCaption: 'Traveller /Maintenance',
   version: 'Vrs.10.0.30（国产化原型）',
   user: 'A. Admin',
 }
