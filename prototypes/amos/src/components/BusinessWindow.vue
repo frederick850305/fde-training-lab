@@ -1159,8 +1159,10 @@ function applyPreset() {
       store.presetFilter = null
       // 保留全部作业列表，仅高亮并选中目标作业，展示其完整详情（所有页签）
       viewRows.value = dbRows.value.slice()
-      if (target) selected.value = target
-      else showToast('未找到作业：' + pf._focusJobNo, 'warn')
+      if (target) {
+        selected.value = target
+        listPreselectId.value = pf._focusJobNo  // 同步到 RecordList 使左侧列表行高亮
+      } else showToast('未找到作业：' + pf._focusJobNo, 'warn')
       return
     }
     applyFilter(pf)
