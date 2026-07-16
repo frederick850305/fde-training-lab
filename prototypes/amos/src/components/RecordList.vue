@@ -219,7 +219,10 @@ function tagClass(val) {
 function clearSelection() {
   selectedId.value = ''
 }
-defineExpose({ clearSelection, selectedId })
+// 外部指令性强制选中某行（用于回跳上下文恢复 / presetFilter 定位）：
+// 即使 preselectId 与当前值相同（keep-alive 复用实例时常见），也能重新高亮目标行。
+function preselect(id) { if (id) selectedId.value = id }
+defineExpose({ clearSelection, selectedId, preselect })
 </script>
 
 <style scoped>

@@ -1166,6 +1166,9 @@ function applyPreset() {
         listPreselectId.value = pf._focusJobNo  // 同步到 RecordList 使左侧列表行高亮
         // 手册 P60：New 作业后直接定位到 Job Description 标签（查找 JD 的入口）
         if (pf._focusTab) detailPresetTab.value = pf._focusTab
+        // 强制同步左侧高亮：keep-alive 复用实例时 listPreselectId 可能与上次相同，
+        // RecordList 的 watch 不会因值不变而触发，故显式调用 preselect 确保目标行高亮。
+        nextTick(() => listRef.value?.preselect(pf._focusJobNo))
       } else showToast('未找到作业：' + pf._focusJobNo, 'warn')
       return
     }
