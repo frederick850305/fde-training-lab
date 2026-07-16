@@ -80,7 +80,14 @@
           <div v-for="f in visibleFields(t)" :key="f.key" class="amos-field">
             <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
             <template v-else>
-            <label>{{ f.label }}</label>
+            <label>{{ f.label }}
+              <button
+                v-if="showIndicators && model.inheritedFrom && linkableKeys.includes(f.key)"
+                type="button" class="link-ind" :class="isLinked(f.key) ? 'on' : 'off'"
+                :title="isLinked(f.key) ? '已链接到类型作业（点击解除链接）' : '已解除链接（点击重新链接）'"
+                @click.stop="toggleLink(f.key)"
+              >{{ isLinked(f.key) ? '🔗' : '🔓' }}</button>
+            </label>
             <div class="ctrl">
               <template v-if="f.type === 'lookup'">
                 <input class="amos-input" :value="model[f.key]" readonly :placeholder="f.placeholder || '选择…'" />
@@ -138,8 +145,19 @@ const props = defineProps({
   tabs: { type: Array, required: true },
   model: { type: Object, required: true },
   presetTabId: { type: String, default: '' }, // 外部指令：强制切换到指定 tab（如注册组件后跳转 Components）
+  showIndicators: { type: Boolean, default: false }, // 手册 P61-64：Options > Show Indicators 时显示字段链接图标
+  linkableKeys: { type: Array, default: () => [] }, // 可参与链接的字段 key 列表（作业 General 标签）
 })
-const emit = defineEmits(['change', 'subaction'])
+const emit = defineEmits(['change', 'subaction', 'toggle-link'])
+
+// 手册 P61-64：字段是否已链接到 Component Type Job（仅继承作业有 linkedFields）
+function isLinked(key) {
+  return (props.model?.linkedFields || []).includes(key)
+}
+// 点击链接图标：切换该字段的链接状态（由父组件持久化到 model.linkedFields）
+function toggleLink(key) {
+  emit('toggle-link', { key })
+}
 
 // 手册 P30 导航体验优化：每个窗口的详情标签页状态持久化，
 // 切换窗口再切回后保留用户之前所在的 tab（而非总是重置到 General）
@@ -359,6 +377,9 @@ function onSubResizeEnd() {
 .tab-body::-webkit-scrollbar-thumb { background: #c2d2e8; border-radius: 4px; }
 .tab-body::-webkit-scrollbar-thumb:hover { background: #9bb6d8; }
 .rd-note { margin: 0 0 10px; color: var(--amos-text-soft); font-size: 13px; line-height: 1.6; }
+/* 手册 P61-64：Show Indicators 时的字段链接图标（🔗 已链接 / 🔓 已解除） */
+.link-ind { border: none; background: transparent; cursor: pointer; font-size: 12px; margin-left: 6px; padding: 0 2px; vertical-align: middle; }
+.link-ind.off { filter: grayscale(1); opacity: 0.55; }
 /* 子表格包裹层 */
 .table-wrap { overflow-x: auto; margin-top: 8px; }
 .amos-grid.sub { border-collapse: collapse; font-size: 12.5px; width: 100%; }

@@ -528,6 +528,41 @@ if (!db.locations.length) {
   ).filter(Boolean).map((l) => ({ id: uid('loc'), code: l, description: l }))
 }
 
+// 手册 P59：为已存在的 mock 组件补种「继承作业」。
+// 注册流程中 componentService.register 已自动继承；此处为初始数据（未经过注册流程）的组件补齐，
+// 确保 Components 窗口 Jobs 标签开箱即有继承数据。本地实现以避免与 jobService 形成循环依赖。
+;(function seedInheritedJobs() {
+  const LINKABLE = ['description', 'frequency', 'planningMethod', 'counterCode', 'measurePointCode', 'dueDate', 'active']
+  db.components.forEach((c) => {
+    if (!c.typeNumber) return
+    const typeJobs = db.jobs.filter((j) => j.targetType === 'ComponentType' && j.targetId === c.typeNumber)
+    const inherited = new Set(
+      db.jobs.filter((j) => j.targetType === 'Component' && j.targetId === c.number).map((j) => j.inheritedFrom),
+    )
+    typeJobs.forEach((tj) => {
+      if (inherited.has(tj.jobNo)) return
+      db.jobs.push({
+        id: uid('jb'),
+        jobNo: 'J-' + Math.floor(Math.random() * 90000 + 10000),
+        description: tj.description,
+        targetType: 'Component',
+        targetId: c.number,
+        frequency: tj.frequency || '',
+        planningMethod: tj.planningMethod || 'Periodic',
+        counterCode: tj.counterCode || '',
+        measurePointCode: tj.measurePointCode || '',
+        dueDate: tj.dueDate || '',
+        active: tj.active || 'Yes',
+        status: tj.status || 'Planned',
+        inheritedFrom: tj.jobNo,
+        linkedFields: [...LINKABLE],
+        relatedJobs: [],
+        dependencies: [],
+      })
+    })
+  })
+})()
+
 // ===== 派生查询列表（供 Lookup 使用） =====
 export const lookups = {
   componentTypes: () => db.componentTypes.map((c) => ({ code: c.typeNumber, label: `${c.typeNumber} — ${c.name}` })),
@@ -567,6 +602,18 @@ export const lookups = {
   },
   // 手册 P44-46：Function Criticality 注册表（degree 列表 + 颜色），驱动 Criticality 下拉与颜色编码指示器
   criticalities: () => db.functionCriticalities.map((c) => ({ code: c.code, label: c.description, color: c.color })),
+  // 手册 P64-65：Related Jobs —— 同类型 / 同组件下的其它作业（排除自身）
+  jobsForType: (model) => db.jobs
+    .filter((j) => j.targetType === model?.targetType && j.targetId === model?.targetId && j.jobNo !== model?.jobNo)
+    .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),
+  jobsForComponent: (model) => db.jobs
+    .filter((j) => j.targetType === 'Component' && j.targetId === model?.targetId && j.jobNo !== model?.jobNo)
+    .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),
+  // 手册 P65-68：Job Dependencies —— 依赖链候选：同组件、非 Counter 作业、且与当前作业同频率 / 同计划方法
+  jobsForDependency: (model) => db.jobs
+    .filter((j) => j.targetType === 'Component' && j.targetId === model?.targetId && j.jobNo !== model?.jobNo
+      && j.planningMethod !== 'Counter' && j.planningMethod === model?.planningMethod && j.frequency === model?.frequency)
+    .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),
 }
 
 // ===== Dashboard 告警 / 通知（从 db 动态计算，确保双击跳转后数据一致） =====

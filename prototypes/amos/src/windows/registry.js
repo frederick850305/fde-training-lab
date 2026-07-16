@@ -244,13 +244,27 @@ export const windowRegistry = {
           // 手册 P45：Measure Points 必须先列在类型上，才能在 component type jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
           { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentTypeJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本类型已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
+          { key: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'Yes' },
         ],
       },
       noteTab('scheduling', 'Scheduling', '调度触发条件（周期 / 计数器 / 测点）。'),
       noteTab('parts', 'Parts', '所需备件。'),
       noteTab('disciplines', 'Disciplines', '所需工种。'),
-      noteTab('risk', 'Risk Management', '风险管理标志与措施。'),
+      // 手册 P62：Component / Type Jobs 的 Risk Management（激活风险 + 场景 / 类型）
+      {
+        id: 'risk', label: 'Risk Management', fields: [
+          { key: 'riskActive', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'No' },
+          { key: 'riskScenario', label: 'Scenario' },
+          { key: 'riskType', label: 'Type' },
+        ],
+      },
       noteTab('reporting', 'Reporting Options', '上报要求。'),
+      // 手册 P64-65：Related Jobs —— 关联相似作业形成可一起上报的层级
+      { id: 'related', label: 'Related Jobs', type: 'subgrid', subKey: 'relatedJobs',
+        columns: [{ key: 'jobNo', label: 'Related Job', type: 'lookup', lookupKey: 'jobsForType', placeholder: '选择关联作业' }] },
+      // 手册 P65-68：Job Dependencies —— 依赖链（Depending 作业；Counter 作业不可入链、同链须同频率 / 方法）
+      { id: 'dependency', label: 'Dependency', type: 'subgrid', subKey: 'dependencies',
+        columns: [{ key: 'jobNo', label: 'Depending Job', type: 'lookup', lookupKey: 'jobsForType', placeholder: '选择依赖作业' }] },
     ],
     options: [{ label: 'Spare Booking', action: 'spare-booking' }],
   },
@@ -281,13 +295,35 @@ export const windowRegistry = {
           // 手册 P45：Measure Points 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
           { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本组件已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
+          { key: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'Yes' },
         ],
       },
       noteTab('scheduling', 'Scheduling', '调度触发条件。'),
       noteTab('parts', 'Parts', '所需备件。'),
       noteTab('disciplines', 'Disciplines', '所需工种。'),
+      // 手册 P62：Component Jobs 的 Risk Management（激活风险 + 场景 / 类型）
+      {
+        id: 'risk', label: 'Risk Management', fields: [
+          { key: 'riskActive', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'No' },
+          { key: 'riskScenario', label: 'Scenario' },
+          { key: 'riskType', label: 'Type' },
+        ],
+      },
+      // 手册 P64-65：Related Jobs —— 关联相似作业形成可一起上报的层级
+      { id: 'related', label: 'Related Jobs', type: 'subgrid', subKey: 'relatedJobs',
+        columns: [{ key: 'jobNo', label: 'Related Job', type: 'lookup', lookupKey: 'jobsForComponent', placeholder: '选择关联作业' }] },
+      // 手册 P65-68：Job Dependencies —— 依赖链（Depending 作业；Counter 作业不可入链、同链须同频率 / 方法）
+      { id: 'dependency', label: 'Dependency', type: 'subgrid', subKey: 'dependencies',
+        columns: [{ key: 'jobNo', label: 'Depending Job', type: 'lookup', lookupKey: 'jobsForDependency', placeholder: '选择依赖作业' }] },
     ],
-    options: [{ label: 'Spare Booking', action: 'spare-booking' }],
+    // 手册 P61-64：Component Jobs 窗口 Options —— 字段链接例外（Show Indicators / Link All / Remove All / Copy Link）
+    options: [
+      { label: 'Spare Booking', action: 'spare-booking' },
+      { label: 'Show Indicators', action: 'show-indicators' },
+      { label: 'Link All to Type', action: 'link-all' },
+      { label: 'Remove All Links to Type', action: 'remove-all-links' },
+      { label: 'Copy Link from Selected', action: 'copy-link' },
+    ],
   },
 
   'job-planning': {
