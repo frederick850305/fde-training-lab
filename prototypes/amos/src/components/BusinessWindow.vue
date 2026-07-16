@@ -1157,10 +1157,17 @@ function applyPreset() {
     const pf = store.presetFilter
     // 手册 P58/P60/P62：从 Components 窗口 Jobs 标签 View / New 跳入时，打开 Component Jobs 窗口并定位该作业完整详情
     if (pf._focusJobNo) {
-      const target = dbRows.value.find((r) => r.jobNo === pf._focusJobNo)
+      let target = dbRows.value.find((r) => r.jobNo === pf._focusJobNo)
       store.presetFilter = null
-      // 保留全部作业列表，仅高亮并选中目标作业，展示其完整详情（所有页签）
+      // 手册 P60：保留全部作业列表，仅高亮并选中目标作业
       viewRows.value = dbRows.value.slice()
+      if (!target) {
+        // New 创建的作业可能因 computed 时序尚未出现在已过滤 dbRows 中，
+        // 回退到全量集合搜索（与 confirmOpen 容错逻辑一致），找到后注入视图列表。
+        const raw = collectionService.collection(config.value?.dataKey)
+        target = raw.find((r) => r.jobNo === pf._focusJobNo)
+        if (target && !viewRows.value.includes(target)) viewRows.value.push(target)
+      }
       if (target) {
         selected.value = target
         listPreselectId.value = pf._focusJobNo  // 同步到 RecordList 使左侧列表行高亮
