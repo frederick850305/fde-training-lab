@@ -17,7 +17,8 @@ export const LINKABLE_FIELDS = ['description', 'frequency', 'planningMethod', 'c
 function blankInheritedJob(typeJob, componentNumber) {
   return {
     id: uid('jb'),
-    jobNo: 'J-' + Math.floor(Math.random() * 90000 + 10000),
+    // 手册 P59-61：继承作业编号从「父类型作业号 @ 组件号」派生，确定性且可追溯来源，避免随机号碰撞
+    jobNo: `${typeJob.jobNo}@${componentNumber}`,
     description: typeJob.description,
     targetType: 'Component',
     targetId: componentNumber,
