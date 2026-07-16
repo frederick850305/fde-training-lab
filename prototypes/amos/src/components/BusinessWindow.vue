@@ -1153,7 +1153,7 @@ function onAction(e) {
 function applyPreset() {
   if (store.presetFilter) {
     const pf = store.presetFilter
-    // 手册 P58/P60/P62：从 Components 窗口 Jobs 标签 View 跳入时，打开 Component Jobs 窗口并定位该作业完整详情（所有页签）
+    // 手册 P58/P60/P62：从 Components 窗口 Jobs 标签 View / New 跳入时，打开 Component Jobs 窗口并定位该作业完整详情
     if (pf._focusJobNo) {
       const target = dbRows.value.find((r) => r.jobNo === pf._focusJobNo)
       store.presetFilter = null
@@ -1162,6 +1162,8 @@ function applyPreset() {
       if (target) {
         selected.value = target
         listPreselectId.value = pf._focusJobNo  // 同步到 RecordList 使左侧列表行高亮
+        // 手册 P60：New 作业后直接定位到 Job Description 标签（查找 JD 的入口）
+        if (pf._focusTab) detailPresetTab.value = pf._focusTab
       } else showToast('未找到作业：' + pf._focusJobNo, 'warn')
       return
     }
