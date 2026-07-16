@@ -443,7 +443,8 @@ const openInputRef = ref(null)
 
 const relJobs = computed(() => {
   if (!selected.value) return []
-  return jobService.relatedJobs(selected.value.number, selected.value.typeNumber)
+  // 手册 P59：组件作业标签显示该组件自身的作业（含继承副本 + 手动创建），不再混入类型级作业
+  return jobService.getComponentJobs(selected.value.number)
 })
 const relParts = computed(() => !selected.value ? [] : stockItemService.byFunction(selected.value.functionNo))
 const relCounters = computed(() => !selected.value ? [] : counterService.byComponent(selected.value.number))

@@ -311,7 +311,7 @@
           <strong>{{ selected[detailTitleKey] || config.windowTitle }}</strong>
           <span class="tag" :class="statusClass">{{ selected[config.statusField] || '—' }}</span>
         </div>
-        <RecordDetail :tabs="config.detailTabs" :model="selected" :preset-tab-id="detailPresetTab" @change="onFieldChange" @subaction="onSubAction">
+        <RecordDetail :tabs="config.detailTabs" :model="selected" :preset-tab-id="detailPresetTab" :show-indicators="showIndicators && isJobWindow" :linkable-keys="LINKABLE_FIELDS" @change="onFieldChange" @subaction="onSubAction" @toggle-link="onToggleLink">
           <!-- 手册 2 / P30：部件类型窗口的 Components 标签，列出已注册的组件实例 -->
           <template #extra-components="scope">
             <p class="muted">由该类型注册的组件实例（手册 2 / P30）。</p>
@@ -350,7 +350,7 @@ import RecordDetail from './RecordDetail.vue'
 import { store, showToast, openWindow, setPresetFilter, scopeByDepartment } from '../store.js'
 import { db, uid, lookups } from '../mock/index.js'
 import { componentService } from '../services/componentService.js'
-import { jobService } from '../services/jobService.js'
+import { jobService, LINKABLE_FIELDS } from '../services/jobService.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { stockTypeService } from '../services/stockTypeService.js'
 import { functionService } from '../services/functionService.js'
@@ -409,6 +409,37 @@ const showFilter = ref(false)
 const selected = ref(null)
 const optionsOpen = ref(false)
 const listRef = ref(null)
+
+// 手册 P61-64：Component Jobs 窗口 Options > Show Indicators 开关（显示字段链接图标）
+const showIndicators = ref(false)
+const isJobWindow = computed(() => config.value?.dataKey === 'jobs')
+
+// 手册 P61-64：点击字段链接图标 → 切换 model.linkedFields 中该字段的链接状态
+function onToggleLink({ key }) {
+  const m = selected.value
+  if (!m) return
+  m.linkedFields = m.linkedFields || []
+  const i = m.linkedFields.indexOf(key)
+  if (i >= 0) m.linkedFields.splice(i, 1)
+  else m.linkedFields.push(key)
+}
+
+// 手册 P57-58：保存组件类型作业时，传播到继承作业（仅链接字段）+ 询问是否应用到全部组件
+function handleJobSave() {
+  const job = selected.value
+  if (!job) return
+  if (job.targetType === 'ComponentType') {
+    jobService.propagateToInherited(job)
+    if (window.confirm('是否将此类型作业应用到该类型的全部现有组件（创建 / 刷新继承作业）？')) {
+      const n = jobService.applyTypeJobToAll(job)
+      showToast(`已应用到 ${n} 个组件的继承作业`, 'ok')
+    } else {
+      showToast('已保存类型作业（未应用到组件）', 'ok')
+    }
+  } else {
+    showToast('已保存作业（原型：内存态）', 'ok')
+  }
+}
 
 // ===== Open Record 对话框状态 =====
 const showOpenDialog = ref(false)
@@ -492,17 +523,28 @@ function doSave() {
     showToast('已记录读数并回写组件计数器（含依赖联动）', 'ok')
     return
   }
+  // 手册 P57-58：作业保存（类型作业 → 传播 / 应用到全部组件）
+  if (config.value?.dataKey === 'jobs') {
+    handleJobSave()
+    return
+  }
   showToast('已保存（原型：内存态）', 'ok')
 }
 function doDelete() {
   if (!selected.value) return showToast('请先选择记录', 'warn')
   const key = rowKey.value
   const target = selected.value[key]
-  collectionService.removeBy(config.value.dataKey, (r) => r[key] === target)
+  // 手册 P61：删除组件类型作业 → 级联删除所有继承它的组件作业
+  if (config.value?.dataKey === 'jobs' && selected.value.targetType === 'ComponentType') {
+    jobService.remove(target)
+    showToast('已删除类型作业（含级联的继承组件作业）', 'warn')
+  } else {
+    collectionService.removeBy(config.value.dataKey, (r) => r[key] === target)
+    showToast('已删除记录', 'warn')
+  }
   const j = viewRows.value.findIndex((r) => r[rowKey.value] === selected.value[rowKey.value])
   if (j >= 0) viewRows.value.splice(j, 1)
   selected.value = null
-  showToast('已删除记录', 'warn')
 }
 function doRefresh() {
   applyFilter({})
@@ -581,6 +623,20 @@ function runOption(o) {
   if (o.action === 'copy-functions') { openCopyFunctions(); return }
   // 手册 2 / P38-39 Changing Function Status：Functions 窗口 Options > Change Status
   if (o.action === 'change-status') { openChangeFunctionStatus(); return }
+  // 手册 P61-64：Component Jobs 窗口 Options —— 字段链接例外
+  if (o.action === 'show-indicators') {
+    showIndicators.value = !showIndicators.value
+    showToast(`Show Indicators = ${showIndicators.value ? 'ON（显示字段链接图标）' : 'OFF'}`, 'info')
+    return
+  }
+  if (o.action === 'link-all' || o.action === 'remove-all-links' || o.action === 'copy-link') {
+    const s = selected.value
+    if (!s || s.targetType !== 'Component') { showToast('请在 Component Jobs 窗口选择一条组件作业', 'warn'); return }
+    if (o.action === 'link-all') { jobService.linkAll(s.targetId); showToast('已将本组件全部继承作业的字段链接到类型作业', 'ok') }
+    else if (o.action === 'remove-all-links') { jobService.removeAllLinks(s.targetId); showToast('已解除本组件全部继承作业的字段链接', 'ok') }
+    else if (o.action === 'copy-link') { jobService.copyLink(s.jobNo); showToast('已将当前作业的链接配置复制到其他继承作业', 'ok') }
+    return
+  }
   showToast(`执行：${o.label}（原型演示）`, 'info')
 }
 
@@ -1045,6 +1101,8 @@ async function confirmRegister() {
     ;(t.regComponents = t.regComponents || []).push(comp.id)
     newIds.push(comp.id)
     count++
+    // 手册 P59：组件编号最终确定后，再继承所选类型的 TypeJobs（生成 Component 级继承副本，targetId 指向正确编号）
+    jobService.inheritTypeJobs(t.typeNumber, comp.number)
     // Auto-Register Stock Items：把该类型关联的备件一并登记到所选安装地点
     if (regAutoStock.value && Array.isArray(t.parts)) {
       for (const p of t.parts) {
