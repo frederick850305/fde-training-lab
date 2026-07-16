@@ -13,7 +13,7 @@
       <div v-for="t in tabs" v-show="active === t.id" :key="t.id">
         <!-- 手册 2 / P37-39：Jobs / Parts / Related 可编辑子表 -->
         <template v-if="t.type === 'subgrid'">
-          <div class="subgrid-bar">
+          <div class="subgrid-bar" v-if="!t.readonly">
             <button class="amos-btn xs" @click="addSubRow(t)">New</button>
             <button v-for="a in (t.subActions || [])" :key="a.id" class="amos-btn xs" @click="runSubAction(t, a)">{{ a.label }}</button>
             <span class="muted">{{ subRows(t).length }} 条记录</span>
@@ -76,6 +76,22 @@
           </div>
           <p v-else class="muted" style="padding:10px">（未安装组件）</p>
         </template>
+        <template v-else-if="t.type === 'counter-list'">
+          <!-- 手册 P82：Counters —— 组件已登记计数器列表（仅当组件 / 类型先列出计数器时才可选；此处只读展示） -->
+          <div class="table-wrap"><table class="amos-grid sub">
+            <thead><tr>
+              <th v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ c.label }}</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="(row, ri) in counterList(t)" :key="ri">
+                <td v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ row[c.key] }}</td>
+              </tr>
+              <tr v-if="!counterList(t).length">
+                <td :colspan="t.columns.length" class="muted" style="text-align:center;padding:10px">（组件未登记计数器）</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </template>
         <template v-else>
           <div v-for="f in visibleFields(t)" :key="f.key" class="amos-field">
             <p v-if="f.key === '_note'" class="rd-note">{{ f.value }}</p>
@@ -117,6 +133,43 @@
               <input v-else type="text" v-model="model[f.key]" class="amos-input" :readonly="f.readonly" :placeholder="f.placeholder || ''" />
             </div>
             </template>
+          </div>
+          <!-- 手册 P60：Job Description 标签内嵌 JD 库子表（Code / Revision / Title / Frequency / Window） -->
+          <div v-if="t.subgrid" class="rd-subsection">
+            <h4 v-if="t.subgrid.title" class="rd-subtitle">{{ t.subgrid.title }}</h4>
+            <div class="subgrid-bar" v-if="!t.subgrid.readonly">
+              <button class="amos-btn xs" @click="addSubRow(t.subgrid)">New</button>
+              <span class="muted">{{ subRows(t.subgrid).length }} 条记录</span>
+            </div>
+            <div class="table-wrap"><table class="amos-grid sub">
+              <thead><tr>
+                <th v-for="c in t.subgrid.columns" :key="c.key" :style="subColStyle(t.subgrid, c)">{{ c.label }}<span class="col-resize" @mousedown.stop.prevent="startSubResize($event, t.subgrid, c.key)"></span></th>
+                <th class="sub-actions" v-if="!t.subgrid.readonly"></th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="(row, ri) in subRows(t.subgrid)" :key="rowKeyOf(row, ri)" :class="{ 'sub-sel': isSubSelected(row) }" @click="selectSubRow(row)">
+                  <td v-for="c in t.subgrid.columns" :key="c.key" :style="subColStyle(t.subgrid, c)">
+                    <span v-if="c.readonly" class="cell-ro">{{ row[c.key] }}</span>
+                    <template v-else-if="c.type === 'lookup'">
+                      <span class="cell-lookup">
+                        <input class="amos-input sm" :value="row[c.key]" readonly :placeholder="'选择…'" />
+                        <button class="lookup-btn" type="button" @click="openSubLookup(t.subgrid, c, row)">…</button>
+                      </span>
+                    </template>
+                    <select v-else-if="c.type === 'select'" v-model="row[c.key]" class="amos-select sm">
+                      <option v-for="o in c.options" :key="o" :value="o">{{ o }}</option>
+                    </select>
+                    <input v-else-if="c.type === 'number'" type="number" v-model.number="row[c.key]" class="amos-input sm" />
+                    <input v-else-if="c.type === 'date'" type="date" v-model="row[c.key]" class="amos-input sm" />
+                    <input v-else type="text" v-model="row[c.key]" class="amos-input sm" :placeholder="c.label" />
+                  </td>
+                  <td class="sub-actions" v-if="!t.subgrid.readonly"><button class="amos-btn xs danger" @click="delSubRow(t.subgrid, row)">Del</button></td>
+                </tr>
+                <tr v-if="!subRows(t.subgrid).length">
+                  <td :colspan="t.subgrid.columns.length + (t.subgrid.readonly ? 0 : 1)" class="muted" style="text-align:center;padding:10px">（空）</td>
+                </tr>
+              </tbody>
+            </table></div>
           </div>
         </template>
         <slot :name="'extra-' + t.id" :model="model" />
@@ -271,6 +324,15 @@ function onLookupSelect(code) {
     const f = lookupField.value
     if (f._row) f._row[f.key] = code
     else props.model[f.key] = code
+    // 手册 P60：选择 Job Description 后自动带出 Revision / Title（alsoFill 声明需要联动填充的字段）
+    if (f.alsoFill && f.lookupKey) {
+      const fn = lookups[f.lookupKey]
+      const opt = (fn ? fn(props.model) : []).find((o) => o.code === code)
+      if (opt) {
+        if (f.alsoFill.revision != null) props.model[f.alsoFill.revision] = opt.revision
+        if (f.alsoFill.title != null) props.model[f.alsoFill.title] = opt.title
+      }
+    }
     emit('change', { key: f.key, value: code })
   }
   lookupField.value = null
@@ -280,11 +342,34 @@ function onLookupSelect(code) {
 function subRows(t) {
   if (t.subSource) {
     const src = collectionService.collection(t.subSource.dbKey)
+    // 手册 P60：JD 库子表（如 Job Description 标签）无 filterKey → 展示全库
+    if (!t.subSource.filterKey) return src
     return src.filter((r) => r[t.subSource.filterKey] === props.model[t.subSource.filterModelKey])
   }
   const key = t.subKey
   if (!props.model[key]) props.model[key] = []
   return props.model[key]
+}
+// 手册 P82：Counters 标签 —— 读取当前作业所属组件 / 类型已登记的计数器列表（只读）
+function counterList(t) {
+  const no = props.model?.targetId
+  if (!no) return []
+  const comp = componentService.listSync().find((c) => c.number === no)
+  if (comp?.componentCounters?.length) {
+    return comp.componentCounters.map((cc) => ({
+      code: cc.code, description: cc.description, unit: cc.unit || '',
+      currentValue: cc.currentValue != null ? cc.currentValue : '',
+    }))
+  }
+  const cts = collectionService.collection('componentTypes')
+  const ct = cts.find((x) => x.typeNumber === no)
+  if (ct?.counters?.length) {
+    return ct.counters.map((cc) => ({
+      code: cc.code, description: cc.description, unit: cc.unit || '',
+      currentValue: cc.currentValue != null ? cc.currentValue : '',
+    }))
+  }
+  return []
 }
 function rowKeyOf(row, ri) {
   return row.id || row.jobNo || row.stockTypeNo || row.typeNumber || ('row_' + ri)

@@ -366,9 +366,18 @@ export const db = reactive({
   ],
 
   jobs: [
-    { id: uid('jb'), jobNo: 'J-5001', description: 'Overhaul ME Cylinder Liner', targetType: 'ComponentType', targetId: 'CT-1001', frequency: '8000 hrs', planningMethod: 'Counter', dueDate: '2026-07-12', requiredDisciplines: ['Fitter', 'Engineer'], requiredParts: ['P-101', 'P-102'], status: 'Due' },
-    { id: uid('jb'), jobNo: 'J-5002', description: 'Boiler Annual Survey', targetType: 'ComponentType', targetId: 'CT-1002', frequency: '12 months', planningMethod: 'Periodic', dueDate: '2026-08-01', requiredDisciplines: ['Welder', 'Surveyor'], requiredParts: ['P-201'], status: 'Planned' },
-    { id: uid('jb'), jobNo: 'J-5101', description: 'Pump Bearing Inspection', targetType: 'Component', targetId: 'C-20001', frequency: '4000 hrs', planningMethod: 'Counter', dueDate: '2026-09-15', requiredDisciplines: ['Fitter'], requiredParts: ['P-301'], status: 'Open' },
+    { id: uid('jb'), jobNo: 'J-5001', description: 'Overhaul ME Cylinder Liner', targetType: 'ComponentType', targetId: 'CT-1001', frequency: '8000 hrs', planningMethod: 'Counter', dueDate: '2026-07-12', requiredDisciplines: ['Fitter', 'Engineer'], requiredParts: ['P-101', 'P-102'], status: 'Due', jdCode: 'M001', jdRevision: 1, jdTitle: 'ME, MEASURE CRANK DEFLECTION', respDiscipline: 'Engineer', outputFormat: 'Compact List', historyTemplate: 'Standard ME Overhaul', lastDone: '2026-01-10', window: 14, totalDuration: 8, totalCost: 4200, maintCriteria: 'Major', class: 'Class A', trade: 'Mechanical' },
+    { id: uid('jb'), jobNo: 'J-5002', description: 'Boiler Annual Survey', targetType: 'ComponentType', targetId: 'CT-1002', frequency: '12 months', planningMethod: 'Periodic', dueDate: '2026-08-01', requiredDisciplines: ['Welder', 'Surveyor'], requiredParts: ['P-201'], status: 'Planned', jdCode: 'S001', jdRevision: 1, jdTitle: 'DNV SURVEY OF MAIN ENGINE', respDiscipline: 'Surveyor', outputFormat: 'Full List', historyTemplate: 'Boiler Survey', lastDone: '2025-08-01', window: 30, totalDuration: 16, totalCost: 9800, maintCriteria: 'Critical', class: 'Class A', trade: 'Welding' },
+    { id: uid('jb'), jobNo: 'J-5101', description: 'Pump Bearing Inspection', targetType: 'Component', targetId: 'C-20001', frequency: '4000 hrs', planningMethod: 'Counter', dueDate: '2026-09-15', requiredDisciplines: ['Fitter'], requiredParts: ['P-301'], status: 'Open', jdCode: 'C002', jdRevision: 1, jdTitle: 'ME, CHECK BOLTS TIGHTNESS', respDiscipline: 'Fitter', outputFormat: 'Compact List', historyTemplate: 'Pump Inspection', lastDone: '2026-03-20', window: 7, totalDuration: 4, totalCost: 1200, maintCriteria: 'Minor', class: 'Class B', trade: 'Mechanical' },
+  ],
+
+  // 手册 P60：Job Description 库（Look up a Job Description）—— 作业描述模板，供 Component / Type Jobs 查找复用
+  // 字段：code（编号）、revision（版本）、title（标题）、frequency（周期）、window（到期浮动窗口）
+  jobDescriptions: [
+    { id: uid('jd'), code: 'M001', revision: 1, title: 'ME, MEASURE CRANK DEFLECTION', frequency: '6 months', window: 0 },
+    { id: uid('jd'), code: 'C002', revision: 1, title: 'ME, CHECK BOLTS TIGHTNESS', frequency: '6 months', window: 0 },
+    { id: uid('jd'), code: 'S001', revision: 1, title: 'DNV SURVEY OF MAIN ENGINE', frequency: '60 months', window: 0 },
+    { id: uid('jd'), code: 'G001', revision: 2, title: 'GENERAL ENGINE ROUND', frequency: '1 months', window: 2 },
   ],
 
   workOrders: [
@@ -532,7 +541,7 @@ if (!db.locations.length) {
 // 注册流程中 componentService.register 已自动继承；此处为初始数据（未经过注册流程）的组件补齐，
 // 确保 Components 窗口 Jobs 标签开箱即有继承数据。本地实现以避免与 jobService 形成循环依赖。
 ;(function seedInheritedJobs() {
-  const LINKABLE = ['description', 'frequency', 'planningMethod', 'counterCode', 'measurePointCode', 'dueDate', 'active']
+  const LINKABLE = ['description', 'frequency', 'planningMethod', 'counterCode', 'measurePointCode', 'dueDate', 'active', 'jdCode', 'jdRevision', 'jdTitle', 'respDiscipline', 'outputFormat', 'historyTemplate', 'lastDone', 'window', 'totalDuration', 'totalCost', 'maintCriteria', 'class', 'trade']
   db.components.forEach((c) => {
     if (!c.typeNumber) return
     const typeJobs = db.jobs.filter((j) => j.targetType === 'ComponentType' && j.targetId === c.typeNumber)
@@ -607,6 +616,14 @@ export const lookups = {
   jobsForType: (model) => db.jobs
     .filter((j) => j.targetType === model?.targetType && j.targetId === model?.targetId && j.jobNo !== model?.jobNo)
     .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),
+  // 手册 P60：Job Description 库查找（Look up a Job Description）—— 编号 + 标题，并携带 revision / title 供选中后自动带出
+  jobDescriptions: () => db.jobDescriptions.map((j) => ({ code: j.code, label: `${j.code} — ${j.title}`, revision: j.revision, title: j.title })),
+  // 手册 P147：Resp. Discipline —— 负责工种（子承包时必填），来源 Disciplines 寄存器
+  disciplines: () => ['Fitter', 'Engineer', 'Welder', 'Surveyor', 'Electrical', 'Hydraulic', 'Bosun'],
+  // 手册 P71：History Template —— Report Work 阶段历史记录模板（MandatoryHistory 时可选）
+  historyTemplates: () => ['Standard ME Overhaul', 'Boiler Survey', 'Pump Inspection', 'General Round', 'DNV Survey'],
+  // 手册（截图 P51）：Maint. Criteria —— 维护准则分级
+  maintCriteria: () => ['Critical', 'Major', 'Minor', 'Routine'],
   jobsForComponent: (model) => db.jobs
     .filter((j) => j.targetType === 'Component' && j.targetId === model?.targetId && j.jobNo !== model?.jobNo)
     .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),

@@ -22,7 +22,7 @@ const KNOWN_KEYS = new Set([
   'workOrders', 'stockTypes', 'stockItems', 'stockWanted', 'transactions',
   'transferDocs', 'purchaseForms', 'quotations', 'deliveries', 'transportDocs',
   'qualityChecks', 'contracts', 'budgets', 'vouchers', 'counterLogs',
-  'measureLogs', 'projects', 'maintenanceLog',
+  'measureLogs', 'projects', 'maintenanceLog', 'jobDescriptions',
   // 手册 P44-46：Function Criticality 注册表（degree 列表 + 颜色编码指示器）
   'functionCriticalities',
 ])

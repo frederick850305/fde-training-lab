@@ -234,22 +234,89 @@ export const windowRegistry = {
       {
         id: 'general', label: 'General', fields: [
           { key: 'jobNo', label: 'Job No.' },
-          { key: 'description', label: 'Job Description' },
           { key: 'targetType', label: 'Target Type', type: 'select', options: ['ComponentType', 'Component', 'Function'] },
           { key: 'targetId', label: 'Target', type: 'lookup', lookupKey: 'componentTypes' },
-          { key: 'frequency', label: 'Frequency' },
-          { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
           // 手册 P44：Counters 必须先列在 component/type 上，才能在 jobs 中选用；此字段仅当 Planning Method = Counter 时出现
           { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentTypeJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本类型已列计数器' },
           // 手册 P45：Measure Points 必须先列在类型上，才能在 component type jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
           { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentTypeJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本类型已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
+        ],
+      },
+      // 手册（截图 P51）：Job Specific Details —— 作业实例级配置（区别于 JD 模板内容）
+      {
+        id: 'jobSpecific', label: 'Job Specific Details', fields: [
+          { key: 'class', label: 'Class', type: 'select', options: ['Class A', 'Class B', 'Class C', 'Unclassed'] },
+          { key: 'trade', label: 'Trade', type: 'select', options: ['Mechanical', 'Electrical', 'Hydraulic', 'Welding', 'Survey'] },
+          { key: 'requiredDisciplines', label: 'Required Disciplines', type: 'readonly', placeholder: '见 Disciplines 标签' },
+          { key: 'requiredParts', label: 'Required Parts', type: 'readonly', placeholder: '见 Parts 标签' },
+        ],
+      },
+      // 手册 P60 + 截图 P51：Job Description —— 查找 JD 库（Code/Revision/Title）+ JD 级计划 / 报告字段 + 内嵌 JD 库子表
+      {
+        id: 'jobDescription', label: 'Job Description', fields: [
+          // 手册 P60：Look up a Job Description（三段式：Code / Revision / Title），选中后自动带出 Revision / Title
+          { key: 'jdCode', label: 'Job Description', type: 'lookup', lookupKey: 'jobDescriptions', alsoFill: { revision: 'jdRevision', title: 'jdTitle' }, placeholder: '查找作业描述库…' },
+          { key: 'jdRevision', label: 'Revision', readonly: true },
+          { key: 'jdTitle', label: 'Title', readonly: true },
+          // 手册 P69-81：周期频率（驱动 Next Due 计算）
+          { key: 'frequency', label: 'Periodic Frequency' },
+          // 手册 P147：负责工种（子承包时必填）
+          { key: 'respDiscipline', label: 'Resp. Discipline', type: 'select', lookupKey: 'disciplines' },
+          // 手册 P71：输出格式（Report Work 阶段作业描述呈现方式）
+          { key: 'outputFormat', label: 'Output Format', type: 'select', options: ['Compact List', 'Full List', 'Step by Step'] },
+          // 手册 P71：历史模板（MandatoryHistory 时可选，决定 Report Work 历史记录模板）
+          { key: 'historyTemplate', label: 'History Template', type: 'select', lookupKey: 'historyTemplates' },
+          // 手册 P60-61：Active 复选（决定作业是否纳入工单）
           { key: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'Yes' },
+          // 手册 P59：Last Done 驱动 Next Due；改动触发重排（'AutomaticallyRescheduleWorkOrders'=TRUE）
+          { key: 'lastDone', label: 'Last Done', type: 'date' },
+          // 手册 P69-81：Window —— 到期日前后浮动窗口（天）
+          { key: 'window', label: 'Window', type: 'number' },
+          // 手册 P69-81：Planning Method（含 Variable → Estimates）
+          { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger', 'Variable'] },
+          // 手册（截图 P51）：Variable 计划下的估算（Total Duration / Total Cost）
+          { key: 'totalDuration', label: 'Total Duration', type: 'number', showIf: { key: 'planningMethod', value: 'Variable' } },
+          { key: 'totalCost', label: 'Total Cost', type: 'number', showIf: { key: 'planningMethod', value: 'Variable' } },
+          // 手册（截图 P51）：Maintenance Criteria
+          { key: 'maintCriteria', label: 'Maint. Criteria', type: 'select', lookupKey: 'maintCriteria' },
+        ],
+        // 手册 P60：Job Description 标签内嵌 JD 库子表（Code / Revision / Title / Frequency / Window）—— 只读展示可用作业描述
+        subgrid: {
+          title: 'Available Job Descriptions',
+          readonly: true,
+          subSource: { dbKey: 'jobDescriptions' },
+          columns: [
+            { key: 'code', label: 'Code', readonly: true },
+            { key: 'revision', label: 'Revision', readonly: true },
+            { key: 'title', label: 'Title', readonly: true },
+            { key: 'frequency', label: 'Frequency', readonly: true },
+            { key: 'window', label: 'Window', readonly: true },
+          ],
+        },
+      },
+      // 手册（截图 P51）：JD Attachments —— 作业描述附件
+      {
+        id: 'jdAttachments', label: 'JD Attachments', type: 'subgrid', subKey: 'attachments',
+        columns: [
+          { key: 'fileName', label: 'File Name' },
+          { key: 'description', label: 'Description' },
+          { key: 'fileType', label: 'Type', type: 'select', options: ['PDF', 'Image', 'Drawing', 'Doc'] },
+        ],
+      },
+      // 手册 P82：Counters —— 类型已登记计数器（仅当类型先列出计数器时才可选）
+      {
+        id: 'counters', label: 'Counters', type: 'counter-list',
+        columns: [
+          { key: 'code', label: 'Code' },
+          { key: 'description', label: 'Description' },
+          { key: 'unit', label: 'Unit' },
+          { key: 'currentValue', label: 'Current Value' },
         ],
       },
       noteTab('scheduling', 'Scheduling', '调度触发条件（周期 / 计数器 / 测点）。'),
-      noteTab('parts', 'Parts', '所需备件。'),
-      noteTab('disciplines', 'Disciplines', '所需工种。'),
+      noteTab('parts', 'Parts', '所需备件（手册 P73：Required Parts）。'),
+      noteTab('disciplines', 'Disciplines', '所需工种（手册 P147：Resp. Discipline）。'),
       // 手册 P62：Component / Type Jobs 的 Risk Management（激活风险 + 场景 / 类型）
       {
         id: 'risk', label: 'Risk Management', fields: [
@@ -288,23 +355,91 @@ export const windowRegistry = {
       {
         id: 'general', label: 'General', fields: [
           { key: 'jobNo', label: 'Job No.' },
-          { key: 'description', label: 'Job Description' },
           { key: 'targetId', label: 'Component', type: 'lookup', lookupKey: 'components' },
           // 手册 P59-61：只读展示继承来源（继承自哪条组件类型作业）
           { key: 'inheritedFrom', label: 'Inherited From (Type Job)', readonly: true, showIf: { key: 'inheritedFrom', truthy: true } },
-          { key: 'frequency', label: 'Frequency' },
-          { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'] },
           // 手册 P44：Counters 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = Counter 时出现
           { key: 'counterCode', label: 'Counter Code', type: 'lookup', lookupKey: 'componentJobCounters', showIf: { key: 'planningMethod', value: 'Counter' }, placeholder: '仅可选本组件已列计数器' },
           // 手册 P45：Measure Points 必须先列在组件上，才能在 component jobs 中选用；此字段仅当 Planning Method = MeasurePoint 时出现
           { key: 'measurePointCode', label: 'Measure Point', type: 'lookup', lookupKey: 'componentJobMeasurePoints', showIf: { key: 'planningMethod', value: 'MeasurePoint' }, placeholder: '仅可选本组件已列测点' },
           { key: 'dueDate', label: 'Due Date', type: 'date' },
-          { key: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'Yes' },
         ],
       },
-      noteTab('scheduling', 'Scheduling', '调度触发条件。'),
-      noteTab('parts', 'Parts', '所需备件。'),
-      noteTab('disciplines', 'Disciplines', '所需工种。'),
+      // 手册（截图 P51）：Job Specific Details —— 作业实例级配置（区别于 JD 模板内容）
+      {
+        id: 'jobSpecific', label: 'Job Specific Details', fields: [
+          { key: 'class', label: 'Class', type: 'select', options: ['Class A', 'Class B', 'Class C', 'Unclassed'] },
+          { key: 'trade', label: 'Trade', type: 'select', options: ['Mechanical', 'Electrical', 'Hydraulic', 'Welding', 'Survey'] },
+          // 手册 P73：Required Parts / 手册 P147：Required Disciplines —— 只读汇总，详细见 Parts / Disciplines 标签
+          { key: 'requiredDisciplines', label: 'Required Disciplines', type: 'readonly', placeholder: '见 Disciplines 标签' },
+          { key: 'requiredParts', label: 'Required Parts', type: 'readonly', placeholder: '见 Parts 标签' },
+        ],
+      },
+      // 手册 P60 + 截图 P51：Job Description —— 查找 JD 库（Code/Revision/Title）+ JD 级计划 / 报告字段 + 内嵌 JD 库子表
+      {
+        id: 'jobDescription', label: 'Job Description', fields: [
+          // 手册 P60：Look up a Job Description（三段式：Code / Revision / Title），选中后自动带出 Revision / Title
+          { key: 'jdCode', label: 'Job Description', type: 'lookup', lookupKey: 'jobDescriptions', alsoFill: { revision: 'jdRevision', title: 'jdTitle' }, placeholder: '查找作业描述库…' },
+          { key: 'jdRevision', label: 'Revision', readonly: true },
+          { key: 'jdTitle', label: 'Title', readonly: true },
+          // 手册 P69-81：周期频率（驱动 Next Due 计算）
+          { key: 'frequency', label: 'Periodic Frequency' },
+          // 手册 P147：负责工种（子承包时必填）
+          { key: 'respDiscipline', label: 'Resp. Discipline', type: 'select', lookupKey: 'disciplines' },
+          // 手册 P71：输出格式（Report Work 阶段作业描述呈现方式）
+          { key: 'outputFormat', label: 'Output Format', type: 'select', options: ['Compact List', 'Full List', 'Step by Step'] },
+          // 手册 P71：历史模板（MandatoryHistory 时可选，决定 Report Work 历史记录模板）
+          { key: 'historyTemplate', label: 'History Template', type: 'select', lookupKey: 'historyTemplates' },
+          // 手册 P60-61：Active 复选（决定作业是否纳入工单）
+          { key: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], default: 'Yes' },
+          // 手册 P59：Last Done 驱动 Next Due；改动触发重排（'AutomaticallyRescheduleWorkOrders'=TRUE）
+          { key: 'lastDone', label: 'Last Done', type: 'date' },
+          // 手册 P69-81：Window —— 到期日前后浮动窗口（天）
+          { key: 'window', label: 'Window', type: 'number' },
+          // 手册 P69-81：Planning Method（含 Variable → Estimates）
+          { key: 'planningMethod', label: 'Planning Method', type: 'select', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger', 'Variable'] },
+          // 手册（截图 P51）：Variable 计划下的估算（Total Duration / Total Cost）
+          { key: 'totalDuration', label: 'Total Duration', type: 'number', showIf: { key: 'planningMethod', value: 'Variable' } },
+          { key: 'totalCost', label: 'Total Cost', type: 'number', showIf: { key: 'planningMethod', value: 'Variable' } },
+          // 手册（截图 P51）：Maintenance Criteria
+          { key: 'maintCriteria', label: 'Maint. Criteria', type: 'select', lookupKey: 'maintCriteria' },
+        ],
+        // 手册 P60：Job Description 标签内嵌 JD 库子表（Code / Revision / Title / Frequency / Window）—— 只读展示可用作业描述
+        subgrid: {
+          title: 'Available Job Descriptions',
+          readonly: true,
+          subSource: { dbKey: 'jobDescriptions' },
+          columns: [
+            { key: 'code', label: 'Code', readonly: true },
+            { key: 'revision', label: 'Revision', readonly: true },
+            { key: 'title', label: 'Title', readonly: true },
+            { key: 'frequency', label: 'Frequency', readonly: true },
+            { key: 'window', label: 'Window', readonly: true },
+          ],
+        },
+      },
+      // 手册（截图 P51）：JD Attachments —— 作业描述附件
+      {
+        id: 'jdAttachments', label: 'JD Attachments', type: 'subgrid', subKey: 'attachments',
+        columns: [
+          { key: 'fileName', label: 'File Name' },
+          { key: 'description', label: 'Description' },
+          { key: 'fileType', label: 'Type', type: 'select', options: ['PDF', 'Image', 'Drawing', 'Doc'] },
+        ],
+      },
+      // 手册 P82：Counters —— 组件已登记计数器（仅当组件 / 类型先列出计数器时才可选）
+      {
+        id: 'counters', label: 'Counters', type: 'counter-list',
+        columns: [
+          { key: 'code', label: 'Code' },
+          { key: 'description', label: 'Description' },
+          { key: 'unit', label: 'Unit' },
+          { key: 'currentValue', label: 'Current Value' },
+        ],
+      },
+      noteTab('scheduling', 'Scheduling', '调度触发条件（周期 / 计数器 / 测点）。'),
+      noteTab('parts', 'Parts', '所需备件（手册 P73：Required Parts）。'),
+      noteTab('disciplines', 'Disciplines', '所需工种（手册 P147：Resp. Discipline）。'),
       // 手册 P62：Component Jobs 的 Risk Management（激活风险 + 场景 / 类型）
       {
         id: 'risk', label: 'Risk Management', fields: [
