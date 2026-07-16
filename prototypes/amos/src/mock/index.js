@@ -146,7 +146,7 @@ export const db = reactive({
         { code: 'CYCLES', description: 'Start Cycles', unit: 'cycles', startValue: 0, currentValue: 0, latestZeroedDate: '', average: 0, calculate: 'No', dependsOn: '' },
       ] }),
     CO({ installation: 'Traveller', number: 'C-10002', typeNumber: 'CT-1002', name: 'Aux Boiler A', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33901', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-02', installDate: '2022-11-03' }),
-    CO({ installation: 'Traveller', number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engineering', vendor: 'Grundfos', functionNo: '', installDate: '' }),
+    CO({ installation: 'Traveller', number: 'C-20001', typeNumber: 'CT-2001', name: 'FW Pump P-21', status: 'Available', maker: 'Grundfos', type: 'Pump', serialNo: 'GR-55120', location: 'Store', department: 'Engine Room', vendor: 'Grundfos', functionNo: '', installDate: '' }),
     CO({ installation: 'Traveller', number: 'C-30001', typeNumber: 'CT-3001', name: 'SW Valve V-7', status: 'Scrapped', maker: 'Tyco', type: 'Valve', serialNo: 'TY-11890', location: 'Deck', department: 'Deck', vendor: 'Tyco', functionNo: '', installDate: '2021-06-21' }),
     CO({ installation: 'Traveller', number: 'C-10003', typeNumber: 'CT-1002', name: 'Aux Boiler B', status: 'In Use', maker: 'Aalborg', type: 'Boiler', serialNo: 'AB-33902', location: 'Engine Room', department: 'Engine Room', vendor: 'Alfa Laval', functionNo: 'FN-ENG-03', installDate: '2022-11-03' }),
     // 手册 P44-45：10 个主发动机活塞（依赖主机 C-10001 的 RUN-HRS 计数器）
