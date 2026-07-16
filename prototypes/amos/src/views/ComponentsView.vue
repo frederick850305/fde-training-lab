@@ -159,22 +159,26 @@
             </div>
           </template>
           <!-- 手册 P60：Jobs 标签页 —— 展示该组件已关联的作业（以 JD 视角：Code / Revision / Title / Frequency） -->
+          <!-- 顶部 New / Delete / View / Details 全局按钮作用于「选中的作业」（先点选一行） -->
           <template #extra-jobs>
             <div class="subgrid-bar" style="margin-bottom:8px">
-              <button class="amos-btn xs" @click="newJob">New</button>
+              <button class="amos-btn xs primary" @click="newJob">New</button>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="deleteJob(selectedJob)">Delete</button>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="viewJob(selectedJob)">View</button>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="detailsJob(selectedJob)">Details</button>
               <span class="muted">{{ relJobs.length }} 条作业</span>
             </div>
             <div class="table-wrap"><table class="amos-grid sub">
-              <thead><tr><th>Code</th><th>Revision</th><th>Title</th><th>Frequency</th><th></th></tr></thead>
+              <thead><tr><th>Code</th><th>Revision</th><th>Title</th><th>Frequency</th></tr></thead>
               <tbody>
-                <tr v-for="j in relJobs" :key="j.id">
+                <tr v-for="j in relJobs" :key="j.id" @click="selectedJob = j"
+                    :class="{ sel: selectedJob && selectedJob.id === j.id }" style="cursor:pointer">
                   <td>{{ j.jdCode || j.jobNo || '—' }}</td>
                   <td>{{ (j.jdRevision !== '' && j.jdRevision != null) ? j.jdRevision : '—' }}</td>
                   <td>{{ j.jdTitle || j.description || '—' }}</td>
                   <td>{{ j.frequency || '—' }}</td>
-                  <td><button class="amos-btn xs" @click="viewJob(j)">View</button></td>
                 </tr>
-                <tr v-if="!relJobs.length"><td colspan="5" class="muted">该部件无关联作业。点击 New 创建组件级作业（先在 Job Description 标签查找 JD）。</td></tr>
+                <tr v-if="!relJobs.length"><td colspan="4" class="muted">该部件无关联作业。点击 New 创建组件级作业（先在 Job Description 标签查找 JD）。</td></tr>
               </tbody>
             </table></div>
           </template>
@@ -449,6 +453,10 @@ const relJobs = computed(() => {
   // 手册 P59：组件作业标签显示该组件自身的作业（含继承副本 + 手动创建），不再混入类型级作业
   return jobService.getComponentJobs(selected.value.number)
 })
+// 手册 P60：Jobs 标签顶部 New/Delete/View/Details 作用于「选中的作业」（先点选一行）
+const selectedJob = ref(null)
+// 切换组件时清空选中作业，避免跨组件误操作
+watch(() => selected.value?.number, () => { selectedJob.value = null })
 const relParts = computed(() => !selected.value ? [] : stockItemService.byFunction(selected.value.functionNo))
 const relCounters = computed(() => !selected.value ? [] : counterService.byComponent(selected.value.number))
 const relWO = computed(() => !selected.value ? [] : workOrderService.byComponent(selected.value.number))
@@ -589,8 +597,23 @@ function onSubAction(e) {
 // 手册 P58/P60/P62：Components 窗口 Jobs 标签的 View 按钮 → 打开 Component Jobs 窗口并定位该作业完整详情
 // （P62 明确：Click View to open the Component Jobs window；P58/P60：Click View to see the selected job's complete details）
 function viewJob(j) {
+  if (!j) return
   setPresetFilter({ _focusJobNo: j.jobNo })
   openWindow('component-jobs')
+}
+// 手册 P60：Details → see the job description for the selected job（定位到 Job Description 标签，仅看 JD 描述）
+function detailsJob(j) {
+  if (!j) return
+  setPresetFilter({ _focusJobNo: j.jobNo, _focusTab: 'jobDescription' })
+  openWindow('component-jobs')
+}
+// 手册 P60：Delete → remove the selected job if necessary
+function deleteJob(j) {
+  if (!j) return
+  if (!confirm(`确认删除作业 ${j.jobNo}（${j.jdTitle || j.description}）？`)) return
+  jobService.remove(j.jobNo)
+  if (selectedJob.value && selectedJob.value.id === j.id) selectedJob.value = null
+  showToast('已删除作业：' + j.jobNo, 'ok')
 }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
