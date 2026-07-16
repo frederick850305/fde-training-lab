@@ -646,8 +646,10 @@ const installSelected = ref('')
 const installDetails = ref('') // 手册 P40 step 4：安装时登记的 Details 评论
 const installCandidates = computed(() => {
   if (config.value?.dataKey !== 'functions' || !selected.value) return []
-  // 当前未安装到任何功能位置（或已安装到本 function）的组件可被选作安装
-  return componentService.listSync().filter((c) => !c.functionNo || c.functionNo === selected.value.functionNo)
+  // 当前未安装到任何功能位置（或已安装到本 function）且在当前 department 范围内的组件可被选作安装
+  return scopeByDepartment(
+    componentService.listSync().filter((c) => !c.functionNo || c.functionNo === selected.value.functionNo)
+  )
 })
 function openInstall() {
   const fn = selected.value
