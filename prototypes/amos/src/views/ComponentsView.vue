@@ -172,7 +172,7 @@
               <thead><tr><th>Code</th><th>Revision</th><th>Title</th><th>Frequency</th></tr></thead>
               <tbody>
                 <tr v-for="j in relJobs" :key="j.id" @click="selectedJob = j"
-                    :class="{ sel: selectedJob && selectedJob.id === j.id }" style="cursor:pointer">
+                    :class="{ selected: selectedJob && selectedJob.id === j.id }" style="cursor:pointer">
                   <td>{{ j.jdCode || j.jobNo || '—' }}</td>
                   <td>{{ (j.jdRevision !== '' && j.jdRevision != null) ? j.jdRevision : '—' }}</td>
                   <td>{{ j.jdTitle || j.description || '—' }}</td>
