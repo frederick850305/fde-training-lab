@@ -11,7 +11,13 @@ import { db, uid } from '../mock/index.js'
 
 // 手册 P61-64：Component Jobs 上可被「链接 / 解除链接」到 Component Type Job 的字段
 // （身份字段 jobNo / targetType / targetId 不参与链接）
-export const LINKABLE_FIELDS = ['description', 'frequency', 'planningMethod', 'counterCode', 'measurePointCode', 'dueDate', 'active']
+// 含 General 原有字段 + Job Description 标签的 JD 级字段（jdCode / respDiscipline / outputFormat /
+// historyTemplate / lastDone / window / totalDuration / totalCost / maintCriteria / class / trade）
+export const LINKABLE_FIELDS = [
+  'description', 'frequency', 'planningMethod', 'counterCode', 'measurePointCode', 'dueDate', 'active',
+  'jdCode', 'jdRevision', 'jdTitle', 'respDiscipline', 'outputFormat', 'historyTemplate',
+  'lastDone', 'window', 'totalDuration', 'totalCost', 'maintCriteria', 'class', 'trade',
+]
 
 // 由一条 ComponentType 作业生成 Component 级继承副本
 function blankInheritedJob(typeJob, componentNumber) {
@@ -28,6 +34,21 @@ function blankInheritedJob(typeJob, componentNumber) {
     measurePointCode: typeJob.measurePointCode || '',
     dueDate: typeJob.dueDate || '',
     active: typeJob.active || 'Yes',
+    // 手册 P60：Job Description 标签 —— JD 库查找结果 + JD 级计划 / 报告字段（继承时一并拷贝）
+    jdCode: typeJob.jdCode || '',
+    jdRevision: typeJob.jdRevision || '',
+    jdTitle: typeJob.jdTitle || '',
+    respDiscipline: typeJob.respDiscipline || '',
+    outputFormat: typeJob.outputFormat || '',
+    historyTemplate: typeJob.historyTemplate || '',
+    lastDone: typeJob.lastDone || '',
+    window: typeJob.window || 0,
+    totalDuration: typeJob.totalDuration || 0,
+    totalCost: typeJob.totalCost || 0,
+    maintCriteria: typeJob.maintCriteria || '',
+    class: typeJob.class || '',
+    trade: typeJob.trade || '',
+    attachments: [],
     status: typeJob.status || 'Planned',
     inheritedFrom: typeJob.jobNo,
     linkedFields: [...LINKABLE_FIELDS],
@@ -155,7 +176,7 @@ export const jobService = {
   },
 
   // ---- 写入 ----
-  async create({ description, targetType, targetId, frequency = 'Monthly', planningMethod = 'Periodic', status = 'Planned', requiredDisciplines = [], requiredParts = [], counterCode = '', measurePointCode = '', active = 'Yes' }) {
+  async create({ description, targetType, targetId, frequency = 'Monthly', planningMethod = 'Periodic', status = 'Planned', requiredDisciplines = [], requiredParts = [], counterCode = '', measurePointCode = '', active = 'Yes', jdCode = '', jdRevision = '', jdTitle = '', respDiscipline = '', outputFormat = '', historyTemplate = '', lastDone = '', window = 0, totalDuration = 0, totalCost = 0, maintCriteria = '', class: jobClass = '', trade = '' }) {
     const job = {
       id: uid('jb'),
       jobNo: 'J-' + Math.floor(Math.random() * 90000 + 10000),
@@ -168,6 +189,21 @@ export const jobService = {
       measurePointCode,
       dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
       active,
+      // 手册 P60：Job Description 标签字段
+      jdCode,
+      jdRevision,
+      jdTitle,
+      respDiscipline,
+      outputFormat,
+      historyTemplate,
+      lastDone,
+      window,
+      totalDuration,
+      totalCost,
+      maintCriteria,
+      class: jobClass,
+      trade,
+      attachments: [],
       requiredDisciplines,
       requiredParts,
       status,
