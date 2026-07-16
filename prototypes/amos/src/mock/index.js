@@ -619,11 +619,11 @@ export const lookups = {
   // 手册 P60：Job Description 库查找（Look up a Job Description）—— 编号 + 标题，并携带 revision / title 供选中后自动带出
   jobDescriptions: () => db.jobDescriptions.map((j) => ({ code: j.code, label: `${j.code} — ${j.title}`, revision: j.revision, title: j.title })),
   // 手册 P147：Resp. Discipline —— 负责工种（子承包时必填），来源 Disciplines 寄存器
-  disciplines: () => ['Fitter', 'Engineer', 'Welder', 'Surveyor', 'Electrical', 'Hydraulic', 'Bosun'],
+  disciplines: () => ['Fitter', 'Engineer', 'Welder', 'Surveyor', 'Electrical', 'Hydraulic', 'Bosun'].map((d) => ({ code: d, label: d })),
   // 手册 P71：History Template —— Report Work 阶段历史记录模板（MandatoryHistory 时可选）
-  historyTemplates: () => ['Standard ME Overhaul', 'Boiler Survey', 'Pump Inspection', 'General Round', 'DNV Survey'],
+  historyTemplates: () => ['Standard ME Overhaul', 'Boiler Survey', 'Pump Inspection', 'General Round', 'DNV Survey'].map((t) => ({ code: t, label: t })),
   // 手册（截图 P51）：Maint. Criteria —— 维护准则分级
-  maintCriteria: () => ['Critical', 'Major', 'Minor', 'Routine'],
+  maintCriteria: () => ['Critical', 'Major', 'Minor', 'Routine'].map((c) => ({ code: c, label: c })),
   jobsForComponent: (model) => db.jobs
     .filter((j) => j.targetType === 'Component' && j.targetId === model?.targetId && j.jobNo !== model?.jobNo)
     .map((j) => ({ code: j.jobNo, label: `${j.jobNo} — ${j.description}` })),
