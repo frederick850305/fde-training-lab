@@ -3,7 +3,7 @@
     <!-- 顶部标题栏 -->
     <header class="top-bar">
       <div class="tb-brand">
-        <span class="tb-logo">NEUSOFT</span>
+        <span class="tb-logo">Neusoft</span>
         <div class="tb-caption">
           <strong>{{ prototypeData.productName }}</strong>
           <small>{{ prototypeData.windowCaption }}</small>
