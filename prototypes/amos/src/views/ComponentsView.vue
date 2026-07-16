@@ -158,22 +158,23 @@
               <div class="amos-field"><label>Status</label><div class="ctrl"><input class="amos-input" :value="currentFunction.status" readonly /></div></div>
             </div>
           </template>
-          <!-- 手册 2.2(13)：Jobs 标签页 -->
+          <!-- 手册 P60：Jobs 标签页 —— 展示该组件已关联的作业（以 JD 视角：Code / Revision / Title / Frequency） -->
           <template #extra-jobs>
             <div class="subgrid-bar" style="margin-bottom:8px">
               <button class="amos-btn xs" @click="newJob">New</button>
               <span class="muted">{{ relJobs.length }} 条作业</span>
             </div>
             <div class="table-wrap"><table class="amos-grid sub">
-              <thead><tr><th>Job No.</th><th>Description</th><th>Inherited From</th><th>Frequency</th><th>Method</th><th>Due</th><th>Status</th><th></th></tr></thead>
+              <thead><tr><th>Code</th><th>Revision</th><th>Title</th><th>Frequency</th><th></th></tr></thead>
               <tbody>
                 <tr v-for="j in relJobs" :key="j.id">
-                  <td>{{ j.jobNo }}</td><td>{{ j.description }}</td>
-                  <td>{{ j.inheritedFrom ? j.inheritedFrom : '—' }}</td>
-                  <td>{{ j.frequency }}</td><td>{{ j.planningMethod }}</td><td>{{ j.dueDate }}</td><td>{{ j.status }}</td>
+                  <td>{{ j.jdCode || j.jobNo || '—' }}</td>
+                  <td>{{ (j.jdRevision !== '' && j.jdRevision != null) ? j.jdRevision : '—' }}</td>
+                  <td>{{ j.jdTitle || j.description || '—' }}</td>
+                  <td>{{ j.frequency || '—' }}</td>
                   <td><button class="amos-btn xs" @click="viewJob(j)">View</button></td>
                 </tr>
-                <tr v-if="!relJobs.length"><td colspan="8" class="muted">该部件无关联作业。点击 New 创建组件级作业。</td></tr>
+                <tr v-if="!relJobs.length"><td colspan="5" class="muted">该部件无关联作业。点击 New 创建组件级作业（先在 Job Description 标签查找 JD）。</td></tr>
               </tbody>
             </table></div>
           </template>
@@ -593,7 +594,8 @@ function viewJob(j) {
 }
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
-// 手册 2.2(13)：从 Components 窗口创建组件级作业（统一走 jobService）
+// 手册 P60：从 Components 窗口 Jobs 标签 New → 打开作业定义表单（Job Description 标签查找 JD 等）
+// 创建后跳转到 Component Jobs 窗口并定位该新建作业，直接落在 Job Description 标签页
 async function newJob() {
   const t = selected.value
   if (!t) return showToast('请先选择组件', 'warn')
@@ -602,7 +604,8 @@ async function newJob() {
     targetType: 'Component',
     targetId: t.number,
   })
-  showToast('已创建组件级作业：' + job.jobNo + '（原型模拟）', 'ok')
+  setPresetFilter({ _focusJobNo: job.jobNo, _focusTab: 'jobDescription' })
+  openWindow('component-jobs')
 }
 // 手册 2.2(18)：附件管理——模拟新增 / 查看 / 删除
 function addAttachment() {
