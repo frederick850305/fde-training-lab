@@ -81,6 +81,13 @@ export const jobService = {
     return db.jobs.filter((j) => j.targetType === 'Component' && j.targetId === componentNumber)
   },
 
+  // 手册 P60：Details → see the job description for the selected job
+  // 由作业的 jdCode 反查 Job Description 主数据（只读展示用）
+  getJobDescription(code) {
+    if (!code) return null
+    return db.jobDescriptions.find((j) => j.code === code) || null
+  },
+
   // 手册 P59：组件基于组件类型可继承已定义的 TypeJobs。
   // 注册组件时，为所选类型下每条 ComponentType 作业生成一条 Component 级副本（带 inheritedFrom 与 linkedFields）。
   inheritTypeJobs(typeNumber, componentNumber) {
