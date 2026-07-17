@@ -58,11 +58,17 @@ export const windowRegistry = {
         ],
       },
       // 手册 2 / P38：Parts 为继承的备件清单；可互换件填 Alternative No.
+      // 操作按钮：New(RecordDetail自动) / View(打开Stock Type窗口) / Add Info(详情弹窗) / Copy List(复制到剪贴板)
       {
         id: 'parts', label: 'Parts', type: 'subgrid', subKey: 'parts',
         columns: [
           { key: 'stockTypeNo', label: 'Stock Type', type: 'lookup', lookupKey: 'stockTypes', width: '120px', default: '' },
           { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
+        ],
+        subActions: [
+          { id: 'view-part', label: 'View' },
+          { id: 'add-info-part', label: 'Add Info' },
+          { id: 'copy-parts-list', label: 'Copy List' },
         ],
       },
       // 手册 2 / P39 / P44：Counters 标签（定义该类型组件的计数器模板，注册为组件时继承）

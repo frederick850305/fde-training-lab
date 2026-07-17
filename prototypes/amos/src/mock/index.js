@@ -65,22 +65,40 @@ export const db = reactive({
         { code: 'CYCLES', description: 'Start Cycles', unit: 'cycles', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Exhaust Temp Outlet', trend: 'Stable', unit: '°C' },
-        ], parts: [{ stockTypeNo: 'ST-101', alternativeNo: '' }], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-101', alternativeNo: '601.03.00.001' },
+        { stockTypeNo: 'ST-103', alternativeNo: '601.01.00.002' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', type: 'Boiler', classCode: 'BOI', compTypeModel: 'MISSION OC-MI', status: 'Active', preferredVendor: 'Aalborg Industries', parentTypeNumber: '', description: 'Composite boiler for auxiliary steam supply and cargo heating', dateCreated: '2022-03-20', dateModified: '2024-05-18', jobs: 5, counters: [
         { code: 'FIRE-HRS', description: 'Fired Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Working Pressure', trend: 'Stable', unit: 'bar' },
         { code: 'FLUE-TEMP', description: 'Flue Gas Temp', trend: 'Up', unit: '°C' },
         { code: 'WATER-LEVEL', description: 'Water Level', trend: 'Stable', unit: 'mm' },
-        ], parts: [{ stockTypeNo: 'ST-201', alternativeNo: '' }], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-201', alternativeNo: '602.01.00.001' },
+        { stockTypeNo: 'ST-202', alternativeNo: '' },
+        { stockTypeNo: 'ST-203', alternativeNo: '602.03.00.001' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', type: 'Pump', classCode: 'PMP', compTypeModel: 'NBG 200-180-315', status: 'Active', preferredVendor: 'Grundfos', parentTypeNumber: '', description: 'Standard centrifugal pump for cooling water and ballast service', dateCreated: '2022-04-10', dateModified: '2024-03-22', jobs: 3, counters: [
         { code: 'PUMP-HRS', description: 'Pump Running Hours', unit: 'hrs', dependsOn: '' },
-      ], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', type: 'Valve', classCode: 'VAL', compTypeModel: 'V-900 DN200', status: 'Obsolete', preferredVendor: 'Tyco International', parentTypeNumber: '', description: 'Sea water inlet/outlet butterfly valve — superseded by CT-3501', dateCreated: '2019-08-05', dateModified: '2023-11-30', jobs: 2, counters: [], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [] },
+      ], measurePointDefs: [], parts: [
+        { stockTypeNo: 'ST-301', alternativeNo: '603.01.00.001' },
+        { stockTypeNo: 'ST-302', alternativeNo: '' },
+        { stockTypeNo: 'ST-303', alternativeNo: '' },
+      ], relatedTypes: [] },
+    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', type: 'Valve', classCode: 'VAL', compTypeModel: 'V-900 DN200', status: 'Obsolete', preferredVendor: 'Tyco International', parentTypeNumber: '', description: 'Sea water inlet/outlet butterfly valve — superseded by CT-3501', dateCreated: '2019-08-05', dateModified: '2023-11-30', jobs: 2, counters: [], measurePointDefs: [], parts: [
+        { stockTypeNo: 'ST-401', alternativeNo: '' },
+        { stockTypeNo: 'ST-402', alternativeNo: '' },
+        { stockTypeNo: 'ST-403', alternativeNo: '604.03.00.001' },
+      ], relatedTypes: [] },
     // 手册 P44-45：活塞组件类型，其 RUN-HRS 计数器默认 dependsOn 主机 C-10001
     { id: uid('ct'), typeNumber: 'CT-1003', name: 'Main Engine Piston & Rod', maker: 'Wärtsilä', model: 'S26MC', type: 'Piston', classCode: 'PIS', compTypeModel: 'S26MC-Piston', status: 'Active', preferredVendor: 'Wärtsilä Marine', parentTypeNumber: 'CT-1001', description: 'Piston and connecting rod assembly for S26MC main engine, parent type: Cylinder Liner', dateCreated: '2022-02-28', dateModified: '2024-07-01', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: 'C-10001' },
-      ], measurePointDefs: [], parts: [], relatedTypes: [] },
+      ], measurePointDefs: [], parts: [
+        { stockTypeNo: 'ST-102', alternativeNo: '601.02.00.001' },
+        { stockTypeNo: 'ST-101', alternativeNo: '' },
+      ], relatedTypes: [] },
     // ===== 扩充：船舶各系统真实设备类型 =====
     { id: uid('ct'), typeNumber: 'CT-2002', name: 'Auxiliary Engine (Generator Set)', maker: 'MAN Energy', model: '6L23/30', type: 'Generator', classCode: 'ENG', compTypeModel: '6L23/30H', status: 'Active', preferredVendor: 'MAN Energy Solutions', parentTypeNumber: '', description: 'Auxiliary 4-stroke generator engine for ship service power supply', dateCreated: '2022-05-12', dateModified: '2024-04-15', jobs: 4, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
@@ -88,7 +106,10 @@ export const db = reactive({
       ], measurePointDefs: [
         { code: 'TC-TEMP', description: 'Turbocharger Temp', trend: 'Up', unit: '°C' },
         { code: 'LO-PRESS', description: 'Lub Oil Pressure', trend: 'Stable', unit: 'bar' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-801', alternativeNo: '' },
+        { stockTypeNo: 'ST-802', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2003', name: 'Fresh Water Generator', maker: 'Alfa Laval', model: 'JWP-26', type: 'Evaporator', classCode: 'AUX', compTypeModel: 'JWP-26-C50', status: 'Active', preferredVendor: 'Alfa Laval', parentTypeNumber: '', description: 'Low-pressure evaporator for fresh water production from seawater', dateCreated: '2022-06-01', dateModified: '2024-02-28', jobs: 2, counters: [
         { code: 'PROD-CAP', description: 'Produced Capacity', unit: 'm³/day', dependsOn: '' },
       ], measurePointDefs: [
@@ -99,28 +120,44 @@ export const db = reactive({
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Stable', unit: '°C' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-401', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2005', name: 'Steering Gear', maker: 'Rolls-Royce', model: 'TF-80', type: 'Steering', classCode: 'DECK', compTypeModel: 'TF-80H', status: 'Active', preferredVendor: 'Rolls-Royce Marine', parentTypeNumber: '', description: 'Electro-hydraulic steering gear system for rudder control', dateCreated: '2022-07-20', dateModified: '2024-05-05', jobs: 2, counters: [
         { code: 'RAM-STROKE', description: 'Ram Stroke', unit: 'mm', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-501', alternativeNo: '' },
+        { stockTypeNo: 'ST-502', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2006', name: 'Plate Heat Exchanger', maker: 'SWEP', model: 'B200', type: 'Cooler', classCode: 'ENG', compTypeModel: 'B200TH', status: 'Active', preferredVendor: 'SWEP International', parentTypeNumber: '', description: 'Brazed plate heat exchanger for central cooling water system', dateCreated: '2022-08-03', dateModified: '2024-04-20', jobs: 2, counters: [], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Up', unit: '°C' },
         { code: 'TEMP-IN', description: 'Inlet Temp', trend: 'Stable', unit: '°C' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-601', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2007', name: 'Main Switchboard', maker: 'ABB', model: 'UNIGEAR', type: 'Switchboard', classCode: 'ELE', compTypeModel: 'UNIGEAR 5500', status: 'Active', preferredVendor: 'ABB Marine', parentTypeNumber: '', description: 'Low-voltage main switchboard for power distribution and monitoring', dateCreated: '2022-08-18', dateModified: '2024-06-01', jobs: 3, counters: [], measurePointDefs: [
         { code: 'LOAD-CURR', description: 'Load Current', trend: 'Up', unit: 'A' },
         { code: 'FREQ', description: 'Frequency', trend: 'Stable', unit: 'Hz' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-701', alternativeNo: '' },
+        { stockTypeNo: 'ST-702', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2008', name: 'Emergency Generator', maker: 'Cummins', model: 'KTA19', type: 'Generator', classCode: 'ELE', compTypeModel: 'KTA19-G4', status: 'Active', preferredVendor: 'Cummins Inc.', parentTypeNumber: '', description: 'Diesel-driven emergency generator set for SOLAS compliance', dateCreated: '2022-09-01', dateModified: '2024-03-15', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
-      ], measurePointDefs: [], parts: [], relatedTypes: [] },
+      ], measurePointDefs: [], parts: [
+        { stockTypeNo: 'ST-801', alternativeNo: '' },
+        { stockTypeNo: 'ST-802', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2009', name: 'Mooring Winch', maker: 'MacGregor', model: 'MW-40', type: 'Winch', classCode: 'DECK', compTypeModel: 'MW-40T', status: 'Active', preferredVendor: 'MacGregor / Cargotec', parentTypeNumber: '', description: 'Hydraulic mooring winch for berthing and unberthing operations', dateCreated: '2022-09-15', dateModified: '2024-04-25', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
-        ], parts: [], relatedTypes: [] },
+      ], parts: [
+        { stockTypeNo: 'ST-901', alternativeNo: '' },
+        { stockTypeNo: 'ST-902', alternativeNo: '' },
+      ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-2010', name: 'Cargo Hold / Hatch Cover', maker: 'TTS', model: 'CH-30', type: 'Hatch', classCode: 'CARGO', compTypeModel: 'CH-30P', status: 'Active', preferredVendor: 'TTS (MacGregor Group)', parentTypeNumber: '', description: 'Pont-type hatch cover for multi-purpose cargo hold', dateCreated: '2022-10-01', dateModified: '2024-02-10', jobs: 2, counters: [], measurePointDefs: [
         { code: 'TEMP', description: 'Hold Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
@@ -402,11 +439,30 @@ export const db = reactive({
   { id: uid('wo'), workOrderNo: 'WO-262010', description: 'Mooring Winch Inspection (Endeavour)', status: 'Issued', dueDate: '2026-07-22', department: 'Deck', componentId: 'C-END-1010', functionNo: 'FN-END-DECK-10', jobId: '', priority: 'Low', plannedDate: '' },
 ],
 
+  // 手册 P36 / P38：Stock Types — 备件主数据（部件类型 Parts tab 通过 lookup 关联）
+  // 编号格式参照手册示例 601.03.00.001；原型使用 ST-xxx 简化格式
   stockTypes: [
     { id: uid('st'), stockTypeNo: 'ST-101', description: 'Cylinder Liner Gasket', maker: 'Wärtsilä', vendor: 'Wärtsilä Marine', grade: 'A', unit: 'pcs', bestPrice: 320, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-102', description: 'Piston Ring Set', maker: 'Wärtsilä', vendor: 'Wärtsilä Marine', grade: 'A', unit: 'set', bestPrice: 890, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-103', description: 'Cylinder Liner', maker: 'Wärtsilä', vendor: 'Wärtsilä Marine', grade: 'A', unit: 'pcs', bestPrice: 4200, status: 'Active' },
     { id: uid('st'), stockTypeNo: 'ST-201', description: 'Boiler Safety Valve', maker: 'Aalborg', vendor: 'Alfa Laval', grade: 'A', unit: 'pcs', bestPrice: 1850, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-202', description: 'Boiler Water Gauge Glass', maker: 'Aalborg', vendor: 'Alfa Laval', grade: 'B', unit: 'pcs', bestPrice: 45, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-203', description: 'Burner Nozzle Assembly', maker: 'Aalborg', vendor: 'Alfa Laval', grade: 'A', unit: 'pcs', bestPrice: 680, status: 'Active' },
     { id: uid('st'), stockTypeNo: 'ST-301', description: 'Pump Mechanical Seal', maker: 'Grundfos', vendor: 'Grundfos', grade: 'B', unit: 'set', bestPrice: 145, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-302', description: 'Pump Impeller', maker: 'Grundfos', vendor: 'Grundfos', grade: 'B', unit: 'pcs', bestPrice: 280, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-303', description: 'Pump Shaft Sleeve', maker: 'Grundfos', vendor: 'Grundfos', grade: 'C', unit: 'pcs', bestPrice: 95, status: 'Active' },
     { id: uid('st'), stockTypeNo: 'ST-401', description: 'Engine Lube Oil 40', maker: 'Shell', vendor: 'Shell Marine', grade: 'C', unit: 'L', bestPrice: 6.4, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-402', description: 'Valve Seat Ring', maker: 'Tyco', vendor: 'Tyco International', grade: 'B', unit: 'pcs', bestPrice: 175, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-403', description: 'Butterfly Disc', maker: 'Tyco', vendor: 'Tyco International', grade: 'B', unit: 'pcs', bestPrice: 220, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-501', description: 'Hydraulic Ram Seal Kit', maker: 'Rolls-Royce', vendor: 'Rolls-Royce Marine', grade: 'A', unit: 'kit', bestPrice: 560, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-502', description: 'Steering Gear Oil', maker: 'Shell', vendor: 'Shell Marine', grade: 'C', unit: 'L', bestPrice: 8.2, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-601', description: 'Plate Heat Exchanger Gasket', maker: 'SWEP', vendor: 'SWEP International', grade: 'A', unit: 'set', bestPrice: 380, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-701', description: 'ACB Main Contacts', maker: 'ABB', vendor: 'ABB Marine', grade: 'A', unit: 'set', bestPrice: 1200, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-702', description: 'Synchroscope Lamp', maker: 'ABB', vendor: 'ABB Marine', grade: 'C', unit: 'pcs', bestPrice: 28, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-801', description: 'Fuel Filter Element', maker: 'Cummins', vendor: 'Cummins Inc.', grade: 'B', unit: 'pcs', bestPrice: 85, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-802', description: 'Starter Motor Relay', maker: 'Cummins', vendor: 'Cummins Inc.', grade: 'B', unit: 'pcs', bestPrice: 165, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-901', description: 'Winch Brake Lining', maker: 'MacGregor', vendor: 'MacGregor / Cargotec', grade: 'B', unit: 'set', bestPrice: 340, status: 'Active' },
+    { id: uid('st'), stockTypeNo: 'ST-902', description: 'Wire Rope (Per Meter)', maker: 'Usha Martin', vendor: 'MacGregor / Cargotec', grade: 'A', unit: 'm', bestPrice: 42, status: 'Active' },
   ],
 
   // 指南（手册 3）：库存项状态为 Active / Obsolete / Scrapped（短缺由数量 / 重订水平决定，非状态）

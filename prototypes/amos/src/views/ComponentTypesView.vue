@@ -93,6 +93,51 @@
               </div>
             </Teleport>
           </template>
+          <!-- 手册 P38：Parts Add Info 弹窗 — 展示选中 part 关联的 Stock Type 详细信息 -->
+          <template #extra-parts>
+            <Teleport to="body">
+              <div v-if="addInfoPartOpen" class="jd-mask" @click.self="addInfoPartOpen = false">
+                <div class="jd-modal">
+                  <div class="jd-head">
+                    <strong>Part Details — {{ addInfoPartData?.stockTypeNo }}</strong>
+                    <button class="amos-btn xs" @click="addInfoPartOpen = false">✕</button>
+                  </div>
+                  <div class="jd-body" v-if="addInfoPartData">
+                    <p class="muted">该备件（{{ addInfoPartData.stockTypeNo }}）的 Stock Type 主数据（只读参考）：</p>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Stock Type No.</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.stockTypeNo" readonly /></div>
+                    </div>
+                    <div v-else class="amos-field">
+                      <label>Stock Type No.</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeNo" readonly /></div>
+                    </div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Description</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.description" readonly /></div>
+                    </div>
+                    <div class="amos-field"><label>Alternative No.</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.alternativeNo || '—'" readonly /></div></div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Maker</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.maker || '—'" readonly /></div>
+                    </div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Vendor</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.vendor || '—'" readonly /></div>
+                    </div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Unit</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.unit || '—'" readonly /></div>
+                    </div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Best Price</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.bestPrice != null ? addInfoPartData.stockTypeInfo.bestPrice : '—'" readonly /></div>
+                    </div>
+                    <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
+                      <label>Status</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.status || '—'" readonly /></div>
+                    </div>
+                    <p v-else class="muted" style="margin-top:10px;color:#b3261e">未找到 Stock Type「{{ addInfoPartData.stockTypeNo }}」的主数据记录。</p>
+                  </div>
+                  <div class="jd-foot">
+                    <button class="amos-btn sm primary" @click="addInfoPartOpen = false">关闭</button>
+                  </div>
+                </div>
+              </div>
+            </Teleport>
+          </template>
           <!-- 手册截图右下角：Components 标签 —— 展示已注册到该类型的组件实例列表 -->
           <template #extra-components>
             <p class="muted">已注册到该类型的组件实例（Number / Name / Maker / Type）：</p>
@@ -173,12 +218,18 @@ const tabs = [
   ] },
   // 手册 P57 截图：Jobs 标签 —— 使用 useJobTab composable，targetType 为 ComponentType
   { id: 'jobs', label: 'Jobs', fields: [] },
-  // Parts / Counters / Measure Points / Related 均为子表标签
+  // 手册 P36 / P38：Component Type Parts — 部件类型由 parts（备件/stock items）组成
+  // 操作按钮：New(RecordDetail自动) / View(打开Stock Type窗口) / Add Info(详情弹窗) / Copy List(复制到剪贴板)
   {
     id: 'parts', label: 'Parts', type: 'subgrid', subKey: 'parts',
     columns: [
       { key: 'stockTypeNo', label: 'Stock Type', type: 'lookup', lookupKey: 'stockTypes', width: '120px', default: '' },
       { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
+    ],
+    subActions: [
+      { id: 'view-part', label: 'View' },
+      { id: 'add-info-part', label: 'Add Info' },
+      { id: 'copy-parts-list', label: 'Copy List' },
     ],
   },
   {
@@ -300,8 +351,54 @@ async function onDetailChange(e) {
 }
 
 function onSubAction(e) {
-  // 子表操作（Parts / Counters 等的 New/Delete）
-  // 目前由 RecordDetail 内部处理，此处预留扩展点
+  // 子表操作（Parts / Counters 等的 New/Delete 由 RecordDetail 内部处理）
+  if (!e) return
+  // 手册 P38：Parts tab 操作
+  if (e.tabId === 'parts') {
+    if (e.action === 'view-part') return viewPart(e.row)
+    if (e.action === 'add-info-part') return showAddInfoPart(e.row)
+    if (e.action === 'copy-parts-list') return copyPartsList()
+  }
+}
+
+// ===== Parts tab 操作（手册 P38：Component Type Parts）=====
+// View：选中一行 part，打开 Stock Types 窗口查看该备件详情
+function viewPart(row) {
+  if (!row || !row.stockTypeNo) { showToast('请先选择一个 Part 并填写 Stock Type', 'warn'); return }
+  setPresetFilter({ _focusStockTypeNo: row.stockTypeNo })
+  openWindow('stock-types')
+  showToast(`打开 Stock Type：${row.stockTypeNo}`, 'info')
+}
+
+// Add Info：选中一行 part，弹出详情窗口展示该 Stock Type 的详细信息
+const addInfoPartOpen = ref(false)
+const addInfoPartData = ref(null)
+function showAddInfoPart(row) {
+  if (!row || !row.stockTypeNo) { showToast('请先选择一个 Part 并填写 Stock Type', 'warn'); return }
+  import('../services/stockTypeService.js').then((mod) => {
+    const st = mod.stockTypeService.byNo(row.stockTypeNo)
+    addInfoPartData.value = { ...row, stockTypeInfo: st || null }
+    addInfoPartOpen.value = true
+  })
+}
+
+// Copy List：将当前组件类型的所有 parts 复制到剪贴板（可粘贴到 Word/Notepad）
+function copyPartsList() {
+  const parts = selected.value?.parts || []
+  if (!parts.length) { showToast('没有可复制的 Parts 数据', 'warn'); return }
+  const header = 'Stock Type\tAlternative No.'
+  const lines = parts.map((p) => `${p.stockTypeNo || ''}\t${p.alternativeNo || ''}`)
+  const text = [`${selected.value.typeNumber} — Component Type Parts:`, header, ...lines].join('\n')
+  navigator.clipboard.writeText(text).then(
+    () => showToast(`已复制 ${parts.length} 条 Parts 到剪贴板`, 'ok'),
+    () => { showToast('复制失败，请手动选择复制', 'warn'); fallbackCopy(text) },
+  )
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
+  document.body.appendChild(ta); ta.select()
+  try { document.execCommand('copy'); showToast('已复制（fallback）', 'ok') } catch { showToast('复制失败', 'warn') }
+  finally { document.body.removeChild(ta) }
 }
 
 // ===== 操作按钮 =====
