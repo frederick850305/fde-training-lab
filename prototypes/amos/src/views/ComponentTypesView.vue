@@ -117,21 +117,6 @@
                 <tr v-if="!partsRows.length"><td colspan="3" class="muted">该组件类型暂无 Parts。点击 New 添加。</td></tr>
               </tbody>
             </table></div>
-            <!-- 下部：Stock Types 列表（绿框对应：Number / Name / Maker / Type） -->
-            <p class="muted" style="margin-top:10px">该组件类型所关联的 Stock Types（Number / Name / Maker / Type）：</p>
-            <div class="table-wrap"><table class="amos-grid sub">
-              <thead><tr><th>Number</th><th>Name</th><th>Maker</th><th>Type</th></tr></thead>
-              <tbody>
-                <tr v-for="st in partStockTypes" :key="st.stockTypeNo" @click="viewStockType(st)" style="cursor:pointer"
-                    :class="{ selected: selectedStockType === st.stockTypeNo }">
-                  <td>{{ st.stockTypeNo }}</td>
-                  <td>{{ st.description || '—' }}</td>
-                  <td>{{ st.maker || '—' }}</td>
-                  <td>{{ st.type || '—' }}</td>
-                </tr>
-                <tr v-if="!partStockTypes.length"><td colspan="4" class="muted">无关联 Stock Type。</td></tr>
-              </tbody>
-            </table></div>
             <!-- Add Info 弹窗 -->
             <Teleport to="body">
               <div v-if="addInfoPartOpen" class="jd-mask" @click.self="addInfoPartOpen = false">
@@ -392,38 +377,11 @@ function onSubAction(e) {
   }
 }
 
-// ===== Parts tab：双表布局（对照手册截图）=====
+// ===== Parts tab：Parts 列表（Item No. / Name / Makers Ref.）=====
 const selectedPart = ref(null)
-const selectedStockType = ref(null)
 
-// 上部（红框）：Parts 列表数据
+// Parts 列表数据
 const partsRows = computed(() => selected.value?.parts || [])
-
-// 下部（绿框）：从 parts 中提取关联的 Stock Types
-const partStockTypes = computed(() => {
-  const nos = [...new Set(partsRows.value.map((p) => p.stockTypeNo).filter(Boolean))]
-  if (!nos.length) return []
-  // 通过 stockTypeService 获取详情（懒加载）
-  const stMap = {}
-  try {
-    // eslint-disable-next-line no-undef
-    if (typeof stockTypeServiceCache !== 'undefined') {
-      nos.forEach((no) => { stMap[no] = stockTypeServiceCache[no] || { stockTypeNo: no } })
-    }
-  } catch { /* 首次渲染时 service 尚未加载 */ }
-  return nos.map((no) => stMap[no] || { stockTypeNo: no, description: '', maker: '', type: '' })
-})
-
-// 缓存 stockTypeService 查询结果
-let stockTypeServiceCache = {}
-function refreshPartStockTypes() {
-  import('../services/stockTypeService.js').then((mod) => {
-    const svc = mod.stockTypeService
-    stockTypeServiceCache = svc.listAll ? Object.fromEntries(svc.listAll().map((s) => [s.stockTypeNo, s])) : {}
-  }).catch(() => {})
-}
-// 当选中组件类型变化时刷新缓存
-watch(() => selected.value?.typeNumber, () => { selectedPart.value = null; selectedStockType.value = null; refreshPartStockTypes() }, { immediate: true })
 
 // New：添加新 Part 行
 function doNewPart() {
@@ -433,14 +391,7 @@ function doNewPart() {
   showToast('已新增 Part 行，请填写后 Save', 'ok')
 }
 
-// View Stock Type：点击下部表格行打开 Stock Types 窗口
-function viewStockType(st) {
-  if (!st?.stockTypeNo) return
-  setPresetFilter({ _focusStockTypeNo: st.stockTypeNo })
-  openWindow('stock-types')
-}
-
-// View Part：选中上部行，打开 Stock Type 窗口
+// View Part：选中行打开 Stock Type 窗口
 function viewPart(row) {
   if (!row || !row.stockTypeNo) { showToast('请先选择一个 Part 并填写 Stock Type', 'warn'); return }
   setPresetFilter({ _focusStockTypeNo: row.stockTypeNo })
