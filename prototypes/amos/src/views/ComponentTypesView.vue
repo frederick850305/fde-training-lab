@@ -93,8 +93,46 @@
               </div>
             </Teleport>
           </template>
-          <!-- 手册 P38：Parts Add Info 弹窗 — 展示选中 part 关联的 Stock Type 详细信息 -->
+          <!-- 手册 P38：Parts 标签 —— 双表布局（对照手册截图） -->
+          <!-- 上部（红框）：Parts 列表（Item No. / Name / Makers Ref.） -->
+          <!-- 下部（绿框）：Stock Types 列表（Number / Name / Maker / Type） -->
           <template #extra-parts>
+            <div class="subgrid-bar">
+              <button class="amos-btn xs primary" @click="doNewPart">New</button>
+              <button class="amos-btn xs" :disabled="!selectedPart" @click="viewPart(selectedPart)">View</button>
+              <button class="amos-btn xs" :disabled="!selectedPart" @click="showAddInfoPart(selectedPart)">Add Info</button>
+              <button class="amos-btn xs" @click="copyPartsList">Copy List</button>
+              <span class="muted">{{ partsRows.length }} 条记录</span>
+            </div>
+            <!-- 上部：Parts 列表（红框对应：Item No. / Name / Makers Ref.） -->
+            <div class="table-wrap"><table class="amos-grid sub">
+              <thead><tr><th>Item No.</th><th>Name</th><th>Makers Ref.</th></tr></thead>
+              <tbody>
+                <tr v-for="(p, idx) in partsRows" :key="idx" @click="selectedPart = p"
+                    :class="{ selected: selectedPart === p }" style="cursor:pointer">
+                  <td>{{ p.alternativeNo || '—' }}</td>
+                  <td>{{ p.name || '—' }}</td>
+                  <td>{{ p.makersRef || '—' }}</td>
+                </tr>
+                <tr v-if="!partsRows.length"><td colspan="3" class="muted">该组件类型暂无 Parts。点击 New 添加。</td></tr>
+              </tbody>
+            </table></div>
+            <!-- 下部：Stock Types 列表（绿框对应：Number / Name / Maker / Type） -->
+            <p class="muted" style="margin-top:10px">该组件类型所关联的 Stock Types（Number / Name / Maker / Type）：</p>
+            <div class="table-wrap"><table class="amos-grid sub">
+              <thead><tr><th>Number</th><th>Name</th><th>Maker</th><th>Type</th></tr></thead>
+              <tbody>
+                <tr v-for="st in partStockTypes" :key="st.stockTypeNo" @click="viewStockType(st)" style="cursor:pointer"
+                    :class="{ selected: selectedStockType === st.stockTypeNo }">
+                  <td>{{ st.stockTypeNo }}</td>
+                  <td>{{ st.description || '—' }}</td>
+                  <td>{{ st.maker || '—' }}</td>
+                  <td>{{ st.type || '—' }}</td>
+                </tr>
+                <tr v-if="!partStockTypes.length"><td colspan="4" class="muted">无关联 Stock Type。</td></tr>
+              </tbody>
+            </table></div>
+            <!-- Add Info 弹窗 -->
             <Teleport to="body">
               <div v-if="addInfoPartOpen" class="jd-mask" @click.self="addInfoPartOpen = false">
                 <div class="jd-modal">
@@ -113,7 +151,9 @@
                     <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
                       <label>Description</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.description" readonly /></div>
                     </div>
-                    <div class="amos-field"><label>Alternative No.</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.alternativeNo || '—'" readonly /></div></div>
+                    <div class="amos-field"><label>Alternative No. (Item No.)</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.alternativeNo || '—'" readonly /></div></div>
+                    <div class="amos-field"><label>Name</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.name || '—'" readonly /></div></div>
+                    <div class="amos-field"><label>Makers Ref.</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.makersRef || '—'" readonly /></div></div>
                     <div v-if="addInfoPartData.stockTypeInfo" class="amos-field">
                       <label>Maker</label><div class="ctrl"><input class="amos-input" :value="addInfoPartData.stockTypeInfo.maker || '—'" readonly /></div>
                     </div>
@@ -218,20 +258,11 @@ const tabs = [
   ] },
   // 手册 P57 截图：Jobs 标签 —— 使用 useJobTab composable，targetType 为 ComponentType
   { id: 'jobs', label: 'Jobs', fields: [] },
-  // 手册 P36 / P38：Component Type Parts — 部件类型由 parts（备件/stock items）组成
-  // 操作按钮：New(RecordDetail自动) / View(打开Stock Type窗口) / Add Info(详情弹窗) / Copy List(复制到剪贴板)
-  {
-    id: 'parts', label: 'Parts', type: 'subgrid', subKey: 'parts',
-    columns: [
-      { key: 'stockTypeNo', label: 'Stock Type', type: 'lookup', lookupKey: 'stockTypes', width: '120px', default: '' },
-      { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
-    ],
-    subActions: [
-      { id: 'view-part', label: 'View' },
-      { id: 'add-info-part', label: 'Add Info' },
-      { id: 'copy-parts-list', label: 'Copy List' },
-    ],
-  },
+  // 手册 P36 / P38：Component Type Parts — 双表布局（对照手册截图）
+  // 上部（红框）：Parts 列表（Item No. / Name / Makers Ref.）
+  // 下部（绿框）：Stock Types 列表（Number / Name / Maker / Type）
+  // 操作按钮：New / View / Add Info / Copy List
+  { id: 'parts', label: 'Parts', fields: [] },
   {
     id: 'counters', label: 'Counters', type: 'subgrid', subKey: 'counters',
     columns: [
@@ -361,8 +392,55 @@ function onSubAction(e) {
   }
 }
 
-// ===== Parts tab 操作（手册 P38：Component Type Parts）=====
-// View：选中一行 part，打开 Stock Types 窗口查看该备件详情
+// ===== Parts tab：双表布局（对照手册截图）=====
+const selectedPart = ref(null)
+const selectedStockType = ref(null)
+
+// 上部（红框）：Parts 列表数据
+const partsRows = computed(() => selected.value?.parts || [])
+
+// 下部（绿框）：从 parts 中提取关联的 Stock Types
+const partStockTypes = computed(() => {
+  const nos = [...new Set(partsRows.value.map((p) => p.stockTypeNo).filter(Boolean))]
+  if (!nos.length) return []
+  // 通过 stockTypeService 获取详情（懒加载）
+  const stMap = {}
+  try {
+    // eslint-disable-next-line no-undef
+    if (typeof stockTypeServiceCache !== 'undefined') {
+      nos.forEach((no) => { stMap[no] = stockTypeServiceCache[no] || { stockTypeNo: no } })
+    }
+  } catch { /* 首次渲染时 service 尚未加载 */ }
+  return nos.map((no) => stMap[no] || { stockTypeNo: no, description: '', maker: '', type: '' })
+})
+
+// 缓存 stockTypeService 查询结果
+let stockTypeServiceCache = {}
+function refreshPartStockTypes() {
+  import('../services/stockTypeService.js').then((mod) => {
+    const svc = mod.stockTypeService
+    stockTypeServiceCache = svc.listAll ? Object.fromEntries(svc.listAll().map((s) => [s.stockTypeNo, s])) : {}
+  }).catch(() => {})
+}
+// 当选中组件类型变化时刷新缓存
+watch(() => selected.value?.typeNumber, () => { selectedPart.value = null; selectedStockType.value = null; refreshPartStockTypes() }, { immediate: true })
+
+// New：添加新 Part 行
+function doNewPart() {
+  if (!selected.value) return
+  if (!selected.value.parts) selected.value.parts = []
+  selected.value.parts.push({ stockTypeNo: '', alternativeNo: '', name: '', makersRef: '' })
+  showToast('已新增 Part 行，请填写后 Save', 'ok')
+}
+
+// View Stock Type：点击下部表格行打开 Stock Types 窗口
+function viewStockType(st) {
+  if (!st?.stockTypeNo) return
+  setPresetFilter({ _focusStockTypeNo: st.stockTypeNo })
+  openWindow('stock-types')
+}
+
+// View Part：选中上部行，打开 Stock Type 窗口
 function viewPart(row) {
   if (!row || !row.stockTypeNo) { showToast('请先选择一个 Part 并填写 Stock Type', 'warn'); return }
   setPresetFilter({ _focusStockTypeNo: row.stockTypeNo })
@@ -382,12 +460,12 @@ function showAddInfoPart(row) {
   })
 }
 
-// Copy List：将当前组件类型的所有 parts 复制到剪贴板（可粘贴到 Word/Notepad）
+// Copy List：将 Parts 列表复制到剪贴板（Item No. / Name / Makers Ref.）
 function copyPartsList() {
-  const parts = selected.value?.parts || []
+  const parts = partsRows.value
   if (!parts.length) { showToast('没有可复制的 Parts 数据', 'warn'); return }
-  const header = 'Stock Type\tAlternative No.'
-  const lines = parts.map((p) => `${p.stockTypeNo || ''}\t${p.alternativeNo || ''}`)
+  const header = 'Item No.\tName\tMakers Ref.'
+  const lines = parts.map((p) => `${p.alternativeNo || ''}\t${p.name || ''}\t${p.makersRef || ''}`)
   const text = [`${selected.value.typeNumber} — Component Type Parts:`, header, ...lines].join('\n')
   navigator.clipboard.writeText(text).then(
     () => showToast(`已复制 ${parts.length} 条 Parts 到剪贴板`, 'ok'),
