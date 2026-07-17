@@ -163,6 +163,39 @@
                 </div>
               </div>
             </Teleport>
+            <!-- New 弹窗：手册 P36「part 即 stock item」——从既有 Stock Types 中选择一个加入 Parts -->
+            <Teleport to="body">
+              <div v-if="newPartOpen" class="jd-mask" @click.self="newPartOpen = false">
+                <div class="jd-modal">
+                  <div class="jd-head">
+                    <strong>Add Part — 选择 Stock Type</strong>
+                    <button class="amos-btn xs" @click="newPartOpen = false">✕</button>
+                  </div>
+                  <div class="jd-body">
+                    <p class="muted">备件（Part）即库存主数据（Stock Type）。请从下方列表选择要加入本组件类型的 Stock Type：</p>
+                    <div class="amos-field"><label>搜索</label><div class="ctrl"><input class="amos-input" v-model="newPartSearch" placeholder="按编号 / 描述 / 制造商筛选，如 ST-3 或 Seal" /></div></div>
+                    <div class="table-wrap" style="max-height:340px;overflow:auto">
+                      <table class="amos-grid sub">
+                        <thead><tr><th>Stock Type No.</th><th>Description</th><th>Maker</th><th>Unit</th><th></th></tr></thead>
+                        <tbody>
+                          <tr v-for="st in stockTypeOptions" :key="st.stockTypeNo">
+                            <td>{{ st.stockTypeNo }}</td>
+                            <td>{{ st.description || '—' }}</td>
+                            <td>{{ st.maker || '—' }}</td>
+                            <td>{{ st.unit || '—' }}</td>
+                            <td><button class="amos-btn xs primary" @click="confirmAddPart(st)">Add</button></td>
+                          </tr>
+                          <tr v-if="!stockTypeOptions.length"><td colspan="5" class="muted">无可添加的 Stock Type（可能均已加入或无匹配结果）。</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div class="jd-foot">
+                    <button class="amos-btn sm" @click="newPartOpen = false">取消</button>
+                  </div>
+                </div>
+              </div>
+            </Teleport>
           </template>
           <!-- 手册截图右下角：Components 标签 —— 展示已注册到该类型的组件实例列表 -->
           <template #extra-components>
@@ -194,6 +227,7 @@ import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import { componentService } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
+import { stockTypeService } from '../services/stockTypeService.js'
 import { useJobTab } from '../composables/useJobTab.js'
 import { store, openWindow, showToast, setPresetFilter, scopeByDepartment } from '../store.js'
 import { matchRow } from '../utils/filter.js'
@@ -384,12 +418,48 @@ const selectedPart = ref(null)
 // Parts 列表数据
 const partsRows = computed(() => selected.value?.parts || [])
 
-// New：添加新 Part 行
+// New：添加新 Part（手册 P36「A component type is made up of parts - that is, stock items」）
+// Part 是对既有 Stock Type 主数据的引用，因此 New 需从现有 Stock Types 中选择，
+// 而非凭空录入 stockTypeNo/name/makersRef 等主数据字段。
+const newPartOpen = ref(false)
+const newPartSearch = ref('')
+
+// 可供添加的 Stock Types：排除当前组件类型已引用的，支持按编号/描述搜索
+const stockTypeOptions = computed(() => {
+  const used = new Set((partsRows.value || []).map((p) => p.stockTypeNo))
+  const kw = newPartSearch.value.trim().toLowerCase()
+  return stockTypeService.list().filter((st) => {
+    if (used.has(st.stockTypeNo)) return false
+    if (!kw) return true
+    return (st.stockTypeNo || '').toLowerCase().includes(kw)
+      || (st.description || '').toLowerCase().includes(kw)
+      || (st.maker || '').toLowerCase().includes(kw)
+  })
+})
+
 function doNewPart() {
-  if (!selected.value) return
+  if (!selected.value) { showToast('请先选择一个组件类型', 'warn'); return }
   if (!selected.value.parts) selected.value.parts = []
-  selected.value.parts.push({ stockTypeNo: '', alternativeNo: '', name: '', makersRef: '' })
-  showToast('已新增 Part 行，请填写后 Save', 'ok')
+  newPartSearch.value = ''
+  newPartOpen.value = true
+}
+
+// 从选择器中选定一个 Stock Type，加入当前组件类型的 Parts（主数据字段自动带出）
+function confirmAddPart(st) {
+  if (!st || !selected.value) return
+  if (!selected.value.parts) selected.value.parts = []
+  if (selected.value.parts.some((p) => p.stockTypeNo === st.stockTypeNo)) {
+    showToast(`该 Stock Type「${st.stockTypeNo}」已在 Parts 列表中`, 'warn'); return
+  }
+  // Alternative No. 留空：手册 P37 说明该字段用于登记「可互换替代件」编号，由用户后续手工填写
+  selected.value.parts.push({
+    stockTypeNo: st.stockTypeNo,
+    alternativeNo: '',
+    name: st.description || '',
+    makersRef: st.makersRef || '',
+  })
+  newPartOpen.value = false
+  showToast(`已添加 Part：${st.stockTypeNo}${st.description ? ' - ' + st.description : ''}`, 'ok')
 }
 
 // View Part：选中行打开 Stock Type 窗口
