@@ -390,6 +390,7 @@ const rowKey = computed(() => {
   const d = config.value?.dataKey
   if (d === 'jobs') return 'jobNo'
   if (d === 'workOrders') return 'workOrderNo'
+  if (d === 'stockTypes') return 'stockTypeNo'
   if (d === 'stockItems') return 'stockItemNo'
   if (d === 'purchaseForms') return 'formNo'
   if (d === 'budgets') return 'code'
