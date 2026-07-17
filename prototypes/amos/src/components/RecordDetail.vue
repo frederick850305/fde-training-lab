@@ -129,6 +129,7 @@
               <textarea v-else-if="f.type === 'textarea'" v-model="model[f.key]" class="amos-textarea" :readonly="f.readonly" />
               <input v-else-if="f.type === 'number'" type="number" v-model.number="model[f.key]" class="amos-input" :readonly="f.readonly" />
               <input v-else-if="f.type === 'date'" type="date" v-model="model[f.key]" class="amos-input" :readonly="f.readonly" />
+              <label v-else-if="f.type === 'checkbox'" class="amos-check"><input type="checkbox" v-model="model[f.key]" :disabled="f.readonly" /> {{ f.checkLabel || '' }}</label>
               <input v-else-if="f.type === 'readonly'" type="text" class="amos-input" :value="model[f.key] !== undefined && model[f.key] !== '' ? model[f.key] : f.value" readonly />
               <input v-else type="text" v-model="model[f.key]" class="amos-input" :readonly="f.readonly" :placeholder="f.placeholder || ''" />
             </div>
@@ -454,6 +455,9 @@ function onSubResizeEnd() {
 
 <style scoped>
 .record-detail { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+/* Perishable 等复选框字段：与其它字段的输入框高度对齐 */
+.amos-check { display: flex; align-items: center; gap: 6px; min-height: 26px; font-size: 12px; color: var(--amos-text-soft); cursor: pointer; }
+.amos-check input { cursor: pointer; }
 /* tab-row：标签栏 — 过多时横向滚动，滚动条纤细且半透明不遮挡内容 */
 .tab-row { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; padding: 4px 6px 0; scrollbar-width: thin; scrollbar-color: rgba(160,180,200,0.4) transparent; }
 .tab-row::-webkit-scrollbar { height: 5px; }

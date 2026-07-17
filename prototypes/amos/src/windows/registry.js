@@ -707,13 +707,17 @@ export const windowRegistry = {
     ],
     detailTabs: [
       { id: 'general', label: 'General', fields: [
+        // 手册 P181-182：General 标签字段（Number / Name / Maker / Maker's Ref / Parent Type / Stock Unit / Perishable / Stock Class / Best Price / Preferred Vendor / Status）
         { key: 'stockTypeNo', label: 'Stock Type No.' },
         { key: 'description', label: 'Description' },
         { key: 'maker', label: 'Maker' },
-        { key: 'vendor', label: 'Vendor' },
-        { key: 'grade', label: 'Grade' },
-        { key: 'unit', label: 'Unit' },
+        { key: 'makersRef', label: "Maker's Ref." },
+        { key: 'parentTypeNo', label: 'Parent Type', type: 'lookup', lookupKey: 'stockTypes' },
+        { key: 'unit', label: 'Stock Unit' },
+        { key: 'perishable', label: 'Perishable Item', type: 'checkbox', checkLabel: '易腐 / 有保质期' },
+        { key: 'stockClass', label: 'Stock Class', type: 'select', options: ['Spare Part', 'Consumable', 'Tool', 'Other'] },
         { key: 'bestPrice', label: 'Best Purchase Price', type: 'number' },
+        { key: 'vendor', label: 'Preferred Vendor' },
         { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Obsolete', 'Scrapped'] },
       ] },
       noteTab('makers', 'Makers', '制造商列表。'),
