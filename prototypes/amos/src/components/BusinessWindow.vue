@@ -1182,6 +1182,24 @@ function applyPreset() {
       } else showToast('未找到作业：' + pf._focusJobNo, 'warn')
       return
     }
+    // 手册 P38：从 Component Types > Parts tab View 跳入 Stock Types 窗口时，定位到对应 stock type
+    if (pf._focusStockTypeNo) {
+      let target = dbRows.value.find((r) => r.stockTypeNo === pf._focusStockTypeNo)
+      store.presetFilter = null
+      viewRows.value = dbRows.value.slice()
+      if (!target) {
+        const raw = collectionService.collection(config.value?.dataKey)
+        target = raw.find((r) => r.stockTypeNo === pf._focusStockTypeNo)
+        if (target && !viewRows.value.includes(target)) viewRows.value.push(target)
+      }
+      if (target) {
+        selected.value = target
+        listPreselectId.value = pf._focusStockTypeNo
+        detailPresetTab.value = 'general'
+        nextTick(() => listRef.value?.preselect(pf._focusStockTypeNo))
+      } else showToast('未找到 Stock Type：' + pf._focusStockTypeNo, 'warn')
+      return
+    }
     applyFilter(pf)
     store.presetFilter = null
   } else {
