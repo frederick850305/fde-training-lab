@@ -338,6 +338,7 @@ import RecordList from '../components/RecordList.vue'
 import RecordDetail from '../components/RecordDetail.vue'
 import { componentService, COMPONENT_STATUSES } from '../services/componentService.js'
 import { jobService } from '../services/jobService.js'
+import { useJobTab } from '../composables/useJobTab.js'
 import { stockItemService } from '../services/stockItemService.js'
 import { counterService } from '../services/counterService.js'
 import { workOrderService } from '../services/workOrderService.js'
@@ -471,15 +472,17 @@ const showOpenDialog = ref(false)
 const openKeyValue = ref('')
 const openInputRef = ref(null)
 
-const relJobs = computed(() => {
-  if (!selected.value) return []
-  // 手册 P59：组件作业标签显示该组件自身的作业（含继承副本 + 手动创建），不再混入类型级作业
-  return jobService.getComponentJobs(selected.value.number)
+// ===== Jobs 标签：复用 useJobTab composable（targetType = Component）=====
+const jobTab = useJobTab({
+  targetType: 'Component',
+  getTargetId: () => selected.value?.number,
+  getWindowKey: () => 'component-jobs',
+  getDescriptionHint: () => (selected.value?.name || selected.value?.number || '') + ' — 维护作业',
 })
-// 手册 P60：Jobs 标签顶部 New/Delete/View/Details 作用于「选中的作业」（先点选一行）
-const selectedJob = ref(null)
-// 切换组件时清空选中作业，避免跨组件误操作
-watch(() => selected.value?.number, () => { selectedJob.value = null })
+// 向后兼容：保持模板中 relJobs / selectedJob 等变量名可访问
+const relJobs = jobTab.relJobs
+const selectedJob = jobTab.selectedJob
+
 const relParts = computed(() => !selected.value ? [] : stockItemService.byFunction(selected.value.functionNo))
 const relCounters = computed(() => !selected.value ? [] : counterService.byComponent(selected.value.number))
 const relWO = computed(() => !selected.value ? [] : workOrderService.byComponent(selected.value.number))
@@ -617,48 +620,18 @@ function onSubAction(e) {
     openWindow('update-counters')
   }
 }
-// 手册 P58/P60/P62：Components 窗口 Jobs 标签的 View 按钮 → 打开 Component Jobs 窗口并定位该作业完整详情
-// （P62 明确：Click View to open the Component Jobs window；P58/P60：Click View to see the selected job's complete details）
-function viewJob(j) {
-  if (!j) return
-  setPresetFilter({ _focusJobNo: j.jobNo })
-  openWindow('component-jobs')
-}
-// 手册 P60：Details → see the job description for the selected job（本窗口内只读展示关联的 JD 主数据，不进入编辑窗口）
-const jobDetailsOpen = ref(false)
-const jobDetailsJD = ref(null)
-const jobDetailsJobNo = ref('')
-function detailsJob(j) {
-  if (!j) return
-  const jd = jobService.getJobDescription(j.jdCode)
-  if (!jd) { showToast(`作业 ${j.jobNo} 未关联 Job Description（jdCode 为空），无法查看 JD 内容`, 'warn'); return }
-  jobDetailsJD.value = jd
-  jobDetailsJobNo.value = j.jobNo
-  jobDetailsOpen.value = true
-}
-// 手册 P60：Delete → remove the selected job if necessary
-function deleteJob(j) {
-  if (!j) return
-  if (!confirm(`确认删除作业 ${j.jobNo}（${j.jdTitle || j.description}）？`)) return
-  jobService.remove(j.jobNo)
-  if (selectedJob.value && selectedJob.value.id === j.id) selectedJob.value = null
-  showToast('已删除作业：' + j.jobNo, 'ok')
-}
+// ===== Jobs 操作：复用 useJobTab composable =====
+const viewJob = jobTab.viewJob
+const detailsJob = jobTab.detailsJob
+const deleteJob = jobTab.deleteJob
+const newJob = jobTab.newJob
+// 向后兼容：模板中引用的 JD 弹窗状态变量
+const jobDetailsOpen = jobTab.jobDetailsOpen
+const jobDetailsJD = jobTab.jobDetailsJD
+const jobDetailsJobNo = jobTab.jobDetailsJobNo
+
 function viewStock(s) { setPresetFilter({ stockItemNo: s.stockItemNo }); openWindow('stock-items') }
 function viewWO(w) { setPresetFilter({ workOrderNo: w.workOrderNo }); openWindow('work-orders') }
-// 手册 P60：从 Components 窗口 Jobs 标签 New → 打开作业定义表单（Job Description 标签查找 JD 等）
-// 创建后跳转到 Component Jobs 窗口并定位该新建作业，直接落在 Job Description 标签页
-async function newJob() {
-  const t = selected.value
-  if (!t) return showToast('请先选择组件', 'warn')
-  const job = await jobService.create({
-    description: (t.name || t.number) + ' — 维护作业',
-    targetType: 'Component',
-    targetId: t.number,
-  })
-  setPresetFilter({ _focusJobNo: job.jobNo, _focusTab: 'jobDescription' })
-  openWindow('component-jobs')
-}
 // 手册 2.2(18)：附件管理——模拟新增 / 查看 / 删除
 function addAttachment() {
   const t = selected.value

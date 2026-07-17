@@ -1,6 +1,7 @@
 import { AMOS_PAGES } from '../data/amosData.js'
 import DashboardView from '../views/DashboardView.vue'
 import ComponentsView from '../views/ComponentsView.vue'
+import ComponentTypesView from '../views/ComponentTypesView.vue'
 import ComponentsHierarchyView from '../views/ComponentsHierarchyView.vue'
 import FunctionsHierarchyView from '../views/FunctionsHierarchyView.vue'
 import CountersOverviewView from '../views/CountersOverviewView.vue'
@@ -22,6 +23,7 @@ import GenericWindowView from '../views/GenericWindowView.vue'
 const specialized = {
   dashboard: DashboardView,
   components: ComponentsView,
+  'component-types': ComponentTypesView,
   'components-hierarchy': ComponentsHierarchyView,
   'functions-hierarchy': FunctionsHierarchyView,
   'counters-overview': CountersOverviewView,
