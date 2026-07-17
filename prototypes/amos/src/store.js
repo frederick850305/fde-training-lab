@@ -4,7 +4,7 @@ import { AMOS_PAGES } from './data/amosData.js'
 export const store = reactive({
   installation: 'Traveller',
   department: 'Engine Room',
-  user: 'A. Admin',
+  user: 'Fred',
   synced: true,
   openTabs: [],        // [{ pageKey, title }]
   activeKey: null,
