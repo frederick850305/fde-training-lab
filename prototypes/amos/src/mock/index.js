@@ -640,7 +640,8 @@ export const lookups = {
   locations: () => db.locations.map((l) => ({ code: l.code, label: l.description && l.description !== l.code ? `${l.code} — ${l.description}` : l.code })),
   stockTypes: () => db.stockTypes.map((s) => ({ code: s.stockTypeNo, label: `${s.stockTypeNo} — ${s.description}` })),
   stockItems: () => db.stockItems.map((s) => ({ code: s.stockItemNo, label: `${s.stockItemNo} — ${s.description}` })),
-  vendors: () => ['Wärtsilä Marine', 'Alfa Laval', 'Grundfos', 'Shell Marine', 'Tyco'],
+  // 手册 P181-182：Preferred Vendor 定位到 Address Register（商业伙伴）。从 stockTypes 收集现有供应商，统一为 {code,label} 供 lookup 弹窗使用
+  vendors: () => [...new Set(db.stockTypes.map((s) => s.vendor).filter(Boolean))].sort().map((v) => ({ code: v, label: v })),
   contracts: () => db.contracts.map((c) => ({ code: c.contractNo, label: `${c.contractNo} — ${c.title}` })),
   budgets: () => db.budgets.map((b) => ({ code: b.code, label: `${b.code} — ${b.title}` })),
   // 手册 P44：Component Jobs 中，Counter Code 下拉仅列出该组件自身已登记的计数器
@@ -693,8 +694,10 @@ export const lookups = {
   // 手册 P36：Component Types > General 标签 Maker / Preferred Vendor 查找列表（来源：componentTypes 去重 + 扩充常用厂商）
   makers: () => {
     const fromTypes = [...new Set(db.componentTypes.map((c) => c.maker).filter(Boolean))]
+    // 手册 P181-182：Maker 定位到 Address Register。补充 stockTypes 已使用的制造商，保证改为 lookup 后现有数据可匹配显示
+    const fromStock = [...new Set(db.stockTypes.map((s) => s.maker).filter(Boolean))]
     const extra = ['MAN Energy', 'MAN B&W DIESEL A/S', 'Cummins Inc.', 'Carrier Corporation', 'Schat-Harding', 'Kidde (Carrier Fire Products)', 'Furuno Electric', 'MacGregor / Cargotec', 'TTS (MacGregor Group)', 'Rolls-Royce Marine', 'SWEP International', 'ABB Marine']
-    return [...new Set([...fromTypes, ...extra])].sort().map((m) => ({ code: m, label: m }))
+    return [...new Set([...fromTypes, ...fromStock, ...extra])].sort().map((m) => ({ code: m, label: m }))
   },
 }
 
