@@ -51,43 +51,43 @@
           <template #extra-jobs>
             <div class="subgrid-bar" style="margin-bottom:8px">
               <button class="amos-btn xs primary" @click="jobTab.newJob()">New</button>
-              <button class="amos-btn xs" :disabled="!jobTab.selectedJob" @click="jobTab.deleteJob(jobTab.selectedJob)">Delete</button>
-              <button class="amos-btn xs" :disabled="!jobTab.selectedJob" @click="jobTab.viewJob(jobTab.selectedJob)">View</button>
-              <button class="amos-btn xs" :disabled="!jobTab.selectedJob" @click="jobTab.detailsJob(jobTab.selectedJob)">Details</button>
-              <span class="muted">{{ jobTab.relJobs.length }} 条作业</span>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="jobTab.deleteJob(selectedJob)">Delete</button>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="jobTab.viewJob(selectedJob)">View</button>
+              <button class="amos-btn xs" :disabled="!selectedJob" @click="jobTab.detailsJob(selectedJob)">Details</button>
+              <span class="muted">{{ relJobs.length }} 条作业</span>
             </div>
             <div class="table-wrap"><table class="amos-grid sub">
               <thead><tr><th>Code</th><th>Revision</th><th>Title</th><th>Frequency</th><th>Priority</th></tr></thead>
               <tbody>
-                <tr v-for="j in jobTab.relJobs" :key="j.id" @click="jobTab.selectedJob = j"
-                    :class="{ selected: jobTab.selectedJob && jobTab.selectedJob.id === j.id }" style="cursor:pointer">
+                <tr v-for="j in relJobs" :key="j.id" @click="selectedJob = j"
+                    :class="{ selected: selectedJob && selectedJob.id === j.id }" style="cursor:pointer">
                   <td>{{ j.jdCode || j.jobNo || '—' }}</td>
                   <td>{{ (j.jdRevision !== '' && j.jdRevision != null) ? j.jdRevision : '—' }}</td>
                   <td>{{ j.jdTitle || j.description || '—' }}</td>
                   <td>{{ j.frequency || '—' }}</td>
                   <td>{{ j.maintCriteria || '—' }}</td>
                 </tr>
-                <tr v-if="!jobTab.relJobs.length"><td colspan="5" class="muted">该类型无关联作业。点击 New 创建组件类型级作业。</td></tr>
+                <tr v-if="!relJobs.length"><td colspan="5" class="muted">该类型无关联作业。点击 New 创建组件类型级作业。</td></tr>
               </tbody>
             </table></div>
             <!-- JD Details 弹窗（与 ComponentsView 复用同一 UI 模式） -->
             <Teleport to="body">
-              <div v-if="jobTab.jobDetailsOpen" class="jd-mask" @click.self="jobTab.jobDetailsOpen = false">
+              <div v-if="jobDetailsOpen" class="jd-mask" @click.self="jobDetailsOpen = false">
                 <div class="jd-modal">
                   <div class="jd-head">
-                    <strong>Job Description — {{ jobTab.jobDetailsJD?.code }}</strong>
-                    <button class="amos-btn xs" @click="jobTab.jobDetailsOpen = false">✕</button>
+                    <strong>Job Description — {{ jobDetailsJD?.code }}</strong>
+                    <button class="amos-btn xs" @click="jobDetailsOpen = false">✕</button>
                   </div>
-                  <div class="jd-body" v-if="jobTab.jobDetailsJD">
-                    <p class="muted">该作业（{{ jobTab.jobDetailsJobNo }}）关联的 Job Description 主数据（只读参考）：</p>
-                    <div class="amos-field"><label>Job Description Code</label><div class="ctrl"><input class="amos-input" :value="jobTab.jobDetailsJD.code" readonly /></div></div>
-                    <div class="amos-field"><label>Revision</label><div class="ctrl"><input class="amos-input" :value="jobTab.jobDetailsJD.revision" readonly /></div></div>
-                    <div class="amos-field"><label>Title</label><div class="ctrl"><input class="amos-input" :value="jobTab.jobDetailsJD.title" readonly /></div></div>
-                    <div class="amos-field"><label>Frequency</label><div class="ctrl"><input class="amos-input" :value="jobTab.jobDetailsJD.frequency || '—'" readonly /></div></div>
-                    <div class="amos-field"><label>Window</label><div class="ctrl"><input class="amos-input" :value="jobTab.jobDetailsJD.window != null ? jobTab.jobDetailsJD.window : '—'" readonly /></div></div>
+                  <div class="jd-body" v-if="jobDetailsJD">
+                    <p class="muted">该作业（{{ jobDetailsJobNo }}）关联的 Job Description 主数据（只读参考）：</p>
+                    <div class="amos-field"><label>Job Description Code</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.code" readonly /></div></div>
+                    <div class="amos-field"><label>Revision</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.revision" readonly /></div></div>
+                    <div class="amos-field"><label>Title</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.title" readonly /></div></div>
+                    <div class="amos-field"><label>Frequency</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.frequency || '—'" readonly /></div></div>
+                    <div class="amos-field"><label>Window</label><div class="ctrl"><input class="amos-input" :value="jobDetailsJD.window != null ? jobDetailsJD.window : '—'" readonly /></div></div>
                   </div>
                   <div class="jd-foot">
-                    <button class="amos-btn sm primary" @click="jobTab.jobDetailsOpen = false">关闭</button>
+                    <button class="amos-btn sm primary" @click="jobDetailsOpen = false">关闭</button>
                   </div>
                 </div>
               </div>
@@ -245,6 +245,13 @@ const jobTab = useJobTab({
   getWindowKey: () => 'component-type-jobs',
   getDescriptionHint: () => (selected.value?.name || selected.value?.typeNumber || '') + ' — 类型维护作业',
 })
+// 手册：与 ComponentsView 一致 —— 将 composable 返回的 ref 提升为顶层绑定，
+// 模板中才能自动解包（嵌套在 jobTab 对象内的 ref 在模板里不会被解包，会导致 v-for 遍历 ref 自身）。
+const relJobs = jobTab.relJobs
+const selectedJob = jobTab.selectedJob
+const jobDetailsOpen = jobTab.jobDetailsOpen
+const jobDetailsJD = jobTab.jobDetailsJD
+const jobDetailsJobNo = jobTab.jobDetailsJobNo
 
 // ===== Components 标签：该类型下的已注册组件实例 =====
 const relComponents = computed(() => {
