@@ -724,8 +724,29 @@ export const windowRegistry = {
       noteTab('makers', 'Makers', '制造商列表。'),
       noteTab('vendors', 'Vendors', '供应商列表。'),
       noteTab('grades', 'Grades', '等级。'),
-      noteTab('ctypes', 'Component Types', '关联组件类型。'),
-      noteTab('ph', 'Purchase History', '采购历史。'),
+      // 手册 P181/P184：Used in Component Types —— 显示引用本 Stock Type 的组件类型（只读聚合）
+      { id: 'ctypes', label: 'Used in Component Types', type: 'agg-list', aggKey: 'usedInComponentTypes',
+        columns: [
+          { key: 'typeNumber', label: 'Type No.', width: '110px' },
+          { key: 'name', label: 'Name' },
+          { key: 'status', label: 'Status', width: '90px' },
+        ] },
+      // 手册 P181：Available Stock —— 本 Stock Type 在各安装地点注册为 Stock Items 后的库存汇总（只读聚合）
+      { id: 'avail', label: 'Available Stock', type: 'agg-list', aggKey: 'availableStock',
+        columns: [
+          { key: 'location', label: 'Location', width: '160px' },
+          { key: 'quantity', label: 'Quantity', align: 'right', width: '90px' },
+        ] },
+      // 手册 P189：Purchase History —— 本 Stock Type 所有 Items 的采购交易历史（只读聚合）
+      { id: 'ph', label: 'Purchase History', type: 'agg-list', aggKey: 'purchaseHistory',
+        columns: [
+          { key: 'transactionNo', label: 'TX No.', width: '110px' },
+          { key: 'type', label: 'Type', width: '80px' },
+          { key: 'stockItem', label: 'Stock Item', width: '110px' },
+          { key: 'quantity', label: 'Qty', align: 'right', width: '60px' },
+          { key: 'date', label: 'Date', width: '100px' },
+          { key: 'reference', label: 'Ref.', width: '90px' },
+        ] },
     ],
     options: [{ label: 'Register as Stock Item', action: 'register-stock' }, { label: 'Set Status', action: 'set-status' }],
   },
