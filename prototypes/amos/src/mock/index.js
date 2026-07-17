@@ -60,80 +60,80 @@ export const db = reactive({
   // 既有 4 个类型保留，并扩充至 15 个覆盖船舶各系统的真实设备类型。
   // 字段对齐手册 P36 General（Number/Name/Maker/Type/Preferred Vendor/Parent/Component Class）和 Details（Model/Status/Description/Dates）
   componentTypes: [
-    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', type: 'Liner', classCode: 'ENG', status: 'Active', preferredVendor: 'Wärtsilä Marine', parentTypeNumber: '', description: 'Main Engine cylinder liner assembly for low-speed 2-stroke engines', dateCreated: '2022-01-15', dateModified: '2024-06-10', jobs: 4, counters: [
+    { id: uid('ct'), typeNumber: 'CT-1001', name: 'Main Engine Cylinder Liner', maker: 'Wärtsilä', model: 'RT-flex', type: 'Liner', classCode: 'ENG', compTypeModel: 'RT-flex82T', status: 'Active', preferredVendor: 'Wärtsilä Marine', parentTypeNumber: '', description: 'Main Engine cylinder liner assembly for low-speed 2-stroke engines', dateCreated: '2022-01-15', dateModified: '2024-06-10', jobs: 4, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
         { code: 'CYCLES', description: 'Start Cycles', unit: 'cycles', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Exhaust Temp Outlet', trend: 'Stable', unit: '°C' },
         ], parts: [{ stockTypeNo: 'ST-101', alternativeNo: '' }], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', type: 'Boiler', classCode: 'BOI', status: 'Active', preferredVendor: 'Aalborg Industries', parentTypeNumber: '', description: 'Composite boiler for auxiliary steam supply and cargo heating', dateCreated: '2022-03-20', dateModified: '2024-05-18', jobs: 5, counters: [
+    { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', type: 'Boiler', classCode: 'BOI', compTypeModel: 'MISSION OC-MI', status: 'Active', preferredVendor: 'Aalborg Industries', parentTypeNumber: '', description: 'Composite boiler for auxiliary steam supply and cargo heating', dateCreated: '2022-03-20', dateModified: '2024-05-18', jobs: 5, counters: [
         { code: 'FIRE-HRS', description: 'Fired Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Working Pressure', trend: 'Stable', unit: 'bar' },
         { code: 'FLUE-TEMP', description: 'Flue Gas Temp', trend: 'Up', unit: '°C' },
         { code: 'WATER-LEVEL', description: 'Water Level', trend: 'Stable', unit: 'mm' },
         ], parts: [{ stockTypeNo: 'ST-201', alternativeNo: '' }], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', type: 'Pump', classCode: 'PMP', status: 'Active', preferredVendor: 'Grundfos', parentTypeNumber: '', description: 'Standard centrifugal pump for cooling water and ballast service', dateCreated: '2022-04-10', dateModified: '2024-03-22', jobs: 3, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2001', name: 'Centrifugal Pump', maker: 'Grundfos', model: 'NB', type: 'Pump', classCode: 'PMP', compTypeModel: 'NBG 200-180-315', status: 'Active', preferredVendor: 'Grundfos', parentTypeNumber: '', description: 'Standard centrifugal pump for cooling water and ballast service', dateCreated: '2022-04-10', dateModified: '2024-03-22', jobs: 3, counters: [
         { code: 'PUMP-HRS', description: 'Pump Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-301', alternativeNo: '' }], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', type: 'Valve', classCode: 'VAL', status: 'Obsolete', preferredVendor: 'Tyco International', parentTypeNumber: '', description: 'Sea water inlet/outlet butterfly valve — superseded by CT-3501', dateCreated: '2019-08-05', dateModified: '2023-11-30', jobs: 2, counters: [], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [] },
+    { id: uid('ct'), typeNumber: 'CT-3001', name: 'Sea Water Valve', maker: 'Tyco', model: 'V-900', type: 'Valve', classCode: 'VAL', compTypeModel: 'V-900 DN200', status: 'Obsolete', preferredVendor: 'Tyco International', parentTypeNumber: '', description: 'Sea water inlet/outlet butterfly valve — superseded by CT-3501', dateCreated: '2019-08-05', dateModified: '2023-11-30', jobs: 2, counters: [], measurePointDefs: [], parts: [{ stockTypeNo: 'ST-401', alternativeNo: '' }], relatedTypes: [] },
     // 手册 P44-45：活塞组件类型，其 RUN-HRS 计数器默认 dependsOn 主机 C-10001
-    { id: uid('ct'), typeNumber: 'CT-1003', name: 'Main Engine Piston & Rod', maker: 'Wärtsilä', model: 'S26MC', type: 'Piston', classCode: 'PIS', status: 'Active', preferredVendor: 'Wärtsilä Marine', parentTypeNumber: 'CT-1001', description: 'Piston and connecting rod assembly for S26MC main engine, parent type: Cylinder Liner', dateCreated: '2022-02-28', dateModified: '2024-07-01', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-1003', name: 'Main Engine Piston & Rod', maker: 'Wärtsilä', model: 'S26MC', type: 'Piston', classCode: 'PIS', compTypeModel: 'S26MC-Piston', status: 'Active', preferredVendor: 'Wärtsilä Marine', parentTypeNumber: 'CT-1001', description: 'Piston and connecting rod assembly for S26MC main engine, parent type: Cylinder Liner', dateCreated: '2022-02-28', dateModified: '2024-07-01', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: 'C-10001' },
       ], measurePointDefs: [], parts: [], relatedTypes: [] },
     // ===== 扩充：船舶各系统真实设备类型 =====
-    { id: uid('ct'), typeNumber: 'CT-2002', name: 'Auxiliary Engine (Generator Set)', maker: 'MAN Energy', model: '6L23/30', type: 'Generator', classCode: 'ENG', status: 'Active', preferredVendor: 'MAN Energy Solutions', parentTypeNumber: '', description: 'Auxiliary 4-stroke generator engine for ship service power supply', dateCreated: '2022-05-12', dateModified: '2024-04-15', jobs: 4, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2002', name: 'Auxiliary Engine (Generator Set)', maker: 'MAN Energy', model: '6L23/30', type: 'Generator', classCode: 'ENG', compTypeModel: '6L23/30H', status: 'Active', preferredVendor: 'MAN Energy Solutions', parentTypeNumber: '', description: 'Auxiliary 4-stroke generator engine for ship service power supply', dateCreated: '2022-05-12', dateModified: '2024-04-15', jobs: 4, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
         { code: 'FUEL-CONS', description: 'Fuel Consumption', unit: 't', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TC-TEMP', description: 'Turbocharger Temp', trend: 'Up', unit: '°C' },
         { code: 'LO-PRESS', description: 'Lub Oil Pressure', trend: 'Stable', unit: 'bar' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2003', name: 'Fresh Water Generator', maker: 'Alfa Laval', model: 'JWP-26', type: 'Evaporator', classCode: 'AUX', status: 'Active', preferredVendor: 'Alfa Laval', parentTypeNumber: '', description: 'Low-pressure evaporator for fresh water production from seawater', dateCreated: '2022-06-01', dateModified: '2024-02-28', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2003', name: 'Fresh Water Generator', maker: 'Alfa Laval', model: 'JWP-26', type: 'Evaporator', classCode: 'AUX', compTypeModel: 'JWP-26-C50', status: 'Active', preferredVendor: 'Alfa Laval', parentTypeNumber: '', description: 'Low-pressure evaporator for fresh water production from seawater', dateCreated: '2022-06-01', dateModified: '2024-02-28', jobs: 2, counters: [
         { code: 'PROD-CAP', description: 'Produced Capacity', unit: 'm³/day', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'SALINITY', description: 'Salinity', trend: 'Up', unit: 'ppm' },
         { code: 'TEMP-OUT', description: 'Distillate Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', maker: 'Alfa Laval', model: 'MAPX-205', type: 'Purifier', classCode: 'ENG', status: 'Active', preferredVendor: 'Alfa Laval', parentTypeNumber: '', description: 'Centrifugal purifier for HFO and MDO treatment', dateCreated: '2022-06-15', dateModified: '2024-03-10', jobs: 3, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2004', name: 'Fuel Oil Purifier', maker: 'Alfa Laval', model: 'MAPX-205', type: 'Purifier', classCode: 'ENG', compTypeModel: 'MAPX-205-T', status: 'Active', preferredVendor: 'Alfa Laval', parentTypeNumber: '', description: 'Centrifugal purifier for HFO and MDO treatment', dateCreated: '2022-06-15', dateModified: '2024-03-10', jobs: 3, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2005', name: 'Steering Gear', maker: 'Rolls-Royce', model: 'TF-80', type: 'Steering', classCode: 'DECK', status: 'Active', preferredVendor: 'Rolls-Royce Marine', parentTypeNumber: '', description: 'Electro-hydraulic steering gear system for rudder control', dateCreated: '2022-07-20', dateModified: '2024-05-05', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2005', name: 'Steering Gear', maker: 'Rolls-Royce', model: 'TF-80', type: 'Steering', classCode: 'DECK', compTypeModel: 'TF-80H', status: 'Active', preferredVendor: 'Rolls-Royce Marine', parentTypeNumber: '', description: 'Electro-hydraulic steering gear system for rudder control', dateCreated: '2022-07-20', dateModified: '2024-05-05', jobs: 2, counters: [
         { code: 'RAM-STROKE', description: 'Ram Stroke', unit: 'mm', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2006', name: 'Plate Heat Exchanger', maker: 'SWEP', model: 'B200', type: 'Cooler', classCode: 'ENG', status: 'Active', preferredVendor: 'SWEP International', parentTypeNumber: '', description: 'Brazed plate heat exchanger for central cooling water system', dateCreated: '2022-08-03', dateModified: '2024-04-20', jobs: 2, counters: [], measurePointDefs: [
+    { id: uid('ct'), typeNumber: 'CT-2006', name: 'Plate Heat Exchanger', maker: 'SWEP', model: 'B200', type: 'Cooler', classCode: 'ENG', compTypeModel: 'B200TH', status: 'Active', preferredVendor: 'SWEP International', parentTypeNumber: '', description: 'Brazed plate heat exchanger for central cooling water system', dateCreated: '2022-08-03', dateModified: '2024-04-20', jobs: 2, counters: [], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Outlet Temp', trend: 'Up', unit: '°C' },
         { code: 'TEMP-IN', description: 'Inlet Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2007', name: 'Main Switchboard', maker: 'ABB', model: 'UNIGEAR', type: 'Switchboard', classCode: 'ELE', status: 'Active', preferredVendor: 'ABB Marine', parentTypeNumber: '', description: 'Low-voltage main switchboard for power distribution and monitoring', dateCreated: '2022-08-18', dateModified: '2024-06-01', jobs: 3, counters: [], measurePointDefs: [
+    { id: uid('ct'), typeNumber: 'CT-2007', name: 'Main Switchboard', maker: 'ABB', model: 'UNIGEAR', type: 'Switchboard', classCode: 'ELE', compTypeModel: 'UNIGEAR 5500', status: 'Active', preferredVendor: 'ABB Marine', parentTypeNumber: '', description: 'Low-voltage main switchboard for power distribution and monitoring', dateCreated: '2022-08-18', dateModified: '2024-06-01', jobs: 3, counters: [], measurePointDefs: [
         { code: 'LOAD-CURR', description: 'Load Current', trend: 'Up', unit: 'A' },
         { code: 'FREQ', description: 'Frequency', trend: 'Stable', unit: 'Hz' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2008', name: 'Emergency Generator', maker: 'Cummins', model: 'KTA19', type: 'Generator', classCode: 'ELE', status: 'Active', preferredVendor: 'Cummins Inc.', parentTypeNumber: '', description: 'Diesel-driven emergency generator set for SOLAS compliance', dateCreated: '2022-09-01', dateModified: '2024-03-15', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2008', name: 'Emergency Generator', maker: 'Cummins', model: 'KTA19', type: 'Generator', classCode: 'ELE', compTypeModel: 'KTA19-G4', status: 'Active', preferredVendor: 'Cummins Inc.', parentTypeNumber: '', description: 'Diesel-driven emergency generator set for SOLAS compliance', dateCreated: '2022-09-01', dateModified: '2024-03-15', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2009', name: 'Mooring Winch', maker: 'MacGregor', model: 'MW-40', type: 'Winch', classCode: 'DECK', status: 'Active', preferredVendor: 'MacGregor / Cargotec', parentTypeNumber: '', description: 'Hydraulic mooring winch for berthing and unberthing operations', dateCreated: '2022-09-15', dateModified: '2024-04-25', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2009', name: 'Mooring Winch', maker: 'MacGregor', model: 'MW-40', type: 'Winch', classCode: 'DECK', compTypeModel: 'MW-40T', status: 'Active', preferredVendor: 'MacGregor / Cargotec', parentTypeNumber: '', description: 'Hydraulic mooring winch for berthing and unberthing operations', dateCreated: '2022-09-15', dateModified: '2024-04-25', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'PRESSURE', description: 'Hydraulic Pressure', trend: 'Stable', unit: 'bar' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2010', name: 'Cargo Hold / Hatch Cover', maker: 'TTS', model: 'CH-30', type: 'Hatch', classCode: 'CARGO', status: 'Active', preferredVendor: 'TTS (MacGregor Group)', parentTypeNumber: '', description: 'Pont-type hatch cover for multi-purpose cargo hold', dateCreated: '2022-10-01', dateModified: '2024-02-10', jobs: 2, counters: [], measurePointDefs: [
+    { id: uid('ct'), typeNumber: 'CT-2010', name: 'Cargo Hold / Hatch Cover', maker: 'TTS', model: 'CH-30', type: 'Hatch', classCode: 'CARGO', compTypeModel: 'CH-30P', status: 'Active', preferredVendor: 'TTS (MacGregor Group)', parentTypeNumber: '', description: 'Pont-type hatch cover for multi-purpose cargo hold', dateCreated: '2022-10-01', dateModified: '2024-02-10', jobs: 2, counters: [], measurePointDefs: [
         { code: 'TEMP', description: 'Hold Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2011', name: 'HVAC Chiller', maker: 'Carrier', model: '30HXC', type: 'Chiller', classCode: 'ACC', status: 'Active', preferredVendor: 'Carrier Corporation', parentTypeNumber: '', description: 'Water-cooled centrifugal chiller for air conditioning system', dateCreated: '2022-10-15', dateModified: '2024-05-12', jobs: 2, counters: [
+    { id: uid('ct'), typeNumber: 'CT-2011', name: 'HVAC Chiller', maker: 'Carrier', model: '30HXC', type: 'Chiller', classCode: 'ACC', compTypeModel: '30HXC200', status: 'Active', preferredVendor: 'Carrier Corporation', parentTypeNumber: '', description: 'Water-cooled centrifugal chiller for air conditioning system', dateCreated: '2022-10-15', dateModified: '2024-05-12', jobs: 2, counters: [
         { code: 'RUN-HRS', description: 'Running Hours', unit: 'hrs', dependsOn: '' },
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Supply Temp', trend: 'Stable', unit: '°C' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2012', name: 'Radar / Navigation Console', maker: 'Furuno', model: 'FAR-2827', type: 'Radar', classCode: 'NAV', status: 'Active', preferredVendor: 'Furuno Electric', parentTypeNumber: '', description: 'X-band navigation radar with ARPA and target tracking', dateCreated: '2022-11-01', dateModified: '2024-01-20', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2013', name: 'Fire Detection Panel', maker: 'Kidde', model: 'MX-400', type: 'Panel', classCode: 'SAF', status: 'Active', preferredVendor: 'Kidde (Carrier Fire Products)', parentTypeNumber: '', description: 'Addressable fire detection panel with loop monitoring', dateCreated: '2022-11-15', dateModified: '2024-02-28', jobs: 1, counters: [], measurePointDefs: [
+    { id: uid('ct'), typeNumber: 'CT-2012', name: 'Radar / Navigation Console', maker: 'Furuno', model: 'FAR-2827', type: 'Radar', classCode: 'NAV', compTypeModel: 'FAR-2827S', status: 'Active', preferredVendor: 'Furuno Electric', parentTypeNumber: '', description: 'X-band navigation radar with ARPA and target tracking', dateCreated: '2022-11-01', dateModified: '2024-01-20', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] },
+    { id: uid('ct'), typeNumber: 'CT-2013', name: 'Fire Detection Panel', maker: 'Kidde', model: 'MX-400', type: 'Panel', classCode: 'SAF', compTypeModel: 'MX-400A', status: 'Active', preferredVendor: 'Kidde (Carrier Fire Products)', parentTypeNumber: '', description: 'Addressable fire detection panel with loop monitoring', dateCreated: '2022-11-15', dateModified: '2024-02-28', jobs: 1, counters: [], measurePointDefs: [
         { code: 'ZONE-STATUS', description: 'Zone Status', trend: 'Stable', unit: '' },
         ], parts: [], relatedTypes: [] },
-    { id: uid('ct'), typeNumber: 'CT-2014', name: 'Lifeboat', maker: 'Schat-Harding', model: 'FFD-42', type: 'Lifeboat', classCode: 'LS', status: 'Active', preferredVendor: 'Schat-Harding (Viking Life-Saving)', parentTypeNumber: '', description: 'Totally enclosed free-fall lifeboat for 42 persons, SOLAS compliant', dateCreated: '2022-12-01', dateModified: '2024-03-30', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] },
+    { id: uid('ct'), typeNumber: 'CT-2014', name: 'Lifeboat', maker: 'Schat-Harding', model: 'FFD-42', type: 'Lifeboat', classCode: 'LS', compTypeModel: 'FFD-42S', status: 'Active', preferredVendor: 'Schat-Harding (Viking Life-Saving)', parentTypeNumber: '', description: 'Totally enclosed free-fall lifeboat for 42 persons, SOLAS compliant', dateCreated: '2022-12-01', dateModified: '2024-03-30', jobs: 1, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] },
   ],
 
   // 指南（手册 2.2）：组件状态为 In Use（已安装）/ Available（未安装）/ Transferred / Scrapped

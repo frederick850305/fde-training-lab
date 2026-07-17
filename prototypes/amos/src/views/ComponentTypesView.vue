@@ -160,6 +160,8 @@ const tabs = [
     { key: 'preferredVendor', label: 'Preferred Vendor', type: 'lookup', lookupKey: 'makers' },
     { key: 'parentTypeNumber', label: 'Parent', type: 'lookup', lookupKey: 'componentTypes' },
     { key: 'classCode', label: 'Component Class', type: 'select', options: ['ENG', 'BOI', 'PMP', 'VAL', 'PIS', 'ELEC', 'HYD'] },
+    // 手册 P36 截图：General 标签末尾 — Component Class 旁的 Comp Type Model 文本框
+    { key: 'compTypeModel', label: 'Comp Type Model' },
   ] },
   // 手册 P36 截图 — Details 标签：Model / Status / 补充描述信息
   { id: 'details', label: 'Details', fields: [

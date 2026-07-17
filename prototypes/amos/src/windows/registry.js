@@ -41,6 +41,8 @@ export const windowRegistry = {
           { key: 'preferredVendor', label: 'Preferred Vendor', type: 'select', options: ['', ...lookups.vendors()] },
           { key: 'parentTypeNumber', label: 'Parent Component Type', type: 'lookup', lookupKey: 'componentTypes' },
           { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Obsolete', 'Blocked'] },
+          // 手册 P36 截图：General 标签末尾 — Component Class 旁的 Comp Type Model 文本框
+          { key: 'compTypeModel', label: 'Comp Type Model' },
         ],
       },
       // 手册 2 / P37：Jobs tab 的 New/View 打开 Component Type Jobs（这里直接维护指向该类型的作业）
