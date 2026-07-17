@@ -5,6 +5,7 @@
       <div class="row" style="gap:6px">
         <button v-for="m in modes" :key="m.key" class="amos-btn sm" :class="{ primary: mode === m.key }" @click="mode = m.key">{{ m.label }}</button>
         <button class="amos-btn sm" @click="doNew" v-if="mode === 'specification'">New</button>
+        <button class="amos-btn sm primary" @click="doSave" v-if="mode === 'specification'" :disabled="!sel">Save</button>
       </div>
     </div>
 
@@ -149,6 +150,11 @@ const groups = computed(() => budgetService.accumulatedGroups())
 async function doNew() {
   const rec = await budgetService.create({})
   selId.value = rec.id; showToast('已新建预算', 'ok')
+}
+function doSave() {
+  if (!sel.value) return showToast('请先选择预算记录', 'warn')
+  // 原型态：数据已通过 v-model 绑定到 service 内存对象，此处确认保存语义
+  showToast('已保存预算：' + sel.value.code, 'ok')
 }
 </script>
 

@@ -6,6 +6,7 @@
         <button class="amos-btn sm primary" @click="doNew">New</button>
         <button class="amos-btn sm" @click="calculate" :disabled="!selected">Calculate</button>
         <button class="amos-btn sm" @click="linkForm" :disabled="!selected">Link Form</button>
+        <button class="amos-btn sm primary" @click="doSave" :disabled="!selected">Save</button>
       </div>
     </div>
 
@@ -66,6 +67,11 @@ async function calculate() {
   if (!selected.value) return
   const v = await voucherService.calculate(selected.value.id)
   if (v) showToast('已计算 Net / VAT / Total', 'ok')
+}
+function doSave() {
+  if (!selected.value) return showToast('请先选择凭证', 'warn')
+  // 原型态：Vendor 字段已通过 v-model 绑定到 selected 对象（内存引用）
+  showToast('已保存凭证：' + selected.value.voucherNo, 'ok')
 }
 async function linkForm() {
   if (!selected.value) return
