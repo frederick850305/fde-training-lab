@@ -148,20 +148,26 @@ const columns = [
   { key: '_jobs', label: 'Jobs', align: 'right', width: '70px' },
 ]
 
-// ===== 标签页定义（与 registry.js component-types 的 detailTabs 对齐）=====
+// ===== 标签页定义（对照手册 P36 截图：General / Details / Jobs / ...）=====
 const tabs = [
+  // 手册 P36 截图 — General 标签：Number / Name / Maker(lookup) / Type / Preferred Vendor(lookup) / Parent(lookup) / Component Class(下拉)
   { id: 'general', label: 'General', fields: [
-    { key: 'typeNumber', label: 'Type Number' },
+    { key: 'typeNumber', label: 'Number' },
     { key: 'name', label: 'Name' },
-    { key: 'maker', label: 'Maker' },
-    { key: 'model', label: 'Model' },
+    { key: 'maker', label: 'Maker', type: 'lookup', lookupKey: 'makers' },
     { key: 'type', label: 'Type' },
-    { key: 'classCode', label: 'Component Class' },
-    { key: 'preferredVendor', label: 'Preferred Vendor', type: 'select', options: ['Wärtsilä', 'MAN Energy', 'Aalborg', 'Grundfos', 'Tyco', 'Alfa Laval', 'ABB'] },
-    { key: 'parentTypeNumber', label: 'Parent Component Type', type: 'lookup', lookupKey: 'componentTypes' },
-    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Obsolete', 'Blocked'] },
+    { key: 'preferredVendor', label: 'Preferred Vendor', type: 'lookup', lookupKey: 'makers' },
+    { key: 'parentTypeNumber', label: 'Parent', type: 'lookup', lookupKey: 'componentTypes' },
+    { key: 'classCode', label: 'Component Class', type: 'select', options: ['ENG', 'BOI', 'PMP', 'VAL', 'PIS', 'ELEC', 'HYD'] },
   ] },
-  { id: 'details', label: 'Details', fields: [] },
+  // 手册 P36 截图 — Details 标签：Model / Status / 补充描述信息
+  { id: 'details', label: 'Details', fields: [
+    { key: 'model', label: 'Model' },
+    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Obsolete', 'Blocked'] },
+    { key: 'description', label: 'Description' },
+    { key: 'dateCreated', label: 'Date Created', type: 'readonly' },
+    { key: 'dateModified', label: 'Date Modified', type: 'readonly' },
+  ] },
   // 手册 P57 截图：Jobs 标签 —— 使用 useJobTab composable，targetType 为 ComponentType
   { id: 'jobs', label: 'Jobs', fields: [] },
   // Parts / Counters / Measure Points / Related 均为子表标签
@@ -290,7 +296,8 @@ function onSubAction(e) {
 
 // ===== 操作按钮 =====
 function doNew() {
-  const rec = { id: 'ct_' + Date.now(), typeNumber: 'CT-' + Math.floor(Math.random() * 90000 + 10000), name: '', maker: '', model: '', type: '', classCode: '', status: 'Active', preferredVendor: '', parentTypeNumber: '', jobs: 0, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] }
+  const now = new Date().toISOString().slice(0, 10)
+  const rec = { id: 'ct_' + Date.now(), typeNumber: 'CT-' + Math.floor(Math.random() * 90000 + 10000), name: '', maker: '', model: '', type: '', classCode: '', status: 'Active', preferredVendor: '', parentTypeNumber: '', description: '', dateCreated: now, dateModified: now, jobs: 0, counters: [], measurePointDefs: [], parts: [], relatedTypes: [] }
   all.value.push(rec); selected.value = rec
   showToast('已新建组件类型，编辑后 Save', 'ok')
 }
