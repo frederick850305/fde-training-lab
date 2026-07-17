@@ -146,7 +146,12 @@ button { font-family: inherit; }
 .tag.violet { background: #efe7fb; color: #7a45c9; }
 
 /* ===== 标签页 ===== */
-.tab-row { display: flex; gap: 2px; border-bottom: 1px solid var(--amos-border); background: var(--amos-panel-2); padding: 4px 6px 0; }
+/* tab-row：标签栏 — 过多时横向滚动；滚动条纤细半透明不遮挡 tab 内容 */
+.tab-row { display: flex; gap: 2px; border-bottom: 1px solid var(--amos-border); background: var(--amos-panel-2); padding: 4px 6px 0; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; scrollbar-width: thin; scrollbar-color: rgba(160,180,200,0.4) transparent; }
+.tab-row::-webkit-scrollbar { height: 5px; }
+.tab-row::-webkit-scrollbar-track { background: transparent; }
+.tab-row::-webkit-scrollbar-thumb { background: rgba(160,180,200,0.45); border-radius: 3px; }
+.tab-row::-webkit-scrollbar-thumb:hover { background: rgba(140,165,190,0.65); }
 .tab-row .tab {
   padding: 6px 14px;
   border: 1px solid var(--amos-border);

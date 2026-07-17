@@ -453,10 +453,13 @@ function onSubResizeEnd() {
 </script>
 
 <style scoped>
-.record-detail { display: flex; flex-direction: column; height: 100%; }
-.tab-row { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
-.tab-row::-webkit-scrollbar { height: 4px; }
-.tab-row::-webkit-scrollbar-thumb { background: #c0d0e8; border-radius: 2px; }
+.record-detail { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+/* tab-row：标签栏 — 过多时横向滚动，滚动条纤细且半透明不遮挡内容 */
+.tab-row { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; padding: 4px 6px 0; scrollbar-width: thin; scrollbar-color: rgba(160,180,200,0.4) transparent; }
+.tab-row::-webkit-scrollbar { height: 5px; }
+.tab-row::-webkit-scrollbar-track { background: transparent; }
+.tab-row::-webkit-scrollbar-thumb { background: rgba(160,180,200,0.45); border-radius: 3px; }
+.tab-row::-webkit-scrollbar-thumb:hover { background: rgba(140,165,190,0.65); }
 .tab { padding: 5px 9px; cursor: pointer; border: 1px solid var(--amos-border); border-bottom: none; border-radius: 6px 6px 0 0; background: #f3f6fa; color: var(--amos-text-soft); font-size: 11.5px; white-space: nowrap; flex-shrink: 0; }
 .tab:hover { background: #fff; }
 .tab.active { background: #fff; color: var(--amos-blue); font-weight: 700; box-shadow: inset 0 -2px 0 var(--amos-blue); }
