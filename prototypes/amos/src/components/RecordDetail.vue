@@ -45,10 +45,26 @@
               <tr v-if="!subRows(t).length">
                 <td :colspan="t.columns.length + 1" class="muted" style="text-align:center;padding:10px">（空）点击 New 添加</td>
               </tr>
-            </tbody>
-          </table></div>
-        </template>
-        <template v-else-if="t.type === 'rotation-log'">
+          </tbody>
+        </table></div>
+      </template>
+      <template v-else-if="t.type === 'agg-list'">
+        <!-- 手册 P181/P184：Stock Types 只读聚合标签页（Used in Component Types / Available Stock / Purchase History） -->
+        <div class="table-wrap"><table class="amos-grid sub">
+          <thead><tr>
+            <th v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ c.label }}</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="(row, ri) in aggRows(t)" :key="ri">
+              <td v-for="c in t.columns" :key="c.key" :style="subColStyle(t, c)">{{ row[c.key] }}</td>
+            </tr>
+            <tr v-if="!aggRows(t).length">
+              <td :colspan="t.columns.length" class="muted" style="text-align:center;padding:10px">（无记录）</td>
+            </tr>
+          </tbody>
+        </table></div>
+      </template>
+      <template v-else-if="t.type === 'rotation-log'">
           <div class="subgrid-bar">
             <button v-for="a in (t.subActions || [])" :key="a.id" class="amos-btn xs" @click="runRotationAction(t, a)">{{ a.label }}</button>
             <span class="muted">{{ rotationCycles(t).length }} 条记录</span>
@@ -369,6 +385,36 @@ function counterList(t) {
       code: cc.code, description: cc.description, unit: cc.unit || '',
       currentValue: cc.currentValue != null ? cc.currentValue : '',
     }))
+  }
+  return []
+}
+// 手册 P181/P184：Stock Types 只读聚合标签页（Used in Component Types / Available Stock / Purchase History）
+function aggRows(t) {
+  const no = props.model?.stockTypeNo
+  if (!no) return []
+  // Used in Component Types：反查引用本 Stock Type 的组件类型
+  if (t.aggKey === 'usedInComponentTypes') {
+    return collectionService.collection('componentTypes')
+      .filter((ct) => (ct.parts || []).some((p) => p.stockTypeNo === no))
+      .map((ct) => ({ typeNumber: ct.typeNumber, name: ct.name, status: ct.status }))
+  }
+  // Available Stock：本 Stock Type 在各地点注册为 Stock Items 后的库存汇总
+  if (t.aggKey === 'availableStock') {
+    const items = collectionService.collection('stockItems').filter((s) => s.stockTypeNo === no)
+    const map = {}
+    items.forEach((s) => {
+      const loc = s.location || s.department || '—'
+      map[loc] = (map[loc] || 0) + (Number(s.quantity) || 0)
+    })
+    return Object.keys(map).map((loc) => ({ location: loc, quantity: map[loc] }))
+  }
+  // Purchase History：本 Stock Type 所有 Items 的采购交易历史（经 stockItems 映射 stockTypeNo）
+  if (t.aggKey === 'purchaseHistory') {
+    const siByNo = {}
+    collectionService.collection('stockItems').forEach((s) => { siByNo[s.stockItemNo] = s.stockTypeNo })
+    return collectionService.collection('transactions')
+      .filter((tx) => siByNo[tx.stockItem] === no)
+      .map((tx) => ({ transactionNo: tx.transactionNo, type: tx.type, stockItem: tx.stockItem, quantity: tx.quantity, date: tx.date, reference: tx.reference || '' }))
   }
   return []
 }
