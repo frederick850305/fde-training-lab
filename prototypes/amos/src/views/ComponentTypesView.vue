@@ -475,11 +475,9 @@ const addInfoPartOpen = ref(false)
 const addInfoPartData = ref(null)
 function showAddInfoPart(row) {
   if (!row || !row.stockTypeNo) { showToast('请先选择一个 Part 并填写 Stock Type', 'warn'); return }
-  import('../services/stockTypeService.js').then((mod) => {
-    const st = mod.stockTypeService.byNo(row.stockTypeNo)
-    addInfoPartData.value = { ...row, stockTypeInfo: st || null }
-    addInfoPartOpen.value = true
-  })
+  const st = stockTypeService.get(row.stockTypeNo)
+  addInfoPartData.value = { ...row, stockTypeInfo: st || null }
+  addInfoPartOpen.value = true
 }
 
 // Copy List：将 Parts 列表复制到剪贴板（Item No. / Name / Makers Ref.）
