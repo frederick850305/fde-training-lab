@@ -66,8 +66,9 @@ export const db = reactive({
       ], measurePointDefs: [
         { code: 'TEMP-OUT', description: 'Exhaust Temp Outlet', trend: 'Stable', unit: '°C' },
       ], parts: [
-        { stockTypeNo: 'ST-101', alternativeNo: '601.03.00.001' },
-        { stockTypeNo: 'ST-103', alternativeNo: '601.01.00.002' },
+        { stockTypeNo: 'ST-101', alternativeNo: '601.03.00.001', name: 'Cylinder liner, Part 01', makersRef: '1698466' },
+        { stockTypeNo: 'ST-102', alternativeNo: '601.03.00.002', name: 'Cylinder liner, Part 02', makersRef: '79613003' },
+        { stockTypeNo: 'ST-103', alternativeNo: '601.03.00.003', name: 'Cylinder liner, Part 03', makersRef: '87971491' },
       ], relatedTypes: [] },
     { id: uid('ct'), typeNumber: 'CT-1002', name: 'Auxiliary Boiler', maker: 'Aalborg', model: 'MISSION', type: 'Boiler', classCode: 'BOI', compTypeModel: 'MISSION OC-MI', status: 'Active', preferredVendor: 'Aalborg Industries', parentTypeNumber: '', description: 'Composite boiler for auxiliary steam supply and cargo heating', dateCreated: '2022-03-20', dateModified: '2024-05-18', jobs: 5, counters: [
         { code: 'FIRE-HRS', description: 'Fired Hours', unit: 'hrs', dependsOn: '' },

@@ -57,20 +57,10 @@ export const windowRegistry = {
           { key: 'planningMethod', label: 'Method', type: 'select', width: '100px', options: ['Periodic', 'Counter', 'MeasurePoint', 'Trigger'], default: 'Periodic' },
         ],
       },
-      // 手册 2 / P38：Parts 为继承的备件清单；可互换件填 Alternative No.
-      // 操作按钮：New(RecordDetail自动) / View(打开Stock Type窗口) / Add Info(详情弹窗) / Copy List(复制到剪贴板)
-      {
-        id: 'parts', label: 'Parts', type: 'subgrid', subKey: 'parts',
-        columns: [
-          { key: 'stockTypeNo', label: 'Stock Type', type: 'lookup', lookupKey: 'stockTypes', width: '120px', default: '' },
-          { key: 'alternativeNo', label: 'Alternative No.', width: '110px', default: '' },
-        ],
-        subActions: [
-          { id: 'view-part', label: 'View' },
-          { id: 'add-info-part', label: 'Add Info' },
-          { id: 'copy-parts-list', label: 'Copy List' },
-        ],
-      },
+      // 手册 P38：Parts 双表布局（对照手册截图）
+      // 上部（红框）：Parts 列表（Item No. / Name / Makers Ref.）
+      // 下部（绿框）：Stock Types 列表（Number / Name / Maker / Type）
+      { id: 'parts', label: 'Parts', fields: [] },
       // 手册 2 / P39 / P44：Counters 标签（定义该类型组件的计数器模板，注册为组件时继承）
       // 注：Depends On 字段按手册 P44 仅出现在 Components 窗口的 Counters 标签，类型级不设置依赖
       {
