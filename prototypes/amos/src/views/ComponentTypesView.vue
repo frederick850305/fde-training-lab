@@ -12,6 +12,7 @@
           <button class="amos-btn sm" @click="toggleOptions">Options ▾</button>
           <Teleport to="body">
             <div v-if="optionsOpen && optionsRect" class="bw-options-popup" :style="optionsPopupStyle" @mouseleave="optionsOpen = false">
+              <button @click="viewSelected">View</button>
               <button @click="registerComponent">Register as Component</button>
               <button @click="viewTypeJob">View Job</button>
               <button @click="copyType">Copy</button>
@@ -307,6 +308,15 @@ function doDelete() {
   const i = all.value.findIndex((r) => r.id === selected.value.id)
   if (i >= 0) all.value.splice(i, 1)
   selected.value = null; showToast('已删除', 'warn')
+}
+
+// Options > View：确保选中行并展示详情面板（与 Components 单击/双击行为一致）
+function viewSelected() {
+  optionsOpen.value = false
+  const t = selected.value
+  if (!t) { showToast('请先选择一个组件类型', 'warn'); return }
+  // 已选中则无需额外操作，详情面板通过 v-if="selected" 自动展示
+  showToast(`查看组件类型：${t.typeNumber} — ${t.name}`, 'info')
 }
 
 // Options > Register as Component
