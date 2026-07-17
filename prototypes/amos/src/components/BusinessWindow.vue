@@ -6,6 +6,9 @@
       <div class="row" style="gap:6px">
         <span class="muted">{{ dbRows.length }} 条记录</span>
         <button class="amos-btn sm" @click="reopenFilter">查找 / Filter</button>
+        <button class="amos-btn sm primary" @click="doNew">New</button>
+        <button class="amos-btn sm" @click="doSave" :disabled="!selected">Save</button>
+        <button class="amos-btn sm" @click="doDelete" :disabled="!selected">Delete</button>
         <!-- 手册 P40/P41：Functions 窗口工具栏 Install / Remove 按钮（无组件时 Install 可用、Remove 灰显；反之相反） -->
         <template v-if="config.dataKey === 'functions'">
           <button class="amos-btn sm" @click="openInstall" :disabled="!selected || !!selected.installedComponentId">Install</button>

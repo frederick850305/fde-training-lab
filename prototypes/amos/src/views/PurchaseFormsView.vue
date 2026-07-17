@@ -11,6 +11,7 @@
         <button class="amos-btn sm primary" @click="convert" :disabled="!selected">Convert</button>
         <button class="amos-btn sm" @click="applyContract" :disabled="!selected">Apply Contract</button>
         <button class="amos-btn sm" @click="print">Print</button>
+        <button class="amos-btn sm primary" @click="doSave" :disabled="!selected">Save</button>
       </div>
     </div>
 
@@ -116,6 +117,11 @@ async function applyContract() {
   if (!selected.value) return
   const updated = await purchaseFormService.applyContract(selected.value.id)
   if (updated) showToast('已应用合同 ' + updated.contract, 'ok')
+}
+function doSave() {
+  if (!selected.value) return showToast('请先选择采购单', 'warn')
+  // 原型态：General 标签字段已通过 v-model 绑定到 selected 对象（内存引用）
+  showToast('已保存采购单：' + selected.value.formNo, 'ok')
 }
 function print() { window.print() }
 function typeClass(v) {

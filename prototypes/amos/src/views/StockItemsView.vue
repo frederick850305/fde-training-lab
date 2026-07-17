@@ -10,6 +10,7 @@
         <button class="amos-btn sm" @click="doMove" :disabled="!selected">Move</button>
         <button class="amos-btn sm" @click="setStatus" :disabled="!selected">Set Status</button>
         <button class="amos-btn sm" @click="viewPH">View Purchase History</button>
+        <button class="amos-btn sm primary" @click="doSave" :disabled="!selected">Save</button>
       </div>
     </div>
 
@@ -274,6 +275,11 @@ async function setStatus() {
   showToast('状态已设为 ' + next, 'ok')
 }
 function viewPH() { showToast('查看采购历史（原型演示）', 'info') }
+function doSave() {
+  if (!selected.value) return showToast('请先选择库存项', 'warn')
+  // 原型态：RecordDetail 字段已通过 v-model 绑定到 selected（service 内存引用）
+  showToast('已保存库存项：' + selected.value.stockItemNo, 'ok')
+}
 // Open Record
 function doOpen() {
   if (showFilter.value) return

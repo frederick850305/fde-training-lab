@@ -6,10 +6,12 @@
       <span v-else class="scope-badge" title="手册 P20：窗口仅显示当前 Department 范围内的记录">范围：{{ store.department }}</span>
       <div class="row" style="gap:6px">
         <button class="amos-btn sm" @click="reopenFilter">查找 / Filter</button>
+        <button class="amos-btn sm primary" @click="doNew">New</button>
         <button class="amos-btn sm" @click="gen">Generate</button>
         <button class="amos-btn sm" @click="requisition">Requisition Work</button>
         <button class="amos-btn sm primary" @click="advance('next')">Issue / Advance</button>
         <button class="amos-btn sm" @click="openPrint">Print…</button>
+        <button class="amos-btn sm primary" @click="doSave" :disabled="!selected">Save</button>
       </div>
     </div>
 
@@ -225,6 +227,11 @@ async function advance() {
 function gen() { showToast('按计划自动生成工单（原型演示）', 'info') }
 function requisition() { showToast('打开 Requisition Work（原型演示）', 'info') }
 function openPrint() { printOpen.value = true }
+function doSave() {
+  if (!selected.value) return showToast('请先选择工单', 'warn')
+  // 原型态：RecordDetail 字段已通过 v-model 绑定到 selected（service 内存引用）
+  showToast('已保存工单：' + selected.value.workOrderNo, 'ok')
+}
 // Open Record
 function doOpen() {
   if (showFilter.value) return
@@ -250,7 +257,7 @@ async function doNew() {
   const rec = await workOrderService.create({
     workOrderNo: 'WO-' + Math.floor(Math.random() * 9000 + 1000), description: '', status: 'Requested', priority: 'Medium', dueDate: '', department: store.department, functionNo: '', componentId: '', jobId: '',
   })
-  viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建工单，填写后点击 Save 或 Issue/Advance 推进状态', 'ok')
+  viewRows.value = [...viewRows.value, rec]; selected.value = rec; showToast('已新建工单，编辑后点击 Save 保存', 'ok')
 }
 function onAction(e) {
   const a = e.detail?.action
