@@ -106,15 +106,16 @@
             </div>
             <!-- 上部：Parts 列表（红框对应：Item No. / Name / Makers Ref.） -->
             <div class="table-wrap"><table class="amos-grid sub">
-              <thead><tr><th>Item No.</th><th>Name</th><th>Makers Ref.</th></tr></thead>
+              <thead><tr><th>Stock Type No.</th><th>Item No.</th><th>Name</th><th>Makers Ref.</th></tr></thead>
               <tbody>
                 <tr v-for="(p, idx) in partsRows" :key="idx" @click="selectedPart = p"
                     :class="{ selected: selectedPart === p }" style="cursor:pointer">
+                  <td>{{ p.stockTypeNo || '—' }}</td>
                   <td>{{ p.alternativeNo || '—' }}</td>
                   <td>{{ p.name || '—' }}</td>
                   <td>{{ p.makersRef || '—' }}</td>
                 </tr>
-                <tr v-if="!partsRows.length"><td colspan="3" class="muted">该组件类型暂无 Parts。点击 New 添加。</td></tr>
+                <tr v-if="!partsRows.length"><td colspan="4" class="muted">该组件类型暂无 Parts。点击 New 添加。</td></tr>
               </tbody>
             </table></div>
             <!-- Add Info 弹窗 -->
@@ -415,8 +416,8 @@ function showAddInfoPart(row) {
 function copyPartsList() {
   const parts = partsRows.value
   if (!parts.length) { showToast('没有可复制的 Parts 数据', 'warn'); return }
-  const header = 'Item No.\tName\tMakers Ref.'
-  const lines = parts.map((p) => `${p.alternativeNo || ''}\t${p.name || ''}\t${p.makersRef || ''}`)
+  const header = 'Stock Type No.\tItem No.\tName\tMakers Ref.'
+  const lines = parts.map((p) => `${p.stockTypeNo || ''}\t${p.alternativeNo || ''}\t${p.name || ''}\t${p.makersRef || ''}`)
   const text = [`${selected.value.typeNumber} — Component Type Parts:`, header, ...lines].join('\n')
   navigator.clipboard.writeText(text).then(
     () => showToast(`已复制 ${parts.length} 条 Parts 到剪贴板`, 'ok'),
